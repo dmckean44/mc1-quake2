@@ -1,7 +1,4 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
-
-# Print a message that using the Makefiles is recommended.
-message(NOTICE: " The CMakeLists.txt is unmaintained. Use the Makefile if possible.")
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 # Enforce "Debug" as standard build type.
 if(NOT CMAKE_BUILD_TYPE)
@@ -40,15 +37,15 @@ if (MSVC)
 	# don't show me warnings for system headers, why the fuck isn't this default
 	add_compile_options(/experimental:external /external:W0)
 else() # GCC/clang/mingw
-# Enforce compiler flags:
-#  -Wall                -> More warnings
-#  -fno-strict-aliasing -> Quake 2 is far away from strict aliasing
-#  -fwrapv              -> Make signed integer overflows defined
-#  -fvisibility=hidden	-> Force defaultsymbol visibility to hidden
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fno-strict-aliasing -fwrapv -fvisibility=hidden")
+	# Enforce compiler flags:
+	#  -Wall                -> More warnings
+	#  -fno-strict-aliasing -> Quake 2 is far away from strict aliasing
+	#  -fwrapv              -> Make signed integer overflows defined
+	#  -fvisibility=hidden	-> Force defaultsymbol visibility to hidden
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fno-strict-aliasing -fwrapv -fvisibility=hidden")
 
-# Use -O2 as maximum optimization level. -O3 has it's problems with yquake2.
-string(REPLACE "-O3" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+	# Use -O2 as maximum optimization level. -O3 has it's problems with yquake2.
+	string(REPLACE "-O3" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif() # MSVC'S else-case
 
 # Switch off some annoying warnings
