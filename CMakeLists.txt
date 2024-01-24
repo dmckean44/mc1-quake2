@@ -61,6 +61,7 @@ endif()
 option(CURL_SUPPORT "cURL support" ON)
 option(OPENAL_SUPPORT "OpenAL support" ON)
 option(SYSTEMWIDE_SUPPORT "Enable systemwide installation of game assets" OFF)
+option(BUILD_Q2DED "Build Quake 2 dedicated server" OFF)
 
 set(SYSTEMDIR "" CACHE STRING "Override the system default directory")
 
@@ -678,16 +679,18 @@ else()
 endif()
 
 # Quake 2 Dedicated Server
-add_executable(q2ded ${Server-Source} ${Server-Header} ${Platform-Specific-Source}
-		${Backends-Generic-Source})
-set_target_properties(q2ded PROPERTIES
-	COMPILE_DEFINITIONS "DEDICATED_ONLY"
-	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
-	)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
-else()
-	target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2ServerLinkerFlags} ${yquake2ZLibLinkerFlags})
+if(BUILD_Q2DED)
+	add_executable(q2ded ${Server-Source} ${Server-Header} ${Platform-Specific-Source}
+			${Backends-Generic-Source})
+	set_target_properties(q2ded PROPERTIES
+		COMPILE_DEFINITIONS "DEDICATED_ONLY"
+		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
+		)
+	if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+		target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
+	else()
+		target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2ServerLinkerFlags} ${yquake2ZLibLinkerFlags})
+	endif()
 endif()
 
 # Build the game dynamic library
