@@ -323,10 +323,48 @@ else()
 	set(REF-Platform-Specific-Source ${REF-Unix-Source})
 endif()
 
-set(Game-Source
+set(Common-Source
+	${COMMON_SRC_DIR}/argproc.c
+	${COMMON_SRC_DIR}/clientserver.c
+	${COMMON_SRC_DIR}/cmdparser.c
+	${COMMON_SRC_DIR}/collision.c
+	${COMMON_SRC_DIR}/crc.c
+	${COMMON_SRC_DIR}/cvar.c
+	${COMMON_SRC_DIR}/filesystem.c
+	${COMMON_SRC_DIR}/frame.c
+	${COMMON_SRC_DIR}/glob.c
+	${COMMON_SRC_DIR}/md4.c
+	${COMMON_SRC_DIR}/movemsg.c
+	${COMMON_SRC_DIR}/netchan.c
+	${COMMON_SRC_DIR}/pmove.c
 	${COMMON_SRC_DIR}/shared/flash.c
 	${COMMON_SRC_DIR}/shared/rand.c
 	${COMMON_SRC_DIR}/shared/shared.c
+	${COMMON_SRC_DIR}/szone.c
+	${COMMON_SRC_DIR}/unzip/ioapi.c
+	${COMMON_SRC_DIR}/unzip/miniz/miniz.c
+	${COMMON_SRC_DIR}/unzip/miniz/miniz_tdef.c
+	${COMMON_SRC_DIR}/unzip/miniz/miniz_tinfl.c
+	${COMMON_SRC_DIR}/unzip/unzip.c
+	${COMMON_SRC_DIR}/zone.c
+	)
+
+set(Common-Header
+	${COMMON_SRC_DIR}/header/common.h
+	${COMMON_SRC_DIR}/header/crc.h
+	${COMMON_SRC_DIR}/header/files.h
+	${COMMON_SRC_DIR}/header/glob.h
+	${COMMON_SRC_DIR}/header/shared.h
+	${COMMON_SRC_DIR}/header/zone.h
+	${COMMON_SRC_DIR}/unzip/ioapi.h
+	${COMMON_SRC_DIR}/unzip/miniz/minizconf.h
+	${COMMON_SRC_DIR}/unzip/miniz/miniz.h
+	${COMMON_SRC_DIR}/unzip/miniz/miniz_tdef.h
+	${COMMON_SRC_DIR}/unzip/miniz/miniz_tinfl.h
+	${COMMON_SRC_DIR}/unzip/unzip.h
+	)
+
+set(Game-Source
 	${GAME_SRC_DIR}/g_ai.c
 	${GAME_SRC_DIR}/g_chase.c
 	${GAME_SRC_DIR}/g_cmds.c
@@ -439,29 +477,6 @@ set(Client-Source
 	${CLIENT_SRC_DIR}/sound/wave.c
 	${CLIENT_SRC_DIR}/vid/glimp_sdl.c
 	${CLIENT_SRC_DIR}/vid/vid.c
-	${COMMON_SRC_DIR}/argproc.c
-	${COMMON_SRC_DIR}/clientserver.c
-	${COMMON_SRC_DIR}/collision.c
-	${COMMON_SRC_DIR}/crc.c
-	${COMMON_SRC_DIR}/cmdparser.c
-	${COMMON_SRC_DIR}/cvar.c
-	${COMMON_SRC_DIR}/filesystem.c
-	${COMMON_SRC_DIR}/glob.c
-	${COMMON_SRC_DIR}/md4.c
-	${COMMON_SRC_DIR}/movemsg.c
-	${COMMON_SRC_DIR}/frame.c
-	${COMMON_SRC_DIR}/netchan.c
-	${COMMON_SRC_DIR}/pmove.c
-	${COMMON_SRC_DIR}/szone.c
-	${COMMON_SRC_DIR}/zone.c
-	${COMMON_SRC_DIR}/shared/flash.c
-	${COMMON_SRC_DIR}/shared/rand.c
-	${COMMON_SRC_DIR}/shared/shared.c
-	${COMMON_SRC_DIR}/unzip/ioapi.c
-	${COMMON_SRC_DIR}/unzip/unzip.c
-	${COMMON_SRC_DIR}/unzip/miniz/miniz.c
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tdef.c
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tinfl.c
 	${SERVER_SRC_DIR}/sv_cmd.c
 	${SERVER_SRC_DIR}/sv_conless.c
 	${SERVER_SRC_DIR}/sv_entities.c
@@ -491,44 +506,10 @@ set(Client-Header
 	${CLIENT_SRC_DIR}/vid/header/ref.h
 	${CLIENT_SRC_DIR}/vid/header/stb_image_write.h
 	${CLIENT_SRC_DIR}/vid/header/vid.h
-	${COMMON_SRC_DIR}/header/common.h
-	${COMMON_SRC_DIR}/header/crc.h
-	${COMMON_SRC_DIR}/header/files.h
-	${COMMON_SRC_DIR}/header/glob.h
-	${COMMON_SRC_DIR}/header/shared.h
-	${COMMON_SRC_DIR}/header/zone.h
-	${COMMON_SRC_DIR}/unzip/ioapi.h
-	${COMMON_SRC_DIR}/unzip/unzip.h
-	${COMMON_SRC_DIR}/unzip/miniz/miniz.h
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tdef.h
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tinfl.h
-	${COMMON_SRC_DIR}/unzip/miniz/minizconf.h
 	${SERVER_SRC_DIR}/header/server.h
 	)
 
 set(Server-Source
-	${COMMON_SRC_DIR}/argproc.c
-	${COMMON_SRC_DIR}/clientserver.c
-	${COMMON_SRC_DIR}/collision.c
-	${COMMON_SRC_DIR}/crc.c
-	${COMMON_SRC_DIR}/cmdparser.c
-	${COMMON_SRC_DIR}/cvar.c
-	${COMMON_SRC_DIR}/filesystem.c
-	${COMMON_SRC_DIR}/glob.c
-	${COMMON_SRC_DIR}/md4.c
-	${COMMON_SRC_DIR}/frame.c
-	${COMMON_SRC_DIR}/movemsg.c
-	${COMMON_SRC_DIR}/netchan.c
-	${COMMON_SRC_DIR}/pmove.c
-	${COMMON_SRC_DIR}/szone.c
-	${COMMON_SRC_DIR}/zone.c
-	${COMMON_SRC_DIR}/shared/rand.c
-	${COMMON_SRC_DIR}/shared/shared.c
-	${COMMON_SRC_DIR}/unzip/ioapi.c
-	${COMMON_SRC_DIR}/unzip/unzip.c
-	${COMMON_SRC_DIR}/unzip/miniz/miniz.c
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tdef.c
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tinfl.c
 	${SERVER_SRC_DIR}/sv_cmd.c
 	${SERVER_SRC_DIR}/sv_conless.c
 	${SERVER_SRC_DIR}/sv_entities.c
@@ -542,18 +523,6 @@ set(Server-Source
 	)
 
 set(Server-Header
-	${COMMON_SRC_DIR}/header/common.h
-	${COMMON_SRC_DIR}/header/crc.h
-	${COMMON_SRC_DIR}/header/files.h
-	${COMMON_SRC_DIR}/header/glob.h
-	${COMMON_SRC_DIR}/header/shared.h
-	${COMMON_SRC_DIR}/header/zone.h
-	${COMMON_SRC_DIR}/unzip/ioapi.h
-	${COMMON_SRC_DIR}/unzip/unzip.h
-	${COMMON_SRC_DIR}/unzip/miniz/miniz.h
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tdef.h
-	${COMMON_SRC_DIR}/unzip/miniz/miniz_tinfl.h
-	${COMMON_SRC_DIR}/unzip/miniz/minizconf.h
 	${SERVER_SRC_DIR}/header/server.h
 	)
 
@@ -577,8 +546,6 @@ set(GL1-Source
 	${REF_SRC_DIR}/files/surf.c
 	${REF_SRC_DIR}/files/wal.c
 	${REF_SRC_DIR}/files/pvs.c
-	${COMMON_SRC_DIR}/shared/shared.c
-	${COMMON_SRC_DIR}/md4.c
 	)
 
 set(GL1-Header
@@ -591,7 +558,6 @@ set(GL1-Header
 	${REF_SRC_DIR}/gl1/header/local.h
 	${REF_SRC_DIR}/gl1/header/model.h
 	${REF_SRC_DIR}/gl1/header/qgl.h
-	${COMMON_SRC_DIR}/header/shared.h
 	)
 
 set(GL3-Source
@@ -613,8 +579,6 @@ set(GL3-Source
 	${REF_SRC_DIR}/files/surf.c
 	${REF_SRC_DIR}/files/wal.c
 	${REF_SRC_DIR}/files/pvs.c
-	${COMMON_SRC_DIR}/shared/shared.c
-	${COMMON_SRC_DIR}/md4.c
 	)
 
 set(Glad-GL3-Source ${REF_SRC_DIR}/gl3/glad/src/glad.c)
@@ -630,7 +594,6 @@ set(GL3-Header
 	${REF_SRC_DIR}/gl3/header/HandmadeMath.h
 	${REF_SRC_DIR}/gl3/header/local.h
 	${REF_SRC_DIR}/gl3/header/model.h
-	${COMMON_SRC_DIR}/header/shared.h
 	)
 
 set(Glad-GL3-Header
@@ -667,8 +630,6 @@ set(SOFT-Source
 	${REF_SRC_DIR}/files/surf.c
 	${REF_SRC_DIR}/files/wal.c
 	${REF_SRC_DIR}/files/pvs.c
-	${COMMON_SRC_DIR}/shared/shared.c
-	${COMMON_SRC_DIR}/md4.c
 	)
 
 set(SOFT-Header
@@ -677,8 +638,10 @@ set(SOFT-Header
 	${REF_SRC_DIR}/files/stb_image_resize.h
 	${REF_SRC_DIR}/soft/header/local.h
 	${REF_SRC_DIR}/soft/header/model.h
-	${COMMON_SRC_DIR}/header/shared.h
 	)
+
+# Build the common static library
+add_library(common STATIC ${Common-Source} ${Common-Header})
 
 # Main Quake 2 executable
 
@@ -688,7 +651,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	set_target_properties(yquake2 PROPERTIES
 			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 			)
-	target_link_libraries(yquake2 ${yquake2LinkerFlags} ${yquake2ClientLinkerFlags}
+	target_link_libraries(yquake2 common ${yquake2LinkerFlags} ${yquake2ClientLinkerFlags}
 			${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
 
 	if(MSVC AND CMAKE_MAJOR_VERSION GREATER 3 OR ( CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6 ))
@@ -710,7 +673,7 @@ else()
 	set_target_properties(quake2 PROPERTIES
 			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 			)
-	target_link_libraries(quake2 ${yquake2LinkerFlags} ${yquake2ClientLinkerFlags}
+	target_link_libraries(quake2 common ${yquake2LinkerFlags} ${yquake2ClientLinkerFlags}
 			${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags})
 endif()
 
@@ -722,9 +685,9 @@ set_target_properties(q2ded PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 	)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	target_link_libraries(q2ded ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
+	target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
 else()
-	target_link_libraries(q2ded ${yquake2LinkerFlags} ${yquake2ServerLinkerFlags} ${yquake2ZLibLinkerFlags})
+	target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2ServerLinkerFlags} ${yquake2ZLibLinkerFlags})
 endif()
 
 # Build the game dynamic library
@@ -748,7 +711,7 @@ else() # single-config, like normal Makefiles
 		)
 endif()
 
-target_link_libraries(game ${yquake2LinkerFlags})
+target_link_libraries(game common ${yquake2LinkerFlags})
 
 # Build the GL1 dynamic library
 add_library(ref_gl1 MODULE ${GL1-Source} ${GL1-Header} ${REF-Platform-Specific-Source})
@@ -758,7 +721,7 @@ set_target_properties(ref_gl1 PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 		SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
 		)
-target_link_libraries(ref_gl1 ${yquake2LinkerFlags} ${yquake2OpenGLLinkerFlags} ${yquake2SDLLinkerFlags})
+target_link_libraries(ref_gl1 common ${yquake2LinkerFlags} ${yquake2OpenGLLinkerFlags} ${yquake2SDLLinkerFlags})
 
 # Build the GL3 dynamic library
 add_library(ref_gl3 MODULE ${GL3-Source} ${Glad-GL3-Source} ${GL3-Header} ${Glad-GL3-Header} ${REF-Platform-Specific-Source})
@@ -769,7 +732,7 @@ set_target_properties(ref_gl3 PROPERTIES
 		SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
 		)
 target_include_directories(ref_gl3 PRIVATE ${CMAKE_SOURCE_DIR}/src/client/refresh/gl3/glad/include)
-target_link_libraries(ref_gl3 ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
+target_link_libraries(ref_gl3 common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
 
 # Build the GLES3 dynamic library
 add_library(ref_gles3 MODULE ${GL3-Source} ${Glad-GLES3-Source} ${GL3-Header} ${Glad-GLES3-Header} ${REF-Platform-Specific-Source})
@@ -782,7 +745,7 @@ set_target_properties(ref_gles3 PROPERTIES
 		)
 target_include_directories(ref_gles3 PRIVATE ${CMAKE_SOURCE_DIR}/src/client/refresh/gl3/glad-gles3/include)
 target_compile_definitions(ref_gles3 PRIVATE YQ2_GL3_GLES3=1 YQ2_GL3_GLES=1)
-target_link_libraries(ref_gles3 ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
+target_link_libraries(ref_gles3 common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
 
 # Build the soft renderer dynamic library
 add_library(ref_soft MODULE ${SOFT-Source} ${SOFT-Header} ${REF-Platform-Specific-Source})
@@ -792,4 +755,4 @@ set_target_properties(ref_soft PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 		SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
 		)
-target_link_libraries(ref_soft ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
+target_link_libraries(ref_soft common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
