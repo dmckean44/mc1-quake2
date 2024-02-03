@@ -1121,7 +1121,7 @@ FS_ListFiles(char *findname, int *numfiles,
 
 	/* Allocate the list. */
 	list = calloc(nfiles, sizeof(char *));
-	YQ2_COM_CHECK_OOM(list, "calloc()", (size_t)nfiles*sizeof(char*))
+	MC1Q2_COM_CHECK_OOM(list, "calloc()", (size_t)nfiles*sizeof(char*))
 
 	/* Fill the list. */
 	s = Sys_FindFirst(findname, musthave, canthave);
@@ -1224,7 +1224,7 @@ FS_ListFiles2(char *findname, int *numfiles,
 
 	nfiles = 0;
 	list = malloc(sizeof(char *));
-	YQ2_COM_CHECK_OOM(list, "malloc()", sizeof(char*))
+	MC1Q2_COM_CHECK_OOM(list, "malloc()", sizeof(char*))
 
 	for (search = fs_searchPaths; search != NULL; search = search->next)
 	{
@@ -1251,7 +1251,7 @@ FS_ListFiles2(char *findname, int *numfiles,
 
 			nfiles += j;
 			list = realloc(list, nfiles * sizeof(char *));
-			YQ2_COM_CHECK_OOM(list, "realloc()", (size_t)nfiles*sizeof(char*))
+			MC1Q2_COM_CHECK_OOM(list, "realloc()", (size_t)nfiles*sizeof(char*))
 
 			for (i = 0, j = nfiles - j; i < search->pack->numFiles; i++)
 			{
@@ -1276,7 +1276,7 @@ FS_ListFiles2(char *findname, int *numfiles,
 			tmpnfiles--;
 			nfiles += tmpnfiles;
 			list = realloc(list, nfiles * sizeof(char *));
-			YQ2_COM_CHECK_OOM(list, "2nd realloc()", (size_t)nfiles*sizeof(char*))
+			MC1Q2_COM_CHECK_OOM(list, "2nd realloc()", (size_t)nfiles*sizeof(char*))
 
 			for (i = 0, j = nfiles - tmpnfiles; i < tmpnfiles; i++, j++)
 			{
@@ -1313,7 +1313,7 @@ FS_ListFiles2(char *findname, int *numfiles,
 	{
 		nfiles -= tmpnfiles;
 		tmplist = malloc(nfiles * sizeof(char *));
-		YQ2_COM_CHECK_OOM(tmplist, "malloc()", (size_t)nfiles*sizeof(char*))
+		MC1Q2_COM_CHECK_OOM(tmplist, "malloc()", (size_t)nfiles*sizeof(char*))
 
 		for (i = 0, j = 0; i < nfiles + tmpnfiles; i++)
 		{
@@ -1332,7 +1332,7 @@ FS_ListFiles2(char *findname, int *numfiles,
 	{
 		nfiles++;
 		list = realloc(list, nfiles * sizeof(char *));
-		YQ2_COM_CHECK_OOM(list, "3rd realloc()", (size_t)nfiles*sizeof(char*))
+		MC1Q2_COM_CHECK_OOM(list, "3rd realloc()", (size_t)nfiles*sizeof(char*))
 		list[nfiles - 1] = NULL;
 	}
 

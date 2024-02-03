@@ -393,7 +393,7 @@ SCR_ReadNextFrame(void)
 
 	// the samples array is used as bytes or shorts, depending on bitrate (cin.s_width)
 	// so we need to make sure to align it correctly
-	YQ2_ALIGNAS_TYPE(short) byte samples[22050 / 14 * 4];
+	MC1Q2_ALIGNAS_TYPE(short) byte samples[22050 / 14 * 4];
 
 	byte compressed[0x20000];
 	int size;

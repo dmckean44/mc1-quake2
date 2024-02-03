@@ -29,7 +29,7 @@
 
 enum { MAX_MOD_KNOWN = 512 };
 
-YQ2_ALIGNAS_TYPE(int) static byte mod_novis[MAX_MAP_LEAFS / 8];
+MC1Q2_ALIGNAS_TYPE(int) static byte mod_novis[MAX_MAP_LEAFS / 8];
 gl3model_t mod_known[MAX_MOD_KNOWN];
 static int mod_numknown;
 static int mod_max = 0;

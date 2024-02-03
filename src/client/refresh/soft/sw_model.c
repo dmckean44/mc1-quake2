@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void Mod_LoadBrushModel(model_t *mod, void *buffer, int modfilelen);
 
-static YQ2_ALIGNAS_TYPE(int) byte	mod_novis[MAX_MAP_LEAFS/8];
+static MC1Q2_ALIGNAS_TYPE(int) byte	mod_novis[MAX_MAP_LEAFS/8];
 
 #define	MAX_MOD_KNOWN	512
 static model_t	mod_known[MAX_MOD_KNOWN];

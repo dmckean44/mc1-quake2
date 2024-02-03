@@ -305,14 +305,14 @@ R_EmitWaterPolys(msurface_t *fa)
 			maxNumVerts = tmp->numverts;
 	}
 
-	YQ2_VLA( GLfloat, tex, 2 * maxNumVerts );
+	MC1Q2_VLA( GLfloat, tex, 2 * maxNumVerts );
 #endif
 
 	for (bp = fa->polys; bp; bp = bp->next)
 	{
 		p = bp;
 #ifndef _MSC_VER // we have real VLAs, so it's safe to use one in this loop
-        YQ2_VLA(GLfloat, tex, 2*p->numverts);
+        MC1Q2_VLA(GLfloat, tex, 2*p->numverts);
 #endif
         unsigned int index_tex = 0;
 
@@ -342,7 +342,7 @@ R_EmitWaterPolys(msurface_t *fa)
         glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 	}
 
-	YQ2_VLAFREE( tex );
+	MC1Q2_VLAFREE( tex );
 }
 
 void

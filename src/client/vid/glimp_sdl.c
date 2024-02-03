@@ -274,7 +274,7 @@ InitDisplayIndices()
 	{
 		/* There are a maximum of 10 digits in 32 bit int + 1 for the NULL terminator. */
 		displayindices[ i ] = malloc(11 * sizeof( char ));
-		YQ2_COM_CHECK_OOM(displayindices[i], "malloc()", 11 * sizeof( char ))
+		MC1Q2_COM_CHECK_OOM(displayindices[i], "malloc()", 11 * sizeof( char ))
 
 		snprintf( displayindices[ i ], 11, "%d", i );
 	}

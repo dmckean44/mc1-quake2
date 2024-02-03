@@ -316,7 +316,7 @@ Sys_Nanosleep(int nanosec)
 
 /* ================================================================ */
 
-/* The musthave and canhave arguments are unused in YQ2. We
+/* The musthave and canhave arguments are unused in MC1Q2. We
    can't remove them since Sys_FindFirst() and Sys_FindNext()
    are defined in shared.h and may be used in custom game DLLs. */
 
@@ -771,11 +771,11 @@ Sys_RedirectStdout(void)
 
 // This one is windows specific.
 
-typedef enum YQ2_PROCESS_DPI_AWARENESS {
-	YQ2_PROCESS_DPI_UNAWARE = 0,
-	YQ2_PROCESS_SYSTEM_DPI_AWARE = 1,
-	YQ2_PROCESS_PER_MONITOR_DPI_AWARE = 2
-} YQ2_PROCESS_DPI_AWARENESS;
+typedef enum MC1Q2_PROCESS_DPI_AWARENESS {
+	MC1Q2_PROCESS_DPI_UNAWARE = 0,
+	MC1Q2_PROCESS_SYSTEM_DPI_AWARE = 1,
+	MC1Q2_PROCESS_PER_MONITOR_DPI_AWARE = 2
+} MC1Q2_PROCESS_DPI_AWARENESS;
 
 void
 Sys_SetHighDPIMode(void)
@@ -784,7 +784,7 @@ Sys_SetHighDPIMode(void)
 	BOOL(WINAPI *SetProcessDPIAware)(void) = NULL;
 
 	/* Win8.1 and later */
-	HRESULT(WINAPI *SetProcessDpiAwareness)(YQ2_PROCESS_DPI_AWARENESS dpiAwareness) = NULL;
+	HRESULT(WINAPI *SetProcessDpiAwareness)(MC1Q2_PROCESS_DPI_AWARENESS dpiAwareness) = NULL;
 
 
 	HINSTANCE userDLL = LoadLibrary("USER32.DLL");
@@ -800,13 +800,13 @@ Sys_SetHighDPIMode(void)
 
 	if (shcoreDLL)
 	{
-		SetProcessDpiAwareness = (HRESULT(WINAPI *)(YQ2_PROCESS_DPI_AWARENESS))
+		SetProcessDpiAwareness = (HRESULT(WINAPI *)(MC1Q2_PROCESS_DPI_AWARENESS))
 			GetProcAddress(shcoreDLL, "SetProcessDpiAwareness");
 	}
 
 
 	if (SetProcessDpiAwareness) {
-		SetProcessDpiAwareness(YQ2_PROCESS_PER_MONITOR_DPI_AWARE);
+		SetProcessDpiAwareness(MC1Q2_PROCESS_PER_MONITOR_DPI_AWARE);
 	}
 	else if (SetProcessDPIAware) {
 		SetProcessDPIAware();

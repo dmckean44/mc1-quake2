@@ -86,8 +86,8 @@ set(CLIENT_SRC_DIR ${SOURCE_DIR}/client)
 set(REF_SRC_DIR ${SOURCE_DIR}/client/refresh)
 
 # Operating system.
-set(YQ2OSTYPE "${CMAKE_SYSTEM_NAME}" CACHE STRING "Override operation system type")
-add_definitions(-DYQ2OSTYPE="${YQ2OSTYPE}")
+set(MC1Q2OSTYPE "${CMAKE_SYSTEM_NAME}" CACHE STRING "Override operation system type")
+add_definitions(-DMC1Q2OSTYPE="${MC1Q2OSTYPE}")
 
 # Architecture string
 # work around CMake's useless/broken CMAKE_SYSTEM_PROCESSOR (taken from dhewm3)
@@ -122,7 +122,7 @@ else() # not MSVC and not cross-compiling, assume GCC or clang (-compatible), se
 		message(DEBUG "  => CPU architecture extracted from that: \"${cpu}\"")
 	else()
 		message(WARNING "${CMAKE_C_COMPILER} -dumpmachine failed with error (code) ${cc_dumpmachine_res}")
-		message(WARNING "will use the (sometimes incorrect) CMAKE_SYSTEM_PROCESSOR (${cpu}) to determine YQ2ARCH")
+		message(WARNING "will use the (sometimes incorrect) CMAKE_SYSTEM_PROCESSOR (${cpu}) to determine MC1Q2ARCH")
 	endif()
 endif()
 
@@ -146,12 +146,12 @@ elseif(cpu MATCHES "[aA][rR][mM].*") # some kind of arm..
 endif()
 
 if(MSVC)
-	# for MSVC YQ2ARCH is set in code (in src/common/header/common.h)
-	message(STATUS "Setting YQ2OSTYPE to \"${YQ2OSTYPE}\" - NOT setting YQ2ARCH, because we're targeting MSVC (VisualC++)")
+	# for MSVC MC1Q2ARCH is set in code (in src/common/header/common.h)
+	message(STATUS "Setting MC1Q2OSTYPE to \"${MC1Q2OSTYPE}\" - NOT setting MC1Q2ARCH, because we're targeting MSVC (VisualC++)")
 else()
 	set(ARCH "${cpu}")
-	add_definitions(-DYQ2ARCH="${ARCH}")
-	message(STATUS "Setting YQ2OSTYPE to \"${YQ2OSTYPE}\" and YQ2ARCH to \"${ARCH}\".")
+	add_definitions(-DMC1Q2ARCH="${ARCH}")
+	message(STATUS "Setting MC1Q2OSTYPE to \"${MC1Q2OSTYPE}\" and MC1Q2ARCH to \"${ARCH}\".")
 endif()
 # make sure that ${cpu} isn't used below - if at all use ${ARCH}, but not when compiling with MSVC!
 unset(cpu)
@@ -741,13 +741,13 @@ target_link_libraries(ref_gl3 common ${yquake2LinkerFlags} ${yquake2SDLLinkerFla
 add_library(ref_gles3 MODULE ${GL3-Source} ${Glad-GLES3-Source} ${GL3-Header} ${Glad-GLES3-Header} ${REF-Platform-Specific-Source})
 set_target_properties(ref_gles3 PROPERTIES
 		PREFIX ""
-		#COMPILE_DEFINITIONS "YQ2_GL3_GLES3=1;YQ2_GL3_GLES=1"
+		#COMPILE_DEFINITIONS "MC1Q2_GL3_GLES3=1;MC1Q2_GL3_GLES=1"
 		LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 		SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
 		)
 target_include_directories(ref_gles3 PRIVATE ${CMAKE_SOURCE_DIR}/src/client/refresh/gl3/glad-gles3/include)
-target_compile_definitions(ref_gles3 PRIVATE YQ2_GL3_GLES3=1 YQ2_GL3_GLES=1)
+target_compile_definitions(ref_gles3 PRIVATE MC1Q2_GL3_GLES3=1 MC1Q2_GL3_GLES=1)
 target_link_libraries(ref_gles3 common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
 
 # Build the soft renderer dynamic library

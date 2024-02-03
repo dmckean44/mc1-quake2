@@ -1897,7 +1897,7 @@ RE_InitContext(void *win)
 	window = (SDL_Window *)win;
 
 	/* Window title - set here so we can display renderer name in it */
-	snprintf(title, sizeof(title), "MC1 Quake II %s - Soft Render", YQ2VERSION);
+	snprintf(title, sizeof(title), "MC1 Quake II %s - Soft Render", MC1Q2VERSION);
 	SDL_SetWindowTitle(window, title);
 
 	if (r_vsync->value)

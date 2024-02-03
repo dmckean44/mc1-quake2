@@ -170,9 +170,9 @@ R_DrawAliasFrameLerp(entity_t *currententity, dmdl_t *paliashdr, float backlerp)
 		tmpOrder += 3 * c;
 	}
 
-	YQ2_VLA( GLfloat, vtx, 3 * maxCount );
-	YQ2_VLA( GLfloat, tex, 2 * maxCount );
-	YQ2_VLA( GLfloat, clr, 4 * maxCount );
+	MC1Q2_VLA( GLfloat, vtx, 3 * maxCount );
+	MC1Q2_VLA( GLfloat, tex, 2 * maxCount );
+	MC1Q2_VLA( GLfloat, clr, 4 * maxCount );
 #endif
 
 		while (1)
@@ -199,9 +199,9 @@ R_DrawAliasFrameLerp(entity_t *currententity, dmdl_t *paliashdr, float backlerp)
 			total = count;
 
 #ifndef _MSC_VER // we have real VLAs, so it's safe to use one in this loop
-			YQ2_VLA(GLfloat, vtx, 3*total);
-			YQ2_VLA(GLfloat, tex, 2*total);
-			YQ2_VLA(GLfloat, clr, 4*total);
+			MC1Q2_VLA(GLfloat, vtx, 3*total);
+			MC1Q2_VLA(GLfloat, tex, 2*total);
+			MC1Q2_VLA(GLfloat, clr, 4*total);
 #endif
 			unsigned int index_vtx = 0;
 			unsigned int index_tex = 0;
@@ -266,9 +266,9 @@ R_DrawAliasFrameLerp(entity_t *currententity, dmdl_t *paliashdr, float backlerp)
 			glDisableClientState(GL_COLOR_ARRAY);
 		}
 
-		YQ2_VLAFREE( vtx );
-		YQ2_VLAFREE( tex );
-		YQ2_VLAFREE( clr )
+		MC1Q2_VLAFREE( vtx );
+		MC1Q2_VLAFREE( tex );
+		MC1Q2_VLAFREE( clr )
 
 	if (currententity->flags &
 		(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE |
@@ -316,7 +316,7 @@ R_DrawAliasShadow(entity_t *currententity, dmdl_t *paliashdr, int posenum)
 		tmpOrder += 3 * c;
 	}
 
-	YQ2_VLA(GLfloat, vtx, 3 * maxCount);
+	MC1Q2_VLA(GLfloat, vtx, 3 * maxCount);
 #endif
 
 	while (1)
@@ -343,7 +343,7 @@ R_DrawAliasShadow(entity_t *currententity, dmdl_t *paliashdr, int posenum)
         total = count;
 
 #ifndef _MSC_VER // we have real VLAs, so it's safe to use one in this loop
-        YQ2_VLA(GLfloat, vtx, 3*total);
+        MC1Q2_VLA(GLfloat, vtx, 3*total);
 #endif
         unsigned int index_vtx = 0;
 
@@ -371,7 +371,7 @@ R_DrawAliasShadow(entity_t *currententity, dmdl_t *paliashdr, int posenum)
 
         glDisableClientState( GL_VERTEX_ARRAY );
 	}
-	YQ2_VLAFREE(vtx);
+	MC1Q2_VLAFREE(vtx);
 
 	/* stencilbuffer shadows */
 	if (gl_state.stencil && gl1_stencilshadow->value)

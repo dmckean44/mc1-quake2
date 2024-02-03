@@ -35,7 +35,7 @@
 #define DG_DYNARR_IMPLEMENTATION
 #include "header/DG_dynarr.h"
 
-#ifdef YQ2_GL3_GLES3
+#ifdef MC1Q2_GL3_GLES3
   #define REF_VERSION "MC1 Quake II OpenGL ES3 Refresher"
 #else
   #define REF_VERSION "MC1 Quake II OpenGL3 Refresher"
@@ -504,7 +504,7 @@ GL3_Init(void)
 	Swap_Init(); // FIXME: for fucks sake, this doesn't have to be done at runtime!
 
 	R_Printf(PRINT_ALL, "Refresh: " REF_VERSION "\n");
-	R_Printf(PRINT_ALL, "Client: " YQ2VERSION "\n\n");
+	R_Printf(PRINT_ALL, "Client: " MC1Q2VERSION "\n\n");
 
 	if(sizeof(float) != sizeof(GLfloat))
 	{
@@ -1000,7 +1000,7 @@ GL3_DrawParticles(void)
 	{
 		int i;
 		int numParticles = gl3_newrefdef.num_particles;
-		YQ2_ALIGNAS_TYPE(unsigned) byte color[4];
+		MC1Q2_ALIGNAS_TYPE(unsigned) byte color[4];
 		const particle_t *p;
 		// assume the size looks good with window height 480px and scale according to real resolution
 		float pointSize = gl3_particle_size->value * (float)gl3_newrefdef.height/480.0f;
@@ -1011,7 +1011,7 @@ GL3_DrawParticles(void)
 			GLfloat dist;
 			GLfloat color[4];
 		} part_vtx;
-		YQ2_STATIC_ASSERT(sizeof(part_vtx)==9*sizeof(float), "invalid part_vtx size"); // remember to update GL3_SurfInit() if this changes!
+		MC1Q2_STATIC_ASSERT(sizeof(part_vtx)==9*sizeof(float), "invalid part_vtx size"); // remember to update GL3_SurfInit() if this changes!
 
 		// Don't try to draw particles if there aren't any.
 		if (numParticles == 0)
@@ -1019,7 +1019,7 @@ GL3_DrawParticles(void)
 			return;
 		}
 
-		YQ2_VLA(part_vtx, buf, numParticles);
+		MC1Q2_VLA(part_vtx, buf, numParticles);
 
 		// TODO: viewOrg could be in UBO
 		vec3_t viewOrg;
@@ -1028,7 +1028,7 @@ GL3_DrawParticles(void)
 		glDepthMask(GL_FALSE);
 		glEnable(GL_BLEND);
 
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 		// the RPi4 GLES3 implementation doesn't draw particles if culling is
 		// enabled (at least with GL_FRONT which seems to be default in q2?)
 		glDisable(GL_CULL_FACE);
@@ -1063,14 +1063,14 @@ GL3_DrawParticles(void)
 
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 		if(r_cull->value != 0.0f)
 			glEnable(GL_CULL_FACE);
 #else
 		glDisable(GL_PROGRAM_POINT_SIZE);
 #endif
 
-		YQ2_VLAFREE(buf);
+		MC1Q2_VLAFREE(buf);
 	}
 }
 
@@ -1904,7 +1904,7 @@ GL3_BeginFrame(float camera_separation)
 		gl_drawbuffer->modified = false;
 
 
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 		// OpenGL ES3 only supports GL_NONE, GL_BACK and GL_COLOR_ATTACHMENT*
 		// so this doesn't make sense here, see https://docs.gl/es3/glDrawBuffers
 		R_Printf(PRINT_ALL, "NOTE: gl_drawbuffer not supported by OpenGL ES!\n");

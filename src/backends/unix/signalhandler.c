@@ -45,9 +45,9 @@ printBacktrace(int sig)
 	strings = backtrace_symbols(array, size);
 
 	printf("Product:      MC1 Quake II\n");
-	printf("Version:      %s\n", YQ2VERSION);
-	printf("Platform:     %s\n", YQ2OSTYPE);
-	printf("Architecture: %s\n", YQ2ARCH);
+	printf("Version:      %s\n", MC1Q2VERSION);
+	printf("Platform:     %s\n", MC1Q2OSTYPE);
+	printf("Architecture: %s\n", MC1Q2ARCH);
 	printf("Compiler:     %s\n", __VERSION__);
 	printf("Signal:       %i\n", sig);
 	printf("\nBacktrace:\n");
@@ -66,9 +66,9 @@ void
 printBacktrace(int sig)
 {
 	printf("Product:      MC1 Quake II\n");
-	printf("Version:      %s\n", YQ2VERSION);
-	printf("Platform:     %s\n", YQ2OSTYPE);
-	printf("Architecture: %s\n", YQ2ARCH);
+	printf("Version:      %s\n", MC1Q2VERSION);
+	printf("Platform:     %s\n", MC1Q2OSTYPE);
+	printf("Architecture: %s\n", MC1Q2ARCH);
 	printf("Compiler:     %s\n", __VERSION__);
 	printf("Signal:       %i\n", sig);
 	printf("\nBacktrace:\n");
