@@ -49,11 +49,19 @@ cvar_t *timelimit;
 cvar_t *password;
 cvar_t *spectator_password;
 cvar_t *needpass;
+#ifdef MC1Q2STATIC
+extern cvar_t *maxclients;
+#else
 cvar_t *maxclients;
+#endif
 cvar_t *maxspectators;
 cvar_t *maxentities;
 cvar_t *g_select_empty;
+#ifdef MC1Q2STATIC
+extern cvar_t *dedicated;
+#else
 cvar_t *dedicated;
+#endif
 cvar_t *g_footsteps;
 cvar_t *g_monsterfootsteps;
 cvar_t *g_fix_triggered;
@@ -178,6 +186,7 @@ GetGameAPI(game_import_t *import)
 	return &globals;
 }
 
+#ifndef MC1Q2STATIC
 /*
  * this is only here so the functions
  * in shared source files can link
@@ -207,6 +216,7 @@ Com_Printf(const char *msg, ...)
 
 	gi.dprintf("%s", text);
 }
+#endif  // MC1Q2STATIC
 
 /* ====================================================================== */
 
