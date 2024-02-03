@@ -32,7 +32,7 @@
 #include "shared.h"
 #include "crc.h"
 
-#define MC1Q2VERSION "8.31pre"
+#define MC1Q2VERSION "1.0"
 #define BASEDIRNAME "baseq2"
 
 #ifndef MC1Q2OSTYPE
