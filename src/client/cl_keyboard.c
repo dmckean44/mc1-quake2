@@ -831,7 +831,7 @@ Key_Unbindall_f(void)
 	}
 }
 
-/* ugly hack, set in Cmd_ExecuteString() when yq2.cfg is executed
+/* ugly hack, set in Cmd_ExecuteString() when mc1q2.cfg is executed
  * (=> default.cfg is done) */
 extern qboolean doneWithDefaultCfg;
 

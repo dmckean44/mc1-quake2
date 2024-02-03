@@ -1,6 +1,6 @@
-# Yamagi Quake II Commands
+# MC1 Quake II Commands
 
-This list explains all commands added by Yamagi Quake II. All of the
+This list explains all commands added by MC1 Quake II. All of the
 original clients (Vanilla Quake II) commands are still in place.
 
 

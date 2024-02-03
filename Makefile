@@ -1,5 +1,5 @@
 # ------------------------------------------------------ #
-# Makefile for the "Yamagi Quake 2 Client"               #
+# Makefile for the "MC1 Quake 2 Client"                  #
 #                                                        #
 # Just type "make" to compile the                        #
 #  - Client (quake2)                                     #

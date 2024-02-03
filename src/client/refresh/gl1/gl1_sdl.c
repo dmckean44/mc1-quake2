@@ -245,7 +245,7 @@ int RI_InitContext(void* win)
 	// Window title - set here so we can display renderer name in it.
 	char title[40] = {0};
 
-	snprintf(title, sizeof(title), "Yamagi Quake II %s - OpenGL 1.4", YQ2VERSION);
+	snprintf(title, sizeof(title), "MC1 Quake II %s - OpenGL 1.4", YQ2VERSION);
 	SDL_SetWindowTitle(window, title);
 
 #if SDL_VERSION_ATLEAST(2, 26, 0)

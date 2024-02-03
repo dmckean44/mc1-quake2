@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# simple script that rips CDs to a format useable by Yamagis Quake2 client
+# simple script that rips CDs to a format useable by MC1s Quake2 client
 # Needs cdparanoia and oggenc, useable with Quake II and both addons.
 
 # Create directory

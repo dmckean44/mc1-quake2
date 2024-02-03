@@ -1,12 +1,12 @@
 # Contributing Code
 
-You want to contribute code to Yamagi Quake II? That's good! We're
+You want to contribute code to MC1 Quake II? That's good! We're
 always interested in contributions, as long as they're in the scope of
 our little project. It doesn't matter if you're sending new features,
 bugfixes or even documentation updates.
 
 As a general note: **Ask before writing code!** Nobody was ever hurt for
-asking if his or her idea is in scope for Yamagi Quake II. And an early
+asking if his or her idea is in scope for MC1 Quake II. And an early
 "no" is always better then rejections after having put tens of hours
 into the idea.
 

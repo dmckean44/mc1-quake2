@@ -1,6 +1,6 @@
 # File Listings
 
-These are listings of all assets of a correct Yamagi Quake II
+These are listings of all assets of a correct MC1 Quake II
 installation. These may be used to verify if the installation
 is complete.
 
@@ -59,8 +59,8 @@ level.
 /baseq2/pak1.pak
 /baseq2/pak2.pak
 
-# yq2.cfg is an optional alternative default config:
-/baseq2/yq2.cfg
+# mc1q2.cfg is an optional alternative default config:
+/baseq2/mc1q2.cfg
 
 # Player models, needed for multiplayer.
 /baseq2/players/crakhor

@@ -44,12 +44,12 @@
 #endif
 
 #ifdef _WIN32
- #define CFGDIR "YamagiQ2"
+ #define CFGDIR "MC1Q2"
 #else
  #ifndef __HAIKU__
-   #define CFGDIR ".yq2"
+   #define CFGDIR ".mc1q2"
  #else
-   #define CFGDIR "yq2"
+   #define CFGDIR "mc1q2"
  #endif
 #endif
 
@@ -75,7 +75,7 @@
       // to find out how to detect yours and add it here - and please send a patch :)
       #error "Unknown CPU architecture!"
       // (for a quick and dirty solution, comment out the previous line, but keep in mind
-      //  that savegames may not be compatible with other builds of Yamagi Quake II)
+      //  that savegames may not be compatible with other builds of MC1 Quake II)
       #define YQ2ARCH "UNKNOWN"
     #endif // _M_X64 etc
   #else // other compilers than MSVC
@@ -758,7 +758,7 @@ YQ2_ATTR_NORETURN void Com_Quit(void);
 #define YQ2_COM_PRIdS "%zd"
 #endif
 
-// terminate yq2 (with Com_Error()) if VAR is NULL (after malloc() or similar)
+// terminate mc1q2 (with Com_Error()) if VAR is NULL (after malloc() or similar)
 // and print message about it
 #define YQ2_COM_CHECK_OOM(VAR, ALLOC_FN_NAME, ALLOC_SIZE) \
 	if(VAR == NULL) { \

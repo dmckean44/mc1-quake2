@@ -397,9 +397,9 @@ int GL3_InitContext(void* win)
 	// Window title - set here so we can display renderer name in it.
 	char title[40] = {0};
 #ifdef YQ2_GL3_GLES3
-	snprintf(title, sizeof(title), "Yamagi Quake II %s - OpenGL ES 3.0", YQ2VERSION);
+	snprintf(title, sizeof(title), "MC1 Quake II %s - OpenGL ES 3.0", YQ2VERSION);
 #else
-	snprintf(title, sizeof(title), "Yamagi Quake II %s - OpenGL 3.2", YQ2VERSION);
+	snprintf(title, sizeof(title), "MC1 Quake II %s - OpenGL 3.2", YQ2VERSION);
 #endif
 	SDL_SetWindowTitle(window, title);
 

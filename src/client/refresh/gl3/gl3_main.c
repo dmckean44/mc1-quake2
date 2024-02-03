@@ -36,9 +36,9 @@
 #include "header/DG_dynarr.h"
 
 #ifdef YQ2_GL3_GLES3
-  #define REF_VERSION "Yamagi Quake II OpenGL ES3 Refresher"
+  #define REF_VERSION "MC1 Quake II OpenGL ES3 Refresher"
 #else
-  #define REF_VERSION "Yamagi Quake II OpenGL3 Refresher"
+  #define REF_VERSION "MC1 Quake II OpenGL3 Refresher"
 #endif
 
 refimport_t ri;
@@ -224,7 +224,7 @@ GL3_Register(void)
 
 	//  0: use lots of calls to glBufferData()
 	//  1: reduce calls to glBufferData() with one big VBO (see GL3_BufferAndDraw3D())
-	// -1: auto (let yq2 choose to enable/disable this based on detected driver)
+	// -1: auto (let mc1q2 choose to enable/disable this based on detected driver)
 	gl3_usebigvbo = ri.Cvar_Get("gl3_usebigvbo", "-1", CVAR_ARCHIVE);
 
 	r_norefresh = ri.Cvar_Get("r_norefresh", "0", 0);

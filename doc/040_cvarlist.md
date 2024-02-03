@@ -1,6 +1,6 @@
-# Yamagi Quake II Console Variables
+# MC1 Quake II Console Variables
 
-This lists explains most console variables (cvars) added by Yamagi
+This lists explains most console variables (cvars) added by MC1
 Quake II. Most of the original clients (Vanilla Quake II) cvars are
 still in place, however due to architectural changes some of them
 have been renamed. The prefixes are:
@@ -124,7 +124,7 @@ Set `0` by default.
   when shooting into power screen and power shields is limited to 16.
   This works around global volume drops in some OpenAL implementations
   if too many sounds are played at the same time. This was the default
-  behavior between Yamagi Quake II 7.10 and 7.45. Defaults to `0`.
+  behavior between MC1 Quake II 7.10 and 7.45. Defaults to `0`.
 
 * **cl_loadpaused**: If set to `1` (the default) the client is put into
   pause mode during single player savegame load. This prevents monsters
@@ -136,7 +136,7 @@ Set `0` by default.
 * **cl_unpaused_scvis**: If set to `1` (the default) the client unpause
   when the screen becomes visible.
 
-* **cl_r1q2_lightstyle**: Since the first release Yamagi Quake II used
+* **cl_r1q2_lightstyle**: Since the first release MC1 Quake II used
   the R1Q2 colors for the dynamic lights of rockets. Set to `0` to get
   the Vanilla Quake II colors. Defaults to `1`.
 
@@ -149,7 +149,7 @@ Set `0` by default.
 * **cl_model_preview_end**: end frame value in multiplayer model preview.
   `-1` - don't show animation. Defaults to `94` for show salute animation.
 
-* **in_grab**: Defines how the mouse is grabbed by Yamagi Quake IIs
+* **in_grab**: Defines how the mouse is grabbed by MC1 Quake IIs
   window. If set to `0` the mouse is never grabbed and if set to `1`
   it's always grabbed. If set to `2` (the default) the mouse is grabbed
   during gameplay and released otherwise (in menu, videos, console or if
@@ -304,7 +304,7 @@ Set `0` by default.
   is omitted. If set to `1` the gun is only drawn if the FOV is equal
   or smaller than 90. This was the default with Vanilla Quake II. If set
   to `2` the gun is drawn regardless of the FOV. This is the default
-  in Yamagi Quake II.
+  in MC1 Quake II.
 
 * **fov**: Sets the field of view.
 

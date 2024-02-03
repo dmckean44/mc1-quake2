@@ -2219,7 +2219,7 @@ static void
 ControlsResetDefaultsFunc(void *unused)
 {
     Cbuf_AddText("exec default.cfg\n");
-    Cbuf_AddText("exec yq2.cfg\n");
+    Cbuf_AddText("exec mc1q2.cfg\n");
     Cbuf_Execute();
 
     ControlsSetMenuItemValues();
@@ -2645,7 +2645,7 @@ static const char *idcredits[] = {
 	"+PATCHES AUTHORS",
 	"eliasm",
 	"",
-	"+YAMAGI QUAKE II BY",
+	"+MC1 QUAKE II BY",
 	"Yamagi Burmeister",
 	"Daniel Gibson",
 	"Sander van Dijk",
