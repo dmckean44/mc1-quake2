@@ -298,8 +298,12 @@ viddef_t viddef;
 // Struct with the pointers exported by the renderer.
 refexport_t	re;
 
+#ifndef MC1Q2STATIC
 // Handle / pointer the the loaded renderer DLL.
 void *reflib_handle = NULL;
+#else
+extern refexport_t GetRefAPI(refimport_t);
+#endif
 
 // Is a renderer loaded and active?
 qboolean ref_active = false;
@@ -376,8 +380,10 @@ VID_ShutdownRenderer(void)
 		/* Shut down the renderer */
 		re.Shutdown();
 		GLimp_ShutdownGraphics();
+#ifndef MC1Q2STATIC
 		Sys_FreeLibrary(reflib_handle);
 		reflib_handle = NULL;
+#endif
 		memset(&re, 0, sizeof(re));
 	}
 
@@ -392,10 +398,12 @@ qboolean
 VID_LoadRenderer(void)
 {
 	refimport_t	ri;
+#ifndef MC1Q2STATIC
 	GetRefAPI_t	GetRefAPI;
 
 	char reflib_name[64] = {0};
 	char reflib_path[MAX_OSPATH] = {0};
+#endif
 
 	// If the refresher is already active we need
 	// to shut it down before loading a new one
@@ -404,6 +412,7 @@ VID_LoadRenderer(void)
 	// Log what we're doing.
 	Com_Printf("----- refresher initialization -----\n");
 
+#ifndef MC1Q2STATIC
 	snprintf(reflib_name, sizeof(reflib_name), "ref_%s.%s", vid_renderer->string, lib_ext);
 	VID_GetRendererLibPath(vid_renderer->string, reflib_path, sizeof(reflib_path));
 	Com_Printf("Loading library: %s\n", reflib_name);
@@ -427,6 +436,7 @@ VID_LoadRenderer(void)
 
 		return false;
 	}
+#endif
 
 	// Fill in the struct exported to the renderer.
 	// FIXME: Do we really need all these?
@@ -456,6 +466,7 @@ VID_LoadRenderer(void)
 	// Declare the refresher as active.
 	ref_active = true;
 
+#ifndef MC1Q2STATIC
 	// Let's check if we've got a compatible renderer.
 	if (re.api_version != API_VERSION)
 	{
@@ -465,13 +476,18 @@ VID_LoadRenderer(void)
 
 		return false;
 	}
+#endif
 
 	// Everything seems okay, initialize it.
 	if (!re.Init())
 	{
 		VID_ShutdownRenderer();
 
+#ifndef MC1Q2STATIC
 		Com_Printf("ERROR: Loading %s as rendering backend failed.\n", reflib_name);
+#else
+		Com_Printf("ERROR: Loading rendering backend failed.\n");
+#endif
 		Com_Printf("------------------------------------\n\n");
 
 		return false;
@@ -480,7 +496,11 @@ VID_LoadRenderer(void)
 	/* Ensure that all key states are cleared */
 	Key_MarkAllUp();
 
+#ifndef MC1Q2STATIC
 	Com_Printf("Successfully loaded %s as rendering backend.\n", reflib_name);
+#else
+	Com_Printf("Successfully loaded rendering backend.\n");
+#endif
 	Com_Printf("------------------------------------\n\n");
 
 	return true;

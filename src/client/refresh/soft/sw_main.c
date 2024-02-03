@@ -2458,6 +2458,7 @@ SWimp_CreateRender(int width, int height)
 	R_GammaCorrectAndSetPalette( d_8to24table );
 }
 
+#ifndef MC1Q2STATIC
 // this is only here so the functions in q_shared.c and q_shwin.c can link
 void
 Sys_Error (const char *error, ...)
@@ -2480,6 +2481,7 @@ Com_Printf(const char *msg, ...)
 	ri.Com_VPrintf(PRINT_ALL, msg, argptr);
 	va_end(argptr);
 }
+#endif  // MC1Q2STATIC
 
 /*
 ==============================================================================
