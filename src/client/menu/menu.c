@@ -2219,7 +2219,7 @@ static void
 ControlsResetDefaultsFunc(void *unused)
 {
     Cbuf_AddText("exec default.cfg\n");
-    Cbuf_AddText("exec yq2.cfg\n");
+    Cbuf_AddText("exec mc1q2.cfg\n");
     Cbuf_Execute();
 
     ControlsSetMenuItemValues();
@@ -2645,7 +2645,7 @@ static const char *idcredits[] = {
 	"+PATCHES AUTHORS",
 	"eliasm",
 	"",
-	"+YAMAGI QUAKE II BY",
+	"+MC1 QUAKE II BY",
 	"Yamagi Burmeister",
 	"Daniel Gibson",
 	"Sander van Dijk",
@@ -4308,7 +4308,7 @@ StartServer_MenuInit(void)
         nummapslen = sizeof(char *) * (nummaps + 1);
         mapnames = malloc(nummapslen);
 
-        YQ2_COM_CHECK_OOM(mapnames, "malloc(sizeof(char *) * (nummaps + 1))", nummapslen)
+        MC1Q2_COM_CHECK_OOM(mapnames, "malloc(sizeof(char *) * (nummaps + 1))", nummapslen)
 
         memset(mapnames, 0, nummapslen);
 
@@ -4333,7 +4333,7 @@ StartServer_MenuInit(void)
             Com_sprintf(scratch, sizeof(scratch), "%s\n%s", longname, shortname);
 
             mapnames[i] = strdup(scratch);
-            YQ2_COM_CHECK_OOM(mapnames[i], "strdup(scratch)", strlen(scratch)+1)
+            MC1Q2_COM_CHECK_OOM(mapnames[i], "strdup(scratch)", strlen(scratch)+1)
         }
 
         mapnames[nummaps] = 0;
@@ -5506,7 +5506,7 @@ PlayerDirectoryList(void)
 
     // malloc directories
     char** data = (char**)calloc(num, sizeof(char*));
-    YQ2_COM_CHECK_OOM(data, "calloc()", num * sizeof(char*))
+    MC1Q2_COM_CHECK_OOM(data, "calloc()", num * sizeof(char*))
 
     s_directory.data = data;
     s_directory.num = num;
@@ -5524,7 +5524,7 @@ PlayerDirectoryList(void)
         char* s = (char*)malloc(MAX_QPATH);
         char* t = list[i];
 
-        YQ2_COM_CHECK_OOM(s, "malloc()", MAX_QPATH * sizeof(char))
+        MC1Q2_COM_CHECK_OOM(s, "malloc()", MAX_QPATH * sizeof(char))
         
         Q_strlcpy(s, t, MAX_QPATH);
         data[i] = s;
@@ -5556,7 +5556,7 @@ PlayerModelList(void)
 
     // malloc models
     data = (char**)calloc(MAX_PLAYERMODELS, sizeof(char*));
-    YQ2_COM_CHECK_OOM(data, "calloc()", MAX_PLAYERMODELS * sizeof(char*))
+    MC1Q2_COM_CHECK_OOM(data, "calloc()", MAX_PLAYERMODELS * sizeof(char*))
 
     s_modelname.data = data;
     s_modelname.num = 0;
@@ -5615,7 +5615,7 @@ PlayerModelList(void)
 
         // malloc skinnames
         data = (char**)malloc((s_skinnames[mdl].num + 1) * sizeof(char*));
-        YQ2_COM_CHECK_OOM(data, "malloc()", (s_skinnames[mdl].num + 1) * sizeof(char*))
+        MC1Q2_COM_CHECK_OOM(data, "malloc()", (s_skinnames[mdl].num + 1) * sizeof(char*))
         memset(data, 0, (s_skinnames[mdl].num + 1) * sizeof(char*));
         
         s_skinnames[mdl].data = data;
@@ -5639,7 +5639,7 @@ PlayerModelList(void)
                     s = (char*)malloc(MAX_DISPLAYNAME);
                     t = strrchr(list[k], '/');
 
-                    YQ2_COM_CHECK_OOM(s, "malloc()", MAX_DISPLAYNAME * sizeof(char))
+                    MC1Q2_COM_CHECK_OOM(s, "malloc()", MAX_DISPLAYNAME * sizeof(char))
 
                     StripExtension(t);
                     Q_strlcpy(s, t + 1, MAX_DISPLAYNAME);
@@ -5656,7 +5656,7 @@ PlayerModelList(void)
         s = (char*)malloc(MAX_DISPLAYNAME);
         t = strrchr(s_directory.data[i], '/');
 
-        YQ2_COM_CHECK_OOM(s, "malloc()", MAX_DISPLAYNAME * sizeof(char))
+        MC1Q2_COM_CHECK_OOM(s, "malloc()", MAX_DISPLAYNAME * sizeof(char))
 
         Q_strlcpy(s, t + 1, MAX_DISPLAYNAME);
 

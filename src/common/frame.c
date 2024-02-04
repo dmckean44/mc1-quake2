@@ -86,7 +86,7 @@ qboolean quitnextframe;
 #ifdef SDL_CPUPauseInstruction
 #  define Sys_CpuPause() SDL_CPUPauseInstruction()
 #else
-static YQ2_ATTR_INLINE void Sys_CpuPause(void)
+static MC1Q2_ATTR_INLINE void Sys_CpuPause(void)
 {
 #if defined(__GNUC__)
 #if (__i386 || __x86_64__)
@@ -121,7 +121,7 @@ Qcommon_Buildstring(void)
 	const char* versionString;
 
 
-	versionString = va("Yamagi Quake II v%s", YQ2VERSION);
+	versionString = va("MC1 Quake II v%s", MC1Q2VERSION);
 	verLen = strlen(versionString);
 
 	printf("\n%s\n", versionString);
@@ -156,8 +156,8 @@ Qcommon_Buildstring(void)
 #endif
 #endif
 
-	printf("Platform: %s\n", YQ2OSTYPE);
-	printf("Architecture: %s\n", YQ2ARCH);
+	printf("Platform: %s\n", MC1Q2OSTYPE);
+	printf("Architecture: %s\n", MC1Q2ARCH);
 }
 
 static void
@@ -214,7 +214,7 @@ Qcommon_Mainloop(void)
 void Qcommon_ExecConfigs(qboolean gameStartUp)
 {
 	Cbuf_AddText("exec default.cfg\n");
-	Cbuf_AddText("exec yq2.cfg\n");
+	Cbuf_AddText("exec mc1q2.cfg\n");
 	Cbuf_AddText("exec config.cfg\n");
 	Cbuf_AddText("exec autoexec.cfg\n");
 
@@ -240,7 +240,7 @@ static qboolean checkForHelp(int argc, char **argv)
 		{
 			if (Q_stricmp(arg, helpArgs[h]) == 0)
 			{
-				printf("Yamagi Quake II v%s\n", YQ2VERSION);
+				printf("MC1 Quake II v%s\n", MC1Q2VERSION);
 				printf("Most interesting commandline arguments:\n");
 				printf("-h or --help: Show this help\n");
 				printf("-cfgdir <path>\n");
@@ -362,7 +362,7 @@ Qcommon_Init(int argc, char **argv)
 	timescale = Cvar_Get("timescale", "1", 0);
 
 	char *s;
-	s = va("%s %s %s %s", YQ2VERSION, YQ2ARCH, BUILD_DATE, YQ2OSTYPE);
+	s = va("%s %s %s %s", MC1Q2VERSION, MC1Q2ARCH, BUILD_DATE, MC1Q2OSTYPE);
 	Cvar_Get("version", s, CVAR_SERVERINFO | CVAR_NOSET);
 
 #ifndef DEDICATED_ONLY
@@ -418,7 +418,7 @@ Qcommon_Init(int argc, char **argv)
 	}
 #endif
 
-	Com_Printf("==== Yamagi Quake II Initialized ====\n\n");
+	Com_Printf("==== MC1 Quake II Initialized ====\n\n");
 	Com_Printf("*************************************\n\n");
 
 	// Call the main loop

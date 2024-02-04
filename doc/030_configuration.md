@@ -1,14 +1,14 @@
 # Configuration Guide
 
-Yamagi Quake II provides a lot of configuration options. This guides
-shows how to configure Yamagi Quake II to match you needs. This guide
+MC1 Quake II provides a lot of configuration options. This guides
+shows how to configure MC1 Quake II to match you needs. This guide
 is for advanced users, if you just want to play you're likely happy
 with the defaults and the options that can be set through the menu.
 
 
 ## Choosing a Renderer
 
-Yamagi Quake II ships with 4 renderers:
+MC1 Quake II ships with 4 renderers:
 
 * The **OpenGL 3.2** renderer: This renderer was developed for the needs
   of modern graphics hardware and is usually the best choice for OpenGL
@@ -39,7 +39,7 @@ Yamagi Quake II ships with 4 renderers:
 
 ## Choosing a Sound System
 
-Yamagi Quake II ships with 2 sound system:
+MC1 Quake II ships with 2 sound system:
 
 * The **OpenAL** sound system: This is the default and highly
   recommended. It provides full surround sound support and even HRTF for
@@ -55,7 +55,7 @@ Yamagi Quake II ships with 2 sound system:
 
 ## Tuning for Precise Timings
 
-Yamagi Quake II comes with a highly evolved asynchronous client. While
+MC1 Quake II comes with a highly evolved asynchronous client. While
 the default settings are usually good, some players may want to tune for
 more precise timing or better vertical synchronization accuracy.
 
@@ -67,7 +67,7 @@ We're unable to fix all those inaccuracies, because the game data, the
 network protocol and the whole look and feel depends on them. We can
 just try work around them.
 
-If your computer is **fast enough** to reach at least 60fps in Yamagi Quake II
+If your computer is **fast enough** to reach at least 60fps in MC1 Quake II
 (this should be the case for most machines these days, including Laptops
  with integrated GPUs; a notable exception are Raspberry PIs),
 the following settings should give you the best results:
@@ -106,7 +106,7 @@ has some more information on the asynchronous client.
 
 ## Getting a classic look and feel
 
-Yamagi Quake II has some features to provide a better experience on
+MC1 Quake II has some features to provide a better experience on
 modern hardware. For example widescreen support, HUD scaling or FOV
 alterations. Not all users may like these changes.
 
@@ -129,8 +129,8 @@ for example.
 
 ### Field of View
 
-Yamagi Quake II has a different FOV calculation then the original
-client. Yamagi Quake II determines the optimal FOV (horizontal and
+MC1 Quake II has a different FOV calculation then the original
+client. MC1 Quake II determines the optimal FOV (horizontal and
 vertical) with the *Horplus* algorithm and the gun is rendered always
 with a static FOV of 80, the original client only had a vertical FOV
 applied to everything.
@@ -146,13 +146,13 @@ applied to everything.
 ### 4/3 Cinematics
 
 While the original Quake II client stretched cinematics over the whole
-window, Yamagi Quake II always renders them with 4/3 aspect. The old
+window, MC1 Quake II always renders them with 4/3 aspect. The old
 behavior can be enforced by setting `cin_force43` to `0`.
 
 
 ### Sound system
 
-As already said above, Yamagi Quake II has two sound systems. The old
+As already said above, MC1 Quake II has two sound systems. The old
 one and OpenAL. Additionally some new sound effects were added. We
 recommend to stay with OpenAL, even if the stereo rendering is somewhat
 different to the old sound system. OpenAL is much more distortion free
@@ -167,7 +167,7 @@ The new sound effects can be disabled with:
 
 ### Renderer
 
-While Yamagi Quake II still supports the Software renderer, configuring
+While MC1 Quake II still supports the Software renderer, configuring
 one of the OpenGL renderers to give a classic look and feel is often the
 better choice. The OpenGL renderers are much faster, more reliable and
 support colored lighting.
@@ -197,7 +197,7 @@ The OpenGL 3.2 renderer:
 
 ## Retexturing Packs
 
-Yamagi Quake II has full support for retexturing packs. They just need
+MC1 Quake II has full support for retexturing packs. They just need
 to be installed and should be picked up automatically. To disable the
 retexturing pack at a later time set `r_retexturing` to `0`.
 

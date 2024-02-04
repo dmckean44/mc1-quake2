@@ -128,7 +128,7 @@ static int CL_HTTP_CurlProgressCB(void* ptr, CL_Progresstype total /* unused */,
 	dlhandle_t *dl = (dlhandle_t *)ptr;
 	if (now) {
 		dl->fileDownloadedSize = (size_t)now;
-		Com_DPrintf("CL_HTTP_CurlProgressCB: Downloaded " YQ2_COM_PRIdS "/" YQ2_COM_PRIdS "\n", dl->fileDownloadedSize, dl->fileSize);
+		Com_DPrintf("CL_HTTP_CurlProgressCB: Downloaded " MC1Q2_COM_PRIdS "/" MC1Q2_COM_PRIdS "\n", dl->fileDownloadedSize, dl->fileSize);
 	}
 	return 0;
 }
@@ -327,7 +327,7 @@ static void CL_StartHTTPDownload (dlqueue_t *entry, dlhandle_t *dl)
 static void CL_CheckAndQueueDownload(char *path)
 {
 	// NOTE: The original r1q2 download code in r1q2 allowed
-	// only // paths made of plain ASCII chars. YQ2 is more
+	// only // paths made of plain ASCII chars. MC1Q2 is more
 	// or less UTF-8 clean, so we're allowing all characters.
 
 	// Malicious filelists may have very long lines.
@@ -407,7 +407,7 @@ static void CL_CheckAndQueueDownload(char *path)
 	}
 
 	// Make sure that there're no evil paths in the filelist. Most
-	// of these should be pretty okay with YQ2 since we've got a much
+	// of these should be pretty okay with MC1Q2 since we've got a much
 	// better filesystem as other clients but let's stay consistent.
 	//
 	// .. -> Don't change to upper dirs.
@@ -1002,7 +1002,7 @@ void CL_SetHTTPServer (const char *URL)
 	// Remove trailing / from URL if any.
 	size_t urllen = strlen(URL);
 	char *cleanURL = strdup(URL);
-	YQ2_COM_CHECK_OOM(cleanURL, "strdup(URL)", strlen(URL))
+	MC1Q2_COM_CHECK_OOM(cleanURL, "strdup(URL)", strlen(URL))
 
 	if (cleanURL[urllen - 1] == '/')
 	{
@@ -1097,7 +1097,7 @@ qboolean CL_QueueHTTPDownload(const char *quakePath, qboolean gamedirForFilelist
 
 	q->next = malloc(sizeof(*q));
 
-	YQ2_COM_CHECK_OOM(q->next, "malloc(sizeof(*q))", sizeof(*q))
+	MC1Q2_COM_CHECK_OOM(q->next, "malloc(sizeof(*q))", sizeof(*q))
 
 	q = q->next;
 	q->next = NULL;

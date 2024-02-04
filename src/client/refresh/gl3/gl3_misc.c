@@ -34,7 +34,7 @@ void
 GL3_SetDefaultState(void)
 {
 	glClearColor(1, 0, 0.5, 0.5);
-#ifndef YQ2_GL3_GLES
+#ifndef MC1Q2_GL3_GLES
 	// in GLES this is only supported with an extension:
 	// https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_multisample_compatibility.txt
 	// but apparently it's just enabled by default if set in the context?
@@ -46,7 +46,7 @@ GL3_SetDefaultState(void)
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
-#ifndef YQ2_GL3_GLES
+#ifndef MC1Q2_GL3_GLES
 	// in GLES GL_FILL is the only supported mode
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
@@ -64,7 +64,7 @@ GL3_SetDefaultState(void)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-#ifndef YQ2_GL3_GLES // see above
+#ifndef MC1Q2_GL3_GLES // see above
 	if (gl_msaa_samples->value)
 	{
 		glEnable(GL_MULTISAMPLE);
@@ -126,7 +126,7 @@ GL3_ScreenShot(void)
 {
 	int w=vid.width, h=vid.height;
 
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 	// My RPi4's GLES3 doesn't like GL_RGB, so use GL_RGBA with GLES
 	// TODO: we could convert the screenshot to RGB before writing
 	//       so the resulting file is smaller
@@ -150,7 +150,7 @@ GL3_ScreenShot(void)
 	// so swap bottom rows with top rows
 	{
 		size_t bytesPerRow = comps*w;
-		YQ2_VLA(byte, rowBuffer, bytesPerRow);
+		MC1Q2_VLA(byte, rowBuffer, bytesPerRow);
 		byte *curRowL = buffer; // first byte of first row
 		byte *curRowH = buffer + bytesPerRow*(h-1); // first byte of last row
 		while(curRowL < curRowH)
@@ -162,7 +162,7 @@ GL3_ScreenShot(void)
 			curRowL += bytesPerRow;
 			curRowH -= bytesPerRow;
 		}
-		YQ2_VLAFREE(rowBuffer);
+		MC1Q2_VLAFREE(rowBuffer);
 	}
 
 	ri.Vid_WriteScreenshot(w, h, comps, buffer);

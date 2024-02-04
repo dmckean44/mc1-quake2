@@ -208,38 +208,42 @@ typedef struct vidmode_s
 
 // This must be the same as VID_MenuInit()->resolutions[] in videomenu.c!
 vidmode_t vid_modes[] = {
-	{"Mode  0:  320x240", 320, 240, 0},
-	{"Mode  1:  400x300", 400, 300, 1},
-	{"Mode  2:  512x384", 512, 384, 2},
-	{"Mode  3:  640x400", 640, 400, 3},
-	{"Mode  4:  640x480", 640, 480, 4},
-	{"Mode  5:  800x500", 800, 500, 5},
-	{"Mode  6:  800x600", 800, 600, 6},
-	{"Mode  7:  960x720", 960, 720, 7},
-	{"Mode  8: 1024x480", 1024, 480, 8},
-	{"Mode  9: 1024x640", 1024, 640, 9},
-	{"Mode 10: 1024x768", 1024, 768, 10},
-	{"Mode 11: 1152x768", 1152, 768, 11},
-	{"Mode 12: 1152x864", 1152, 864, 12},
-	{"Mode 13: 1280x800", 1280, 800, 13},
-	{"Mode 14: 1280x720", 1280, 720, 14},
-	{"Mode 15: 1280x960", 1280, 960, 15},
-	{"Mode 16: 1280x1024", 1280, 1024, 16},
-	{"Mode 17: 1366x768", 1366, 768, 17},
-	{"Mode 18: 1440x900", 1440, 900, 18},
-	{"Mode 19: 1600x1200", 1600, 1200, 19},
-	{"Mode 20: 1680x1050", 1680, 1050, 20},
-	{"Mode 21: 1920x1080", 1920, 1080, 21},
-	{"Mode 22: 1920x1200", 1920, 1200, 22},
-	{"Mode 23: 2048x1536", 2048, 1536, 23},
-	{"Mode 24: 2560x1080", 2560, 1080, 24},
-	{"Mode 25: 2560x1440", 2560, 1440, 25},
-	{"Mode 26: 2560x1600", 2560, 1600, 26},
-	{"Mode 27: 3440x1440", 3440, 1440, 27},
-	{"Mode 28: 3840x1600", 3840, 1600, 28},
-	{"Mode 29: 3840x2160", 3840, 2160, 29},
-	{"Mode 30: 4096x2160", 4096, 2160, 30},
-	{"Mode 31: 5120x2880", 5120, 2880, 31},
+	{"Mode  0:  320x180", 320, 180, 0},
+	{"Mode  1:  320x240", 320, 240, 1},
+	{"Mode  2:  400x225", 400, 225, 2},
+	{"Mode  3:  400x300", 400, 300, 3},
+	{"Mode  4:  440x248", 440, 248, 4},
+	{"Mode  5:  512x384", 512, 384, 5},
+	{"Mode  6:  640x360", 640, 360, 6},
+	{"Mode  7:  640x400", 640, 400, 7},
+	{"Mode  8:  640x480", 640, 480, 8},
+	{"Mode  9:  800x500", 800, 500, 9},
+	{"Mode 10:  800x600", 800, 600, 10},
+	{"Mode 11:  960x720", 960, 720, 11},
+	{"Mode 12: 1024x480", 1024, 480, 12},
+	{"Mode 13: 1024x640", 1024, 640, 13},
+	{"Mode 14: 1024x768", 1024, 768, 14},
+	{"Mode 15: 1152x768", 1152, 768, 15},
+	{"Mode 16: 1152x864", 1152, 864, 16},
+	{"Mode 17: 1280x800", 1280, 800, 17},
+	{"Mode 18: 1280x720", 1280, 720, 18},
+	{"Mode 19: 1280x960", 1280, 960, 19},
+	{"Mode 20: 1280x1024", 1280, 1024, 20},
+	{"Mode 21: 1366x768", 1366, 768, 21},
+	{"Mode 22: 1440x900", 1440, 900, 22},
+	{"Mode 23: 1600x1200", 1600, 1200, 23},
+	{"Mode 24: 1680x1050", 1680, 1050, 24},
+	{"Mode 25: 1920x1080", 1920, 1080, 25},
+	{"Mode 26: 1920x1200", 1920, 1200, 26},
+	{"Mode 27: 2048x1536", 2048, 1536, 27},
+	{"Mode 28: 2560x1080", 2560, 1080, 28},
+	{"Mode 29: 2560x1440", 2560, 1440, 29},
+	{"Mode 30: 2560x1600", 2560, 1600, 30},
+	{"Mode 31: 3440x1440", 3440, 1440, 31},
+	{"Mode 32: 3840x1600", 3840, 1600, 32},
+	{"Mode 33: 3840x2160", 3840, 2160, 33},
+	{"Mode 34: 4096x2160", 4096, 2160, 34},
+	{"Mode 35: 5120x2880", 5120, 2880, 35},
 };
 
 #define VID_NUM_MODES (sizeof(vid_modes) / sizeof(vid_modes[0]))
@@ -294,8 +298,12 @@ viddef_t viddef;
 // Struct with the pointers exported by the renderer.
 refexport_t	re;
 
+#ifndef MC1Q2STATIC
 // Handle / pointer the the loaded renderer DLL.
 void *reflib_handle = NULL;
+#else
+extern refexport_t GetRefAPI(refimport_t);
+#endif
 
 // Is a renderer loaded and active?
 qboolean ref_active = false;
@@ -372,8 +380,10 @@ VID_ShutdownRenderer(void)
 		/* Shut down the renderer */
 		re.Shutdown();
 		GLimp_ShutdownGraphics();
+#ifndef MC1Q2STATIC
 		Sys_FreeLibrary(reflib_handle);
 		reflib_handle = NULL;
+#endif
 		memset(&re, 0, sizeof(re));
 	}
 
@@ -388,10 +398,12 @@ qboolean
 VID_LoadRenderer(void)
 {
 	refimport_t	ri;
+#ifndef MC1Q2STATIC
 	GetRefAPI_t	GetRefAPI;
 
 	char reflib_name[64] = {0};
 	char reflib_path[MAX_OSPATH] = {0};
+#endif
 
 	// If the refresher is already active we need
 	// to shut it down before loading a new one
@@ -400,6 +412,7 @@ VID_LoadRenderer(void)
 	// Log what we're doing.
 	Com_Printf("----- refresher initialization -----\n");
 
+#ifndef MC1Q2STATIC
 	snprintf(reflib_name, sizeof(reflib_name), "ref_%s.%s", vid_renderer->string, lib_ext);
 	VID_GetRendererLibPath(vid_renderer->string, reflib_path, sizeof(reflib_path));
 	Com_Printf("Loading library: %s\n", reflib_name);
@@ -423,6 +436,7 @@ VID_LoadRenderer(void)
 
 		return false;
 	}
+#endif
 
 	// Fill in the struct exported to the renderer.
 	// FIXME: Do we really need all these?
@@ -452,6 +466,7 @@ VID_LoadRenderer(void)
 	// Declare the refresher as active.
 	ref_active = true;
 
+#ifndef MC1Q2STATIC
 	// Let's check if we've got a compatible renderer.
 	if (re.api_version != API_VERSION)
 	{
@@ -461,13 +476,18 @@ VID_LoadRenderer(void)
 
 		return false;
 	}
+#endif
 
 	// Everything seems okay, initialize it.
 	if (!re.Init())
 	{
 		VID_ShutdownRenderer();
 
+#ifndef MC1Q2STATIC
 		Com_Printf("ERROR: Loading %s as rendering backend failed.\n", reflib_name);
+#else
+		Com_Printf("ERROR: Loading rendering backend failed.\n");
+#endif
 		Com_Printf("------------------------------------\n\n");
 
 		return false;
@@ -476,7 +496,11 @@ VID_LoadRenderer(void)
 	/* Ensure that all key states are cleared */
 	Key_MarkAllUp();
 
+#ifndef MC1Q2STATIC
 	Com_Printf("Successfully loaded %s as rendering backend.\n", reflib_name);
+#else
+	Com_Printf("Successfully loaded rendering backend.\n");
+#endif
 	Com_Printf("------------------------------------\n\n");
 
 	return true;

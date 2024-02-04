@@ -55,58 +55,58 @@ typedef unsigned char byte;
 
 // stuff to align variables/arrays and for noreturn
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L // C11 or newer
-	#define YQ2_ALIGNAS_SIZE(SIZE)  _Alignas(SIZE)
-	#define YQ2_ALIGNAS_TYPE(TYPE)  _Alignas(TYPE)
-	// must be used as prefix (YQ2_ATTR_NORETURN void bla();)!
-	#define YQ2_ATTR_NORETURN       _Noreturn
-	#define YQ2_STATIC_ASSERT(C, M) _Static_assert((C), M)
+	#define MC1Q2_ALIGNAS_SIZE(SIZE)  _Alignas(SIZE)
+	#define MC1Q2_ALIGNAS_TYPE(TYPE)  _Alignas(TYPE)
+	// must be used as prefix (MC1Q2_ATTR_NORETURN void bla();)!
+	#define MC1Q2_ATTR_NORETURN       _Noreturn
+	#define MC1Q2_STATIC_ASSERT(C, M) _Static_assert((C), M)
   #if defined(__GNUC__)
-	#define YQ2_ATTR_MALLOC         __attribute__ ((__malloc__))
-	#define YQ2_ATTR_INLINE         __attribute__((always_inline)) inline
+	#define MC1Q2_ATTR_MALLOC         __attribute__ ((__malloc__))
+	#define MC1Q2_ATTR_INLINE         __attribute__((always_inline)) inline
   #elif defined(_MSC_VER)
-	#define YQ2_ATTR_MALLOC         __declspec(restrict)
-	#define YQ2_ATTR_INLINE         __forceinline
+	#define MC1Q2_ATTR_MALLOC         __declspec(restrict)
+	#define MC1Q2_ATTR_INLINE         __forceinline
   #else
 	// no equivalent per see
-	#define YQ2_ATTR_MALLOC
-	#define YQ2_ATTR_INLINE         inline
+	#define MC1Q2_ATTR_MALLOC
+	#define MC1Q2_ATTR_INLINE         inline
   #endif
 #elif defined(__GNUC__) // GCC and clang should support this attribute
-	#define YQ2_ALIGNAS_SIZE(SIZE)  __attribute__(( __aligned__(SIZE) ))
-	#define YQ2_ALIGNAS_TYPE(TYPE)  __attribute__(( __aligned__(__alignof__(TYPE)) ))
-	// must be used as prefix (YQ2_ATTR_NORETURN void bla();)!
-	#define YQ2_ATTR_NORETURN       __attribute__ ((noreturn))
-	#define YQ2_ATTR_MALLOC         __attribute__ ((__malloc__))
-	#define YQ2_ATTR_INLINE         __attribute__((always_inline)) inline
+	#define MC1Q2_ALIGNAS_SIZE(SIZE)  __attribute__(( __aligned__(SIZE) ))
+	#define MC1Q2_ALIGNAS_TYPE(TYPE)  __attribute__(( __aligned__(__alignof__(TYPE)) ))
+	// must be used as prefix (MC1Q2_ATTR_NORETURN void bla();)!
+	#define MC1Q2_ATTR_NORETURN       __attribute__ ((noreturn))
+	#define MC1Q2_ATTR_MALLOC         __attribute__ ((__malloc__))
+	#define MC1Q2_ATTR_INLINE         __attribute__((always_inline)) inline
 	// GCC supports this extension since 4.6
-	#define YQ2_STATIC_ASSERT(C, M) _Static_assert((C), M)
+	#define MC1Q2_STATIC_ASSERT(C, M) _Static_assert((C), M)
 #elif defined(_MSC_VER)
 	// Note: We prefer VS2019 16.8 or newer in C11 mode (/std:c11),
 	//       then the __STDC_VERSION__ >= 201112L case above is used
 
-	#define YQ2_ALIGNAS_SIZE(SIZE)  __declspec(align(SIZE))
+	#define MC1Q2_ALIGNAS_SIZE(SIZE)  __declspec(align(SIZE))
 	// FIXME: for some reason, the following line doesn't work
-	//#define YQ2_ALIGNAS_TYPE( TYPE )  __declspec(align(__alignof(TYPE)))
+	//#define MC1Q2_ALIGNAS_TYPE( TYPE )  __declspec(align(__alignof(TYPE)))
 
   #ifdef _WIN64 // (hopefully) good enough workaround
-	#define YQ2_ALIGNAS_TYPE(TYPE)  __declspec(align(8))
+	#define MC1Q2_ALIGNAS_TYPE(TYPE)  __declspec(align(8))
   #else // 32bit
-	#define YQ2_ALIGNAS_TYPE(TYPE)  __declspec(align(4))
+	#define MC1Q2_ALIGNAS_TYPE(TYPE)  __declspec(align(4))
   #endif // _WIN64
 
-	// must be used as prefix (YQ2_ATTR_NORETURN void bla();)!
-	#define YQ2_ATTR_NORETURN       __declspec(noreturn)
-	#define YQ2_ATTR_MALLOC         __declspec(restrict)
-	#define YQ2_ATTR_INLINE         __forceinline
-	#define YQ2_STATIC_ASSERT(C, M) assert((C) && M)
+	// must be used as prefix (MC1Q2_ATTR_NORETURN void bla();)!
+	#define MC1Q2_ATTR_NORETURN       __declspec(noreturn)
+	#define MC1Q2_ATTR_MALLOC         __declspec(restrict)
+	#define MC1Q2_ATTR_INLINE         __forceinline
+	#define MC1Q2_STATIC_ASSERT(C, M) assert((C) && M)
 #else
 	#warning "Please add a case for your compiler here to align correctly"
-	#define YQ2_ALIGNAS_SIZE(SIZE)
-	#define YQ2_ALIGNAS_TYPE(TYPE)
-	#define YQ2_ATTR_NORETURN
-	#define YQ2_ATTR_MALLOC
-	#define YQ2_ATTR_INLINE         inline
-	#define YQ2_STATIC_ASSERT(C, M) assert((C) && M)
+	#define MC1Q2_ALIGNAS_SIZE(SIZE)
+	#define MC1Q2_ALIGNAS_TYPE(TYPE)
+	#define MC1Q2_ATTR_NORETURN
+	#define MC1Q2_ATTR_MALLOC
+	#define MC1Q2_ATTR_INLINE         inline
+	#define MC1Q2_STATIC_ASSERT(C, M) assert((C) && M)
 #endif
 
 #if defined(__GNUC__)
@@ -114,9 +114,9 @@ typedef unsigned char byte;
 	 * use the gcc/clang-specific version for function pointers, even
 	 * in C11 mode. MSVC __declspec(noreturn) seems to have the same
 	 * restriction as _Noreturn so can't be used here either. */
-	#define YQ2_ATTR_NORETURN_FUNCPTR  __attribute__ ((noreturn))
+	#define MC1Q2_ATTR_NORETURN_FUNCPTR  __attribute__ ((noreturn))
 #else
-	#define YQ2_ATTR_NORETURN_FUNCPTR  /* nothing */
+	#define MC1Q2_ATTR_NORETURN_FUNCPTR  /* nothing */
 #endif
 
 /* angle indexes */
@@ -384,8 +384,8 @@ qboolean Sys_IsDir(const char *path);
 qboolean Sys_IsFile(const char *path);
 
 /* large block stack allocation routines */
-YQ2_ATTR_MALLOC void *Hunk_Begin(int maxsize);
-YQ2_ATTR_MALLOC void *Hunk_Alloc(int size);
+MC1Q2_ATTR_MALLOC void *Hunk_Begin(int maxsize);
+MC1Q2_ATTR_MALLOC void *Hunk_Alloc(int size);
 void Hunk_Free(void *buf);
 int Hunk_End(void);
 
@@ -402,7 +402,7 @@ char *Sys_FindNext(unsigned musthave, unsigned canthave);
 void Sys_FindClose(void);
 
 /* this is only here so the functions in shared source files can link */
-YQ2_ATTR_NORETURN void Sys_Error(const char *error, ...);
+MC1Q2_ATTR_NORETURN void Sys_Error(const char *error, ...);
 void Com_Printf(const char *msg, ...);
 
 /*
@@ -434,7 +434,7 @@ typedef struct cvar_s
 	float value;
 	struct cvar_s *next;
 
-	/* Added by YQ2. Must be at the end to preserve ABI. */
+	/* Added by MC1Q2. Must be at the end to preserve ABI. */
 	char *default_string;
 } cvar_t;
 

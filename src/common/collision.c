@@ -69,7 +69,7 @@ typedef struct
 byte *cmod_base;
 byte map_visibility[MAX_MAP_VISIBILITY];
 // DG: is casted to int32_t* in SV_FatPVS() so align accordingly
-static YQ2_ALIGNAS_TYPE(int32_t) byte pvsrow[MAX_MAP_LEAFS / 8];
+static MC1Q2_ALIGNAS_TYPE(int32_t) byte pvsrow[MAX_MAP_LEAFS / 8];
 byte phsrow[MAX_MAP_LEAFS / 8];
 carea_t	map_areas[MAX_MAP_AREAS];
 cbrush_t map_brushes[MAX_MAP_BRUSHES];

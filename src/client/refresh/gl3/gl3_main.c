@@ -35,10 +35,10 @@
 #define DG_DYNARR_IMPLEMENTATION
 #include "header/DG_dynarr.h"
 
-#ifdef YQ2_GL3_GLES3
-  #define REF_VERSION "Yamagi Quake II OpenGL ES3 Refresher"
+#ifdef MC1Q2_GL3_GLES3
+  #define REF_VERSION "MC1 Quake II OpenGL ES3 Refresher"
 #else
-  #define REF_VERSION "Yamagi Quake II OpenGL3 Refresher"
+  #define REF_VERSION "MC1 Quake II OpenGL3 Refresher"
 #endif
 
 refimport_t ri;
@@ -84,11 +84,15 @@ cvar_t *gl_msaa_samples;
 cvar_t *r_vsync;
 cvar_t *r_retexturing;
 cvar_t *r_scale8bittextures;
+#ifndef MC1Q2STATIC
 cvar_t *vid_fullscreen;
+#endif
 cvar_t *r_mode;
 cvar_t *r_customwidth;
 cvar_t *r_customheight;
+#ifndef MC1Q2STATIC
 cvar_t *vid_gamma;
+#endif
 cvar_t *gl_anisotropic;
 cvar_t *gl_texturemode;
 cvar_t *gl_drawbuffer;
@@ -224,7 +228,7 @@ GL3_Register(void)
 
 	//  0: use lots of calls to glBufferData()
 	//  1: reduce calls to glBufferData() with one big VBO (see GL3_BufferAndDraw3D())
-	// -1: auto (let yq2 choose to enable/disable this based on detected driver)
+	// -1: auto (let mc1q2 choose to enable/disable this based on detected driver)
 	gl3_usebigvbo = ri.Cvar_Get("gl3_usebigvbo", "-1", CVAR_ARCHIVE);
 
 	r_norefresh = ri.Cvar_Get("r_norefresh", "0", 0);
@@ -504,7 +508,7 @@ GL3_Init(void)
 	Swap_Init(); // FIXME: for fucks sake, this doesn't have to be done at runtime!
 
 	R_Printf(PRINT_ALL, "Refresh: " REF_VERSION "\n");
-	R_Printf(PRINT_ALL, "Client: " YQ2VERSION "\n\n");
+	R_Printf(PRINT_ALL, "Client: " MC1Q2VERSION "\n\n");
 
 	if(sizeof(float) != sizeof(GLfloat))
 	{
@@ -1000,7 +1004,7 @@ GL3_DrawParticles(void)
 	{
 		int i;
 		int numParticles = gl3_newrefdef.num_particles;
-		YQ2_ALIGNAS_TYPE(unsigned) byte color[4];
+		MC1Q2_ALIGNAS_TYPE(unsigned) byte color[4];
 		const particle_t *p;
 		// assume the size looks good with window height 480px and scale according to real resolution
 		float pointSize = gl3_particle_size->value * (float)gl3_newrefdef.height/480.0f;
@@ -1011,7 +1015,7 @@ GL3_DrawParticles(void)
 			GLfloat dist;
 			GLfloat color[4];
 		} part_vtx;
-		YQ2_STATIC_ASSERT(sizeof(part_vtx)==9*sizeof(float), "invalid part_vtx size"); // remember to update GL3_SurfInit() if this changes!
+		MC1Q2_STATIC_ASSERT(sizeof(part_vtx)==9*sizeof(float), "invalid part_vtx size"); // remember to update GL3_SurfInit() if this changes!
 
 		// Don't try to draw particles if there aren't any.
 		if (numParticles == 0)
@@ -1019,7 +1023,7 @@ GL3_DrawParticles(void)
 			return;
 		}
 
-		YQ2_VLA(part_vtx, buf, numParticles);
+		MC1Q2_VLA(part_vtx, buf, numParticles);
 
 		// TODO: viewOrg could be in UBO
 		vec3_t viewOrg;
@@ -1028,7 +1032,7 @@ GL3_DrawParticles(void)
 		glDepthMask(GL_FALSE);
 		glEnable(GL_BLEND);
 
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 		// the RPi4 GLES3 implementation doesn't draw particles if culling is
 		// enabled (at least with GL_FRONT which seems to be default in q2?)
 		glDisable(GL_CULL_FACE);
@@ -1063,14 +1067,14 @@ GL3_DrawParticles(void)
 
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 		if(r_cull->value != 0.0f)
 			glEnable(GL_CULL_FACE);
 #else
 		glDisable(GL_PROGRAM_POINT_SIZE);
 #endif
 
-		YQ2_VLAFREE(buf);
+		MC1Q2_VLAFREE(buf);
 	}
 }
 
@@ -1904,7 +1908,7 @@ GL3_BeginFrame(float camera_separation)
 		gl_drawbuffer->modified = false;
 
 
-#ifdef YQ2_GL3_GLES
+#ifdef MC1Q2_GL3_GLES
 		// OpenGL ES3 only supports GL_NONE, GL_BACK and GL_COLOR_ATTACHMENT*
 		// so this doesn't make sense here, see https://docs.gl/es3/glDrawBuffers
 		R_Printf(PRINT_ALL, "NOTE: gl_drawbuffer not supported by OpenGL ES!\n");
@@ -2048,6 +2052,7 @@ void R_Printf(int level, const char* msg, ...)
 	va_end(argptr);
 }
 
+#ifndef MC1Q2STATIC
 /*
  * this is only here so the functions in shared source files
  * (shared.c, rand.c, flash.c, mem.c/hunk.c) can link
@@ -2073,3 +2078,4 @@ Com_Printf(const char *msg, ...)
 	ri.Com_VPrintf(PRINT_ALL, msg, argptr);
 	va_end(argptr);
 }
+#endif  // MC1Q2STATIC

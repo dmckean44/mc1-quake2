@@ -31,7 +31,7 @@
 #include "header/server.h"
 
 // DG: is casted to int32_t* in SV_FatPVS() so align accordingly
-static YQ2_ALIGNAS_TYPE(int32_t) byte fatpvs[65536 / 8];
+static MC1Q2_ALIGNAS_TYPE(int32_t) byte fatpvs[65536 / 8];
 
 /*
  * Writes a delta update of an entity_state_t list to the message.

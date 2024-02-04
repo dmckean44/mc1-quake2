@@ -77,7 +77,7 @@ R_DrawGLFlowingPoly(msurface_t *fa)
 		scroll = -64.0;
 	}
 
-    YQ2_VLA(GLfloat, tex, 2*p->numverts);
+    MC1Q2_VLA(GLfloat, tex, 2*p->numverts);
     unsigned int index_tex = 0;
 
     v = p->verts [ 0 ];
@@ -99,7 +99,7 @@ R_DrawGLFlowingPoly(msurface_t *fa)
     glDisableClientState( GL_VERTEX_ARRAY );
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 
-	YQ2_VLAFREE(tex);
+	MC1Q2_VLAFREE(tex);
 }
 
 static void
@@ -190,7 +190,7 @@ R_DrawGLPolyChain(glpoly_t *p, float soffset, float toffset)
 				maxNumVerts = tmp->numverts;
 		}
 
-		YQ2_VLA( GLfloat, tex, 2 * maxNumVerts );
+		MC1Q2_VLA( GLfloat, tex, 2 * maxNumVerts );
 #endif
 
 		for ( ; p != 0; p = p->chain)
@@ -200,7 +200,7 @@ R_DrawGLPolyChain(glpoly_t *p, float soffset, float toffset)
 
 			v = p->verts[0];
 #ifndef _MSC_VER // we have real VLAs, so it's safe to use one in this loop
-            YQ2_VLA(GLfloat, tex, 2*p->numverts);
+            MC1Q2_VLA(GLfloat, tex, 2*p->numverts);
 #endif
 
             unsigned int index_tex = 0;
@@ -224,7 +224,7 @@ R_DrawGLPolyChain(glpoly_t *p, float soffset, float toffset)
             glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 		}
 
-		YQ2_VLAFREE( tex );
+		MC1Q2_VLAFREE( tex );
 	}
 }
 
@@ -958,7 +958,7 @@ void
 R_MarkLeaves(void)
 {
 	const byte *vis;
-	YQ2_ALIGNAS_TYPE(int) byte fatvis[MAX_MAP_LEAFS / 8];
+	MC1Q2_ALIGNAS_TYPE(int) byte fatvis[MAX_MAP_LEAFS / 8];
 	mnode_t *node;
 	int i, c;
 	mleaf_t *leaf;

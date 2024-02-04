@@ -44,10 +44,10 @@ printBacktrace(int sig)
 	size = backtrace(array, 15);
 	strings = backtrace_symbols(array, size);
 
-	printf("Product:      Yamagi Quake II\n");
-	printf("Version:      %s\n", YQ2VERSION);
-	printf("Platform:     %s\n", YQ2OSTYPE);
-	printf("Architecture: %s\n", YQ2ARCH);
+	printf("Product:      MC1 Quake II\n");
+	printf("Version:      %s\n", MC1Q2VERSION);
+	printf("Platform:     %s\n", MC1Q2OSTYPE);
+	printf("Architecture: %s\n", MC1Q2ARCH);
 	printf("Compiler:     %s\n", __VERSION__);
 	printf("Signal:       %i\n", sig);
 	printf("\nBacktrace:\n");
@@ -65,10 +65,10 @@ printBacktrace(int sig)
 void
 printBacktrace(int sig)
 {
-	printf("Product:      Yamagi Quake II\n");
-	printf("Version:      %s\n", YQ2VERSION);
-	printf("Platform:     %s\n", YQ2OSTYPE);
-	printf("Architecture: %s\n", YQ2ARCH);
+	printf("Product:      MC1 Quake II\n");
+	printf("Version:      %s\n", MC1Q2VERSION);
+	printf("Platform:     %s\n", MC1Q2OSTYPE);
+	printf("Architecture: %s\n", MC1Q2ARCH);
 	printf("Compiler:     %s\n", __VERSION__);
 	printf("Signal:       %i\n", sig);
 	printf("\nBacktrace:\n");
@@ -81,7 +81,7 @@ void
 signalhandler(int sig)
 {
 	printf("\n=======================================================\n");
-	printf("\nYamagi Quake II crashed! This should not happen...\n");
+	printf("\nMC1 Quake II crashed! This should not happen...\n");
 	printf("\nMake sure that you're using the last version. It can\n");
 	printf("be found at http://www.yamagi.org/quake2. If you do,\n");
 	printf("send a bug report to quake2@yamagi.org and include:\n\n");
@@ -95,7 +95,7 @@ signalhandler(int sig)
 	printf("      when the game crashed. baseq2/game.so for the\n");
 	printf("      main game)\n\n");
 	printf(" - Any other data which you think might be useful\n");
-	printf("\nThank you very much for your help, making Yamagi Quake\n");
+	printf("\nThank you very much for your help, making MC1 Quake\n");
 	printf("II an even better source port. It's much appreciated.\n");
 	printf("\n=======================================================\n\n");
 

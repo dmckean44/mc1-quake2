@@ -1897,7 +1897,7 @@ RE_InitContext(void *win)
 	window = (SDL_Window *)win;
 
 	/* Window title - set here so we can display renderer name in it */
-	snprintf(title, sizeof(title), "Yamagi Quake II %s - Soft Render", YQ2VERSION);
+	snprintf(title, sizeof(title), "MC1 Quake II %s - Soft Render", MC1Q2VERSION);
 	SDL_SetWindowTitle(window, title);
 
 	if (r_vsync->value)
@@ -2458,6 +2458,7 @@ SWimp_CreateRender(int width, int height)
 	R_GammaCorrectAndSetPalette( d_8to24table );
 }
 
+#ifndef MC1Q2STATIC
 // this is only here so the functions in q_shared.c and q_shwin.c can link
 void
 Sys_Error (const char *error, ...)
@@ -2480,6 +2481,7 @@ Com_Printf(const char *msg, ...)
 	ri.Com_VPrintf(PRINT_ALL, msg, argptr);
 	va_end(argptr);
 }
+#endif  // MC1Q2STATIC
 
 /*
 ==============================================================================

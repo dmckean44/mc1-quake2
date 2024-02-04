@@ -32,11 +32,11 @@
 #include "shared.h"
 #include "crc.h"
 
-#define YQ2VERSION "8.31pre"
+#define MC1Q2VERSION "1.0"
 #define BASEDIRNAME "baseq2"
 
-#ifndef YQ2OSTYPE
-#error YQ2OSTYPE should be defined by the build system
+#ifndef MC1Q2OSTYPE
+#error MC1Q2OSTYPE should be defined by the build system
 #endif
 
 #ifndef BUILD_DATE
@@ -44,44 +44,44 @@
 #endif
 
 #ifdef _WIN32
- #define CFGDIR "YamagiQ2"
+ #define CFGDIR "MC1Q2"
 #else
  #ifndef __HAIKU__
-   #define CFGDIR ".yq2"
+   #define CFGDIR ".mc1q2"
  #else
-   #define CFGDIR "yq2"
+   #define CFGDIR "mc1q2"
  #endif
 #endif
 
-#ifndef YQ2ARCH
+#ifndef MC1Q2ARCH
   #ifdef _MSC_VER
-    // Setting YQ2ARCH for VisualC++ from CMake doesn't work when using VS integrated CMake
+    // Setting MC1Q2ARCH for VisualC++ from CMake doesn't work when using VS integrated CMake
     // so set it in code instead
-    #ifdef YQ2ARCH
-      #undef YQ2ARCH
+    #ifdef MC1Q2ARCH
+      #undef MC1Q2ARCH
     #endif
     #ifdef _M_X64
       // this matches AMD64 and ARM64EC (but not regular ARM64), but they're supposed to be binary-compatible somehow, so whatever
-      #define YQ2ARCH "x86_64"
+      #define MC1Q2ARCH "x86_64"
     #elif defined(_M_ARM64)
-      #define YQ2ARCH "arm64"
+      #define MC1Q2ARCH "arm64"
     #elif defined(_M_ARM)
-      #define YQ2ARCH "arm"
+      #define MC1Q2ARCH "arm"
     #elif defined(_M_IX86)
-      #define YQ2ARCH "x86"
+      #define MC1Q2ARCH "x86"
     #else
       // if you're not targeting one of the aforementioned architectures,
       // check https://learn.microsoft.com/en-us/cpp/preprocessor/predefined-macros
       // to find out how to detect yours and add it here - and please send a patch :)
       #error "Unknown CPU architecture!"
       // (for a quick and dirty solution, comment out the previous line, but keep in mind
-      //  that savegames may not be compatible with other builds of Yamagi Quake II)
-      #define YQ2ARCH "UNKNOWN"
+      //  that savegames may not be compatible with other builds of MC1 Quake II)
+      #define MC1Q2ARCH "UNKNOWN"
     #endif // _M_X64 etc
   #else // other compilers than MSVC
-    #error YQ2ARCH should be defined by the build system
+    #error MC1Q2ARCH should be defined by the build system
   #endif // _MSC_VER
-#endif // YQ2ARCH
+#endif // MC1Q2ARCH
 
 /* ================================================================== */
 
@@ -745,24 +745,24 @@ void Com_Printf(const char *fmt, ...) PRINTF_ATTR(1, 2);
 void Com_DPrintf(const char *fmt, ...) PRINTF_ATTR(1, 2);
 void Com_VPrintf(int print_level, const char *fmt, va_list argptr); /* print_level is PRINT_ALL or PRINT_DEVELOPER */
 void Com_MDPrintf(const char *fmt, ...) PRINTF_ATTR(1, 2);
-YQ2_ATTR_NORETURN_FUNCPTR void Com_Error(int code, const char *fmt, ...) PRINTF_ATTR(2, 3);
-YQ2_ATTR_NORETURN void Com_Quit(void);
+MC1Q2_ATTR_NORETURN_FUNCPTR void Com_Error(int code, const char *fmt, ...) PRINTF_ATTR(2, 3);
+MC1Q2_ATTR_NORETURN void Com_Quit(void);
 
 /* Ugly work around for unsupported
  * format specifiers unter mingw. */
 #ifdef WIN32
-#define YQ2_COM_PRId64 "%I64d"
-#define YQ2_COM_PRIdS "%Id"
+#define MC1Q2_COM_PRId64 "%I64d"
+#define MC1Q2_COM_PRIdS "%Id"
 #else
-#define YQ2_COM_PRId64 "%ld"
-#define YQ2_COM_PRIdS "%zd"
+#define MC1Q2_COM_PRId64 "%ld"
+#define MC1Q2_COM_PRIdS "%zd"
 #endif
 
-// terminate yq2 (with Com_Error()) if VAR is NULL (after malloc() or similar)
+// terminate mc1q2 (with Com_Error()) if VAR is NULL (after malloc() or similar)
 // and print message about it
-#define YQ2_COM_CHECK_OOM(VAR, ALLOC_FN_NAME, ALLOC_SIZE) \
+#define MC1Q2_COM_CHECK_OOM(VAR, ALLOC_FN_NAME, ALLOC_SIZE) \
 	if(VAR == NULL) { \
-		Com_Error(ERR_FATAL, "%s for " YQ2_COM_PRIdS " bytes failed in %s() (%s == NULL)! Out of Memory?!\n", \
+		Com_Error(ERR_FATAL, "%s for " MC1Q2_COM_PRIdS " bytes failed in %s() (%s == NULL)! Out of Memory?!\n", \
 		                     ALLOC_FN_NAME, (size_t)ALLOC_SIZE, __func__, #VAR); }
 
 int Com_ServerState(void);              /* this should have just been a cvar... */
@@ -838,8 +838,8 @@ void SV_Frame(int usec);
 // system.c
 char *Sys_ConsoleInput(void);
 void Sys_ConsoleOutput(char *string);
-YQ2_ATTR_NORETURN void Sys_Error(const char *error, ...);
-YQ2_ATTR_NORETURN void Sys_Quit(void);
+MC1Q2_ATTR_NORETURN void Sys_Error(const char *error, ...);
+MC1Q2_ATTR_NORETURN void Sys_Quit(void);
 void Sys_Init(void);
 char *Sys_GetHomeDir(void);
 void Sys_Remove(const char *path);

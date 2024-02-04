@@ -33,16 +33,16 @@
 
   #include <malloc.h>
 
-  #define YQ2_VLA(TYPE, VARNAME, NUMELEMS) \
+  #define MC1Q2_VLA(TYPE, VARNAME, NUMELEMS) \
 	TYPE * VARNAME = (TYPE *) _malloca(sizeof(TYPE) * NUMELEMS)
-  #define YQ2_VLAFREE(VARNAME) \
+  #define MC1Q2_VLAFREE(VARNAME) \
 	_freea(VARNAME); VARNAME=NULL;
 
 #else // other compilers hopefully support C99 VLAs (gcc/mingw and clang do)
 
-  #define YQ2_VLA(TYPE, VARNAME, NUMELEMS) \
+  #define MC1Q2_VLA(TYPE, VARNAME, NUMELEMS) \
 	TYPE VARNAME[NUMELEMS]
-  #define YQ2_VLAFREE(VARNAME)
+  #define MC1Q2_VLAFREE(VARNAME)
 
 #endif
 

@@ -99,7 +99,7 @@ CreateSDLWindow(int flags, int w, int h)
 	 *  * https://github.com/libsdl-org/SDL/issues/3656 */
 	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "1");
 
-	window = SDL_CreateWindow("Yamagi Quake II", last_position_x, last_position_y, w, h, flags);
+	window = SDL_CreateWindow("MC1 Quake II", last_position_x, last_position_y, w, h, flags);
 
 	if (window)
 	{
@@ -274,7 +274,7 @@ InitDisplayIndices()
 	{
 		/* There are a maximum of 10 digits in 32 bit int + 1 for the NULL terminator. */
 		displayindices[ i ] = malloc(11 * sizeof( char ));
-		YQ2_COM_CHECK_OOM(displayindices[i], "malloc()", 11 * sizeof( char ))
+		MC1Q2_COM_CHECK_OOM(displayindices[i], "malloc()", 11 * sizeof( char ))
 
 		snprintf( displayindices[ i ], 11, "%d", i );
 	}

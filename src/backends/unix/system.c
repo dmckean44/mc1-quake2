@@ -47,8 +47,12 @@
 #include "../../common/header/common.h"
 #include "../../common/header/glob.h"
 
+#ifndef MC1Q2STATIC
 // Pointer to game library
 static void *game_library;
+#else
+extern void *GetGameAPI(void *);
+#endif
 
 // Evil hack to determine if stdin is available
 qboolean stdin_active = true;
@@ -293,7 +297,7 @@ Sys_Nanosleep(int nanosec)
 
 /* ================================================================ */
 
-/* The musthave and canhave arguments are unused in YQ2. We
+/* The musthave and canhave arguments are unused in MC1Q2. We
    can't remove them since Sys_FindFirst() and Sys_FindNext()
    are defined in shared.h and may be used in custom game DLLs. */
 
@@ -391,17 +395,20 @@ Sys_FindClose(void)
 void
 Sys_UnloadGame(void)
 {
+#ifndef MC1Q2STATIC
 	if (game_library)
 	{
 		dlclose(game_library);
 	}
 
 	game_library = NULL;
+#endif
 }
 
 void *
 Sys_GetGameAPI(void *parms)
 {
+#ifndef MC1Q2STATIC
 	void *(*GetGameAPI)(void *);
 
 	char name[MAX_OSPATH];
@@ -486,6 +493,7 @@ Sys_GetGameAPI(void *parms)
 		Sys_UnloadGame();
 		return NULL;
 	}
+#endif // MC1Q2STATIC
 
 	return GetGameAPI(parms);
 }

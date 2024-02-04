@@ -1,6 +1,6 @@
 # Multiplayer Servers
 
-In general running a Yamagi Quake II server is the same as running a
+In general running a MC1 Quake II server is the same as running a
 Vanilla Quake2 server, so the old guides should still apply.
 
 One thing to keep in mind is that the server must be restarted at least
@@ -34,10 +34,10 @@ servers!
 
 Like r1q2 and some other Quake II source ports, we allow downloading
 game data for multiplayer via HTTP. This is a lot faster than the Quake
-II internal protocol that was used in the original client and Yamagi
+II internal protocol that was used in the original client and MC1
 Quake II up to version 7.30.
 
-As a **client** you don't have to do anything, just use a Yamagi Quake
+As a **client** you don't have to do anything, just use a MC1 Quake
 II version newer than 7.30 and if you build it yourself don't disable
 cURL support.
 

@@ -39,8 +39,10 @@
 #define STBI_FREE(p)       free(p)
 // Switch of the thread local stuff. Breaks mingw under Windows.
 #define STBI_NO_THREAD_LOCALS
+#ifndef MC1Q2STATIC
 // include implementation part of stb_image into this file
 #define STB_IMAGE_IMPLEMENTATION
+#endif
 #include "stb_image.h"
 
 // include resize implementation

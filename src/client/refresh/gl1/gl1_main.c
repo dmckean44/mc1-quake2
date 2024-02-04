@@ -132,8 +132,10 @@ cvar_t *gl_anisotropic;
 cvar_t *r_lockpvs;
 cvar_t *gl_msaa_samples;
 
+#ifndef MC1Q2STATIC
 cvar_t *vid_fullscreen;
 cvar_t *vid_gamma;
+#endif
 
 cvar_t *gl1_stereo;
 cvar_t *gl1_stereo_separation;
@@ -411,11 +413,11 @@ R_DrawParticles2(int num_particles, const particle_t particles[],
 	int i;
 	vec3_t up, right;
 	float scale;
-	YQ2_ALIGNAS_TYPE(unsigned) byte color[4];
+	MC1Q2_ALIGNAS_TYPE(unsigned) byte color[4];
 
-	YQ2_VLA(GLfloat, vtx, 3 * num_particles * 3);
-	YQ2_VLA(GLfloat, tex, 2 * num_particles * 3);
-	YQ2_VLA(GLfloat, clr, 4 * num_particles * 3);
+	MC1Q2_VLA(GLfloat, vtx, 3 * num_particles * 3);
+	MC1Q2_VLA(GLfloat, tex, 2 * num_particles * 3);
+	MC1Q2_VLA(GLfloat, clr, 4 * num_particles * 3);
 
 	unsigned int index_vtx = 0;
 	unsigned int index_tex = 0;
@@ -499,9 +501,9 @@ R_DrawParticles2(int num_particles, const particle_t particles[],
 	glDepthMask(1); /* back to normal Z buffering */
 	R_TexEnv(GL_REPLACE);
 
-	YQ2_VLAFREE(vtx);
-	YQ2_VLAFREE(tex);
-	YQ2_VLAFREE(clr);
+	MC1Q2_VLAFREE(vtx);
+	MC1Q2_VLAFREE(tex);
+	MC1Q2_VLAFREE(clr);
 }
 
 void
@@ -518,11 +520,11 @@ R_DrawParticles(void)
 	if (gl_config.pointparameters && !(stereo_split_tb || stereo_split_lr))
 	{
 		int i;
-		YQ2_ALIGNAS_TYPE(unsigned) byte color[4];
+		MC1Q2_ALIGNAS_TYPE(unsigned) byte color[4];
 		const particle_t *p;
 
-		YQ2_VLA(GLfloat, vtx, 3 * r_newrefdef.num_particles);
-		YQ2_VLA(GLfloat, clr, 4 * r_newrefdef.num_particles);
+		MC1Q2_VLA(GLfloat, vtx, 3 * r_newrefdef.num_particles);
+		MC1Q2_VLA(GLfloat, clr, 4 * r_newrefdef.num_particles);
 
 		unsigned int index_vtx = 0;
 		unsigned int index_clr = 0;
@@ -562,8 +564,8 @@ R_DrawParticles(void)
 		glDepthMask(GL_TRUE);
 		glEnable(GL_TEXTURE_2D);
 
-		YQ2_VLAFREE(vtx);
-		YQ2_VLAFREE(clr);
+		MC1Q2_VLAFREE(vtx);
+		MC1Q2_VLAFREE(clr);
 	}
 	else
 	{
@@ -1403,7 +1405,7 @@ RI_Init(void)
 	}
 
 	R_Printf(PRINT_ALL, "Refresh: " REF_VERSION "\n");
-	R_Printf(PRINT_ALL, "Client: " YQ2VERSION "\n\n");
+	R_Printf(PRINT_ALL, "Client: " MC1Q2VERSION "\n\n");
 
 #ifdef DEBUG
 	R_Printf(PRINT_ALL, "ref_gl1::R_Init() - DEBUG mode enabled\n");
@@ -1967,6 +1969,7 @@ void R_Printf(int level, const char* msg, ...)
 	va_end(argptr);
 }
 
+#ifndef MC1Q2STATIC
 /*
  * this is only here so the functions in shared source files
  * (shared.c, rand.c, flash.c, mem.c/hunk.c) can link
@@ -1992,6 +1995,7 @@ Com_Printf(const char *msg, ...)
 	ri.Com_VPrintf(PRINT_ALL, msg, argptr);
 	va_end(argptr);
 }
+#endif  // MC1Q2STATIC
 
 #ifdef DEBUG
 void

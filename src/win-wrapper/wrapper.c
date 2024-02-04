@@ -6,7 +6,7 @@
  * This should allow us to rename the real executable to yquake2.exe (to hopefully
  * avoid trouble with whatever stupid thing interferes with mouse input once
  * console has been opened if the games executable is called quake2.exe)
- * while avoiding confusion for people upgrading their yq2 installation who still have
+ * while avoiding confusion for people upgrading their mc1q2 installation who still have
  * shortcuts (possibly in Steam) to quake2.exe that would otherwise launch an old version.
  *
  * Can be built with just
@@ -103,7 +103,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			return 1;
 		}
 
-		Sleep(1000); // wait until yq2 should have created the window
+		Sleep(1000); // wait until mc1q2 should have created the window
 
 		// send window to foreground, as shown in https://stackoverflow.com/a/17166455
 

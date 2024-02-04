@@ -1563,6 +1563,8 @@ SCR_UpdateScreen(void)
 		return; /* not initialized yet */
 	}
 
+#ifndef MC1Q2STATIC
+	// TODO(m): We should support this in static builds when the renderer is ref_gl1.
 	if ( gl1_stereo->value )
 	{
 		numframes = 2;
@@ -1570,6 +1572,7 @@ SCR_UpdateScreen(void)
 		separation[1] = +gl1_stereo_separation->value / 2;
 	}
 	else
+#endif
 	{
 		separation[0] = 0;
 		separation[1] = 0;
