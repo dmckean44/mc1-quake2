@@ -57,6 +57,12 @@ elseif (${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
 	endif()
 endif()
 
+# Some option overrides for MC1.
+if(MC1)
+	set(CURL_SUPPORT OFF)
+	set(OPENAL_SUPPORT OFF)
+endif()
+
 # Compilation time options.
 option(CURL_SUPPORT "cURL support" ON)
 option(OPENAL_SUPPORT "OpenAL support" ON)
@@ -186,12 +192,22 @@ if(NOT (CMAKE_SYSTEM_NAME MATCHES "Linux") AND NOT (CMAKE_SYSTEM_NAME MATCHES "W
 	add_definitions(-DIOAPI_NO_64)
 endif()
 
-# Required libraries to build the different components of the binaries. Find
-# them and add the include/linker directories and flags (in case the package
-# manager find it in a weird place).
-find_package(SDL2 REQUIRED)
-list(APPEND mc1quake2IncludeDirectories "${SDL2_INCLUDE_DIR}/..")
-list(APPEND mc1quake2SDLLinkerFlags ${SDL2_LIBRARY})
+if(MC1)
+	add_definitions(-DMC1)
+	list(APPEND mc1quake2LinkerFlags -lmc1)
+	if(MR32SIM)
+		add_definitions(-msim)
+		list(APPEND mc1quake2LinkerFlags -msim)
+	endif()
+else()
+	# Required libraries to build the different components of the binaries. Find
+	# them and add the include/linker directories and flags (in case the package
+	# manager find it in a weird place).
+	find_package(SDL2 REQUIRED)
+	list(APPEND mc1quake2IncludeDirectories "${SDL2_INCLUDE_DIR}/..")
+	list(APPEND mc1quake2SDLLinkerFlags ${SDL2_LIBRARY})
+	add_definitions(-DUSE_SDL)
+endif()
 
 # Do we need an OpenGL implementation?
 if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} MATCHES "ref_gl"))
