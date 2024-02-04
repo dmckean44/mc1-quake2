@@ -25,13 +25,12 @@
  */
 
 #include <dirent.h>
-#include <dlfcn.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/select.h> /* for fd_set */
@@ -39,26 +38,13 @@
 #define FNDELAY O_NDELAY
 #endif
 
-#ifdef __APPLE__
-#include <mach/clock.h>
-#include <mach/mach.h>
-#endif
-
 #include "../../common/header/common.h"
 #include "../../common/header/glob.h"
 
-#ifndef MC1Q2STATIC
-// Pointer to game library
-static void *game_library;
-#else
 extern void *GetGameAPI(void *);
-#endif
 
 // Evil hack to determine if stdin is available
 qboolean stdin_active = true;
-
-// Terminal supports colors
-static qboolean color_active = false;
 
 // Config dir
 char cfgdir[MAX_OSPATH] = CFGDIR;
@@ -114,37 +100,7 @@ Sys_Quit(void)
 void
 Sys_Init(void)
 {
-	char *envvar;
-
-	envvar = getenv("TERM");
-	if (envvar && strstr(envvar, "color"))
-	{
-		char buf[256];
-
-		color_active = true;
-
-		snprintf(buf, sizeof(buf),
-			"\2Terminal supports colors: TERM='%s'\n", envvar);
-
-		Sys_ConsoleOutput(buf);
-		return;
-	}
-
-	envvar = getenv("COLORTERM");
-	if (envvar && strlen(envvar))
-	{
-		char buf[256];
-		color_active = true;
-
-		snprintf(buf, sizeof(buf),
-			"\2Terminal supports colors: COLORTERM='%s'\n", envvar);
-
-		Sys_ConsoleOutput(buf);
-		return;
-	}
-
 	Sys_ConsoleOutput("Terminal has no colors support.\n");
-
 }
 
 /* ================================================================ */
@@ -154,8 +110,6 @@ Sys_ConsoleInput(void)
 {
 	static char text[256];
 	int len;
-	fd_set fdset;
-	struct timeval timeout;
 
 	if (!dedicated || !dedicated->value)
 	{
@@ -163,16 +117,6 @@ Sys_ConsoleInput(void)
 	}
 
 	if (!stdin_active)
-	{
-		return NULL;
-	}
-
-	FD_ZERO(&fdset);
-	FD_SET(0, &fdset); /* stdin */
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 0;
-
-	if ((select(1, &fdset, NULL, NULL, &timeout) == -1) || !FD_ISSET(0, &fdset))
 	{
 		return NULL;
 	}
@@ -198,29 +142,6 @@ Sys_ConsoleInput(void)
 void
 Sys_ConsoleOutput(char *string)
 {
-	if ((string[0] == 0x01) || (string[0] == 0x02))
-	{
-		if (color_active)
-		{
-			if (string[0] == 0x01)
-			{
-				/* red */
-				fputs("\033[31;1m", stdout);
-			}
-			else
-			{
-				/* green */
-				fputs("\033[32;1m", stdout);
-			}
-
-			fputs(string + 1, stdout);
-
-			/* reset to default terminal settings */
-			fputs("\033[0m", stdout);
-			return;
-		}
-	}
-
 	fputs(string, stdout);
 }
 
@@ -229,57 +150,29 @@ Sys_ConsoleOutput(char *string)
 long long
 Sys_Microseconds(void)
 {
-#ifdef __APPLE__
-	// OSX didn't have clock_gettime() until recently, so use Mach's clock_get_time()
-	// instead. fortunately its mach_timespec_t seems identical to POSIX struct timespec
-	// so lots of code can be shared
-	clock_serv_t cclock;
-	mach_timespec_t now;
-	static mach_timespec_t first;
+	static struct timeval s_t0;
+	static int s_initialized;
+	struct timeval t;
 
-	host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
-	clock_get_time(cclock, &now);
-	mach_port_deallocate(mach_task_self(), cclock);
-
-#else // not __APPLE__ - other Unix-likes will hopefully support clock_gettime()
-
-	struct timespec now;
-	static struct timespec first;
-#ifdef _POSIX_MONOTONIC_CLOCK
-	clock_gettime(CLOCK_MONOTONIC, &now);
-#else
-	clock_gettime(CLOCK_REALTIME, &now);
-#endif
-
-#endif // not __APPLE__
-
-	if(first.tv_sec == 0)
-	{
-		long long nsec = now.tv_nsec;
-		long long sec = now.tv_sec;
-		// set back first by 1ms so neither this function nor Sys_Milliseconds()
-		// (which calls this) will ever return 0
-		nsec -= 1000000;
-		if(nsec < 0)
-		{
-			nsec += 1000000000ll; // 1s in ns => definitely positive now
-			--sec;
-		}
-
-		first.tv_sec = sec;
-		first.tv_nsec = nsec;
+	// Get current time of day.
+	if (gettimeofday(&t, NULL) == -1) {
+		Sys_Error("gettimeofday failed");
+	}
+	if (!s_initialized) {
+		s_t0 = t;
+		s_initialized = 1;
 	}
 
-	long long sec = now.tv_sec - first.tv_sec;
-	long long nsec = now.tv_nsec - first.tv_nsec;
-
-	if(nsec < 0)
-	{
-		nsec += 1000000000ll; // 1s in ns
-		--sec;
+	// Calculate delta to start of application.
+	time_t secs = t.tv_sec - s_t0.tv_sec;
+	suseconds_t usecs = t.tv_usec - s_t0.tv_usec;
+	if (usecs < 0L) {
+		usecs += 1000000L;
+		secs -= 1L;
 	}
 
-	return sec*1000000ll + nsec/1000ll;
+	// Convert to microseconds.
+	return (1000000LL * (long long)(secs)) + (long long)usecs;
 }
 
 int
@@ -291,8 +184,13 @@ Sys_Milliseconds(void)
 void
 Sys_Nanosleep(int nanosec)
 {
-	struct timespec t = {0, nanosec};
-	nanosleep(&t, NULL);
+	if (nanosec <= 1000) {
+		return;
+	}
+	int microsec = nanosec / 1000;
+	long long sleep_until = Sys_Microseconds() + (long long)microsec;
+	while (Sys_Microseconds() < sleep_until)
+		;
 }
 
 /* ================================================================ */
@@ -395,106 +293,11 @@ Sys_FindClose(void)
 void
 Sys_UnloadGame(void)
 {
-#ifndef MC1Q2STATIC
-	if (game_library)
-	{
-		dlclose(game_library);
-	}
-
-	game_library = NULL;
-#endif
 }
 
 void *
 Sys_GetGameAPI(void *parms)
 {
-#ifndef MC1Q2STATIC
-	void *(*GetGameAPI)(void *);
-
-	char name[MAX_OSPATH];
-	char *path;
-	char *str_p;
-#ifdef __APPLE__
-	const char *gamename = "game.dylib";
-#else
-	const char *gamename = "game.so";
-#endif
-
-	if (game_library)
-	{
-		Com_Error(ERR_FATAL, "Sys_GetGameAPI without Sys_UnloadingGame");
-	}
-
-	Com_Printf("Loading library: %s\n", gamename);
-
-	/* now run through the search paths */
-	path = NULL;
-
-	while (1)
-	{
-		FILE *fp;
-
-		path = FS_NextPath(path);
-
-		if (!path)
-		{
-			return NULL;     /* couldn't find one anywhere */
-		}
-
-		snprintf(name, MAX_OSPATH, "%s/%s", path, gamename);
-
-		/* skip it if it just doesn't exist */
-		fp = fopen(name, "rb");
-
-		if (fp == NULL)
-		{
-			continue;
-		}
-
-		fclose(fp);
-
-#ifdef USE_SANITIZER
-		game_library = dlopen(name, RTLD_NOW | RTLD_NODELETE);
-#else
-		game_library = dlopen(name, RTLD_NOW);
-#endif
-
-		if (game_library)
-		{
-			Com_MDPrintf("Loading library: %s\n", name);
-			break;
-		}
-		else
-		{
-			Com_Printf("Loading library: %s\n: ", name);
-
-			path = (char *)dlerror();
-			str_p = strchr(path, ':');   /* skip the path (already shown) */
-
-			if (str_p == NULL)
-			{
-				str_p = path;
-			}
-			else
-			{
-				str_p++;
-			}
-
-			Com_Printf("%s\n", str_p);
-
-			return NULL;
-		}
-	}
-
-	GetGameAPI = (void *)dlsym(game_library, "GetGameAPI");
-
-	if (!GetGameAPI)
-	{
-		Sys_UnloadGame();
-		return NULL;
-	}
-#endif // MC1Q2STATIC
-
 	return GetGameAPI(parms);
 }
 
@@ -548,22 +351,8 @@ char *
 Sys_GetHomeDir(void)
 {
 	static char gdir[MAX_OSPATH];
-	char *home;
-
-	home = getenv("HOME");
-
-	if (!home)
-	{
-		return NULL;
-	}
-
-#ifndef __HAIKU__
-	snprintf(gdir, sizeof(gdir), "%s/%s/", home, cfgdir);
-#else
-	snprintf(gdir, sizeof(gdir), "%s/config/settings/%s", home, cfgdir);
-#endif
+	snprintf(gdir, sizeof(gdir), "./%s/", cfgdir);
 	Sys_Mkdir(gdir);
-
 	return gdir;
 }
 
@@ -606,17 +395,8 @@ Sys_RemoveDir(const char *path)
 qboolean
 Sys_Realpath(const char *in, char *out, size_t size)
 {
-	char *converted = realpath(in, NULL);
-
-	if (converted == NULL)
-	{
-		Com_Printf("Couldn't get realpath for %s\n", in);
-		return false;
-	}
-
-	Q_strlcpy(out, converted, size);
-	free(converted);
-
+	/* TODO(m): Implement me! */
+	Q_strlcpy(out, in, size);
 	return true;
 }
 
@@ -625,72 +405,24 @@ Sys_Realpath(const char *in, char *out, size_t size)
 void *
 Sys_GetProcAddress(void *handle, const char *sym)
 {
-    if (handle == NULL)
-    {
-#ifdef RTLD_DEFAULT
-        return dlsym(RTLD_DEFAULT, sym);
-#else
-        /* POSIX suggests that this is a portable equivalent */
-        static void *global_namespace = NULL;
-
-        if (global_namespace == NULL)
-            global_namespace = dlopen(NULL, RTLD_GLOBAL|RTLD_LAZY);
-
-        return dlsym(global_namespace, sym);
-#endif
-    }
-    return dlsym(handle, sym);
+	(void)handle;
+	(void)sym;
+	return NULL;
 }
 
 void
 Sys_FreeLibrary(void *handle)
 {
-	if (handle && dlclose(handle))
-	{
-		Com_Error(ERR_FATAL, "dlclose failed on %p: %s", handle, dlerror());
-	}
+	(void)handle;
 }
 
 void *
 Sys_LoadLibrary(const char *path, const char *sym, void **handle)
 {
-	void *module, *entry;
-
-	*handle = NULL;
-
-#ifdef USE_SANITIZER
-	module = dlopen(path, RTLD_LAZY | RTLD_NODELETE);
-#else
-	module = dlopen(path, RTLD_LAZY);
-#endif
-
-	if (!module)
-	{
-		Com_Printf("%s failed: %s\n", __func__, dlerror());
-		return NULL;
-	}
-
-	if (sym)
-	{
-		entry = dlsym(module, sym);
-
-		if (!entry)
-		{
-			Com_Printf("%s failed: %s\n", __func__, dlerror());
-			dlclose(module);
-			return NULL;
-		}
-	}
-	else
-	{
-		entry = NULL;
-	}
-
-	Com_DPrintf("%s succeeded: %s\n", __func__, path);
-
-	*handle = module;
-
-	return entry;
+	(void)path;
+	(void)sym;
+	(void)handle;
+	return NULL;
 }
 
 /* ================================================================ */
@@ -698,21 +430,11 @@ Sys_LoadLibrary(const char *path, const char *sym, void **handle)
 void
 Sys_GetWorkDir(char *buffer, size_t len)
 {
-	if (getcwd(buffer, len) != 0)
-	{
-		return;
-	}
-
 	buffer[0] = '\0';
 }
 
 qboolean
 Sys_SetWorkDir(char *path)
 {
-	if (chdir(path) == 0)
-	{
-		return true;
-	}
-
 	return false;
 }
