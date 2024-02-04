@@ -84,11 +84,15 @@ cvar_t *gl_msaa_samples;
 cvar_t *r_vsync;
 cvar_t *r_retexturing;
 cvar_t *r_scale8bittextures;
+#ifndef MC1Q2STATIC
 cvar_t *vid_fullscreen;
+#endif
 cvar_t *r_mode;
 cvar_t *r_customwidth;
 cvar_t *r_customheight;
+#ifndef MC1Q2STATIC
 cvar_t *vid_gamma;
+#endif
 cvar_t *gl_anisotropic;
 cvar_t *gl_texturemode;
 cvar_t *gl_drawbuffer;
@@ -2048,6 +2052,7 @@ void R_Printf(int level, const char* msg, ...)
 	va_end(argptr);
 }
 
+#ifndef MC1Q2STATIC
 /*
  * this is only here so the functions in shared source files
  * (shared.c, rand.c, flash.c, mem.c/hunk.c) can link
@@ -2073,3 +2078,4 @@ Com_Printf(const char *msg, ...)
 	ri.Com_VPrintf(PRINT_ALL, msg, argptr);
 	va_end(argptr);
 }
+#endif  // MC1Q2STATIC

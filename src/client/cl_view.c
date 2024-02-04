@@ -558,7 +558,10 @@ V_RenderView(float stereo_separation)
 		qsort(cl.refdef.entities, cl.refdef.num_entities,
 				sizeof(cl.refdef.entities[0]), (int (*)(const void *, const void *))
 				entitycmpfnc);
-	} else if (cl.frame.valid && cl_paused->value && gl1_stereo->value) {
+	}
+#ifndef MC1Q2STATIC
+	// TODO(m): Add support for stereo mode for statically linked builds.
+	else if (cl.frame.valid && cl_paused->value && gl1_stereo->value) {
 		// We need to adjust the refdef in stereo mode when paused.
 		vec3_t tmp;
 		CL_CalcViewValues();
@@ -571,6 +574,7 @@ V_RenderView(float stereo_separation)
 
 		cl.refdef.time = cl.time*0.001;
 	}
+#endif
 
 	cl.refdef.x = scr_vrect.x;
 	cl.refdef.y = scr_vrect.y;
