@@ -1,3 +1,6 @@
+MC1 Quake II 1.0:
+- Add support for static linking of game and renderer libraries.
+
 Quake II 8.20 to 8.30:
 - Use the same image loading code in all renderers. (by 0lvin)
 - Use the same model loading code in all renderers. (by 0lvin)

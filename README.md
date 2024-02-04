@@ -7,3 +7,7 @@ based on Quake II 3.21.
 
 See the LICENSE file for license information.
 
+## Changes
+
+* Supports static linking of game and rendering libraries (renderer is selected at compile time).
+
