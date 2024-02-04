@@ -206,6 +206,7 @@ else()
 	find_package(SDL2 REQUIRED)
 	list(APPEND mc1quake2IncludeDirectories "${SDL2_INCLUDE_DIR}/..")
 	list(APPEND mc1quake2SDLLinkerFlags ${SDL2_LIBRARY})
+	set(USE_SDL TRUE)
 	add_definitions(-DUSE_SDL)
 endif()
 
@@ -500,17 +501,14 @@ set(Client-Source
 	${CLIENT_SRC_DIR}/cl_view.c
 	${CLIENT_SRC_DIR}/curl/download.c
 	${CLIENT_SRC_DIR}/curl/qcurl.c
-	${CLIENT_SRC_DIR}/input/sdl.c
 	${CLIENT_SRC_DIR}/menu/menu.c
 	${CLIENT_SRC_DIR}/menu/qmenu.c
 	${CLIENT_SRC_DIR}/menu/videomenu.c
 	${CLIENT_SRC_DIR}/sound/ogg.c
 	${CLIENT_SRC_DIR}/sound/openal.c
 	${CLIENT_SRC_DIR}/sound/qal.c
-	${CLIENT_SRC_DIR}/sound/sdl.c
 	${CLIENT_SRC_DIR}/sound/sound.c
 	${CLIENT_SRC_DIR}/sound/wave.c
-	${CLIENT_SRC_DIR}/vid/glimp_sdl.c
 	${CLIENT_SRC_DIR}/vid/vid.c
 	${SERVER_SRC_DIR}/sv_cmd.c
 	${SERVER_SRC_DIR}/sv_conless.c
@@ -543,6 +541,15 @@ set(Client-Header
 	${CLIENT_SRC_DIR}/vid/header/vid.h
 	${SERVER_SRC_DIR}/header/server.h
 	)
+
+if(USE_SDL)
+	list(APPEND Client-Source
+		${CLIENT_SRC_DIR}/input/sdl.c
+		${CLIENT_SRC_DIR}/sound/sdl.c
+		${CLIENT_SRC_DIR}/vid/glimp_sdl.c
+		)
+endif()
+
 
 # Build the common static library
 add_library(common STATIC ${Common-Source} ${Common-Header})
