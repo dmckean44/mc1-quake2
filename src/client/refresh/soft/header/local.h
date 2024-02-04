@@ -608,6 +608,9 @@ extern qboolean	fastmoving;
 void VID_DamageZBuffer(int u, int v);
 qboolean VID_CheckDamageZBuffer(int u, int v, int ucount, int vcount);
 
+// VID helpers.
+int VID_GetTicks(void);
+
 /*
 ====================================================================
 

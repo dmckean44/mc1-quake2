@@ -22,8 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdint.h>
 #include <limits.h>
 
+#ifdef USE_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
+#endif
 
 #include "header/local.h"
 
@@ -219,6 +221,31 @@ static void RE_FlushFrame(int vmin, int vmax);
 static void RE_CleanFrame(void);
 static void RE_EndFrame(void);
 static void R_DrawBeam(const entity_t *e);
+
+/*
+================
+VID_GetTicks
+
+Get the number of millisecond ticks since program start
+================
+*/
+int VID_GetTicks(void)
+{
+#if defined(USE_SDL)
+	static int s_t0;
+	int t = SDL_GetTicks();
+	if (!s_t0) {
+		s_t0 = t;
+	}
+	return t - s_t0;
+#else
+	/* Dummy time tick - this does not do much good, except for
+	   providing a continous time increment */
+	static int s_t0;
+	s_t0 += 16;
+	return s_t0;
+#endif
+}
 
 /*
 ================
@@ -1189,7 +1216,7 @@ R_EdgeDrawing (entity_t *currententity)
 
 	if (r_dspeeds->value)
 	{
-		rw_time1 = SDL_GetTicks();
+		rw_time1 = VID_GetTicks();
 	}
 
 	// Build the Global Edget Table
@@ -1198,7 +1225,7 @@ R_EdgeDrawing (entity_t *currententity)
 
 	if (r_dspeeds->value)
 	{
-		rw_time2 = SDL_GetTicks();
+		rw_time2 = VID_GetTicks();
 		db_time1 = rw_time2;
 	}
 
@@ -1206,7 +1233,7 @@ R_EdgeDrawing (entity_t *currententity)
 
 	if (r_dspeeds->value)
 	{
-		db_time2 = SDL_GetTicks();
+		db_time2 = VID_GetTicks();
 		se_time1 = db_time2;
 	}
 
@@ -1346,7 +1373,7 @@ RE_RenderFrame (refdef_t *fd)
 	VectorCopy (fd->viewangles, lastviewangles);
 
 	if (r_speeds->value || r_dspeeds->value)
-		r_time1 = SDL_GetTicks();
+		r_time1 = VID_GetTicks();
 
 	R_SetupFrame ();
 
@@ -1371,7 +1398,7 @@ RE_RenderFrame (refdef_t *fd)
 
 	if (r_dspeeds->value)
 	{
-		se_time2 = SDL_GetTicks();
+		se_time2 = VID_GetTicks();
 		de_time1 = se_time2;
 	}
 
@@ -1391,15 +1418,15 @@ RE_RenderFrame (refdef_t *fd)
 
 	if (r_dspeeds->value)
 	{
-		de_time2 = SDL_GetTicks();
-		dp_time1 = SDL_GetTicks();
+		de_time2 = VID_GetTicks();
+		dp_time1 = de_time2;
 	}
 
 	// Duh !
 	R_DrawParticles ();
 
 	if (r_dspeeds->value)
-		dp_time2 = SDL_GetTicks();
+		dp_time2 = VID_GetTicks();
 
 	// Perform pixel palette blending ia the pics/colormap.pcx lower part lookup table.
 	R_DrawAlphaSurfaces(&ent);
@@ -1412,8 +1439,8 @@ RE_RenderFrame (refdef_t *fd)
 
 	if (r_dspeeds->value)
 	{
-		da_time1 = SDL_GetTicks();
-		da_time2 = SDL_GetTicks();
+		de_time2 = VID_GetTicks();
+		dp_time1 = de_time2;
 	}
 
 	// Modify the palette (when taking hit or pickup item) so all colors are modified
