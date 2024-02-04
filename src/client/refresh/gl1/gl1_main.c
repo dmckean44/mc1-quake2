@@ -132,8 +132,10 @@ cvar_t *gl_anisotropic;
 cvar_t *r_lockpvs;
 cvar_t *gl_msaa_samples;
 
+#ifndef MC1Q2STATIC
 cvar_t *vid_fullscreen;
 cvar_t *vid_gamma;
+#endif
 
 cvar_t *gl1_stereo;
 cvar_t *gl1_stereo_separation;
@@ -1967,6 +1969,7 @@ void R_Printf(int level, const char* msg, ...)
 	va_end(argptr);
 }
 
+#ifndef MC1Q2STATIC
 /*
  * this is only here so the functions in shared source files
  * (shared.c, rand.c, flash.c, mem.c/hunk.c) can link
@@ -1992,6 +1995,7 @@ Com_Printf(const char *msg, ...)
 	ri.Com_VPrintf(PRINT_ALL, msg, argptr);
 	va_end(argptr);
 }
+#endif  // MC1Q2STATIC
 
 #ifdef DEBUG
 void
