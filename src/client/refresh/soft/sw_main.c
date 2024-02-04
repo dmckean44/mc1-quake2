@@ -1788,8 +1788,12 @@ RE_IsVsyncActive(void)
 
 static int RE_PrepareForWindow(void)
 {
+#if defined(USE_SDL)
 	int flags = SDL_SWSURFACE;
 	return flags;
+#else
+	return 0;
+#endif
 }
 
 /*
@@ -1862,6 +1866,7 @@ GetRefAPI(refimport_t imp)
 	return refexport;
 }
 
+#if defined(USE_SDL)
 /*
  * FIXME: The following functions implement the render backend
  * through SDL renderer. Only small parts belong here, refresh.c
@@ -1879,6 +1884,7 @@ GetRefAPI(refimport_t imp)
 static SDL_Window	*window = NULL;
 static SDL_Texture	*texture = NULL;
 static SDL_Renderer	*renderer = NULL;
+#endif
 
 int vid_buffer_height = 0;
 int vid_buffer_width = 0;
@@ -1886,6 +1892,20 @@ int vid_buffer_width = 0;
 static int
 RE_InitContext(void *win)
 {
+	/* We can't rely on vid, because the context is created
+	   before we had a chance to overwrite it with the drawable
+	   size. */
+	if (IsHighDPIaware)
+	{
+		RE_GetDrawableSize(&vid_buffer_width, &vid_buffer_height);
+	}
+	else
+	{
+		vid_buffer_height = vid.height;
+		vid_buffer_width = vid.width;
+	}
+
+#if defined(USE_SDL)
 	char title[40] = {0};
 
 	if(win == NULL)
@@ -1925,19 +1945,6 @@ RE_InitContext(void *win)
 	IsHighDPIaware = (flags & SDL_WINDOW_ALLOW_HIGHDPI) ? true : false;
 #endif
 
-	/* We can't rely on vid, because the context is created
-	   before we had a chance to overwrite it with the drawable
-	   size. */
-	if (IsHighDPIaware)
-	{
-		RE_GetDrawableSize(&vid_buffer_width, &vid_buffer_height);
-	}
-	else
-	{
-		vid_buffer_height = vid.height;
-		vid_buffer_width = vid.width;
-	}
-
 	texture = SDL_CreateTexture(renderer,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 				    SDL_PIXELFORMAT_BGRA8888,
@@ -1946,6 +1953,7 @@ RE_InitContext(void *win)
 #endif
 				    SDL_TEXTUREACCESS_STREAMING,
 				    vid_buffer_width, vid_buffer_height);
+#endif  // USE_SDL
 
 	R_InitGraphics(vid_buffer_width, vid_buffer_height);
 	SWimp_CreateRender(vid_buffer_width, vid_buffer_height);
@@ -1958,7 +1966,12 @@ RE_InitContext(void *win)
  */
 void RE_GetDrawableSize(int* width, int* height)
 {
+#if defined(USE_SDL)
 	SDL_GetRendererOutputSize(renderer, width, height);
+#else
+	*width = 320;
+	*height = 160;
+#endif
 }
 
 
@@ -2064,6 +2077,7 @@ RE_ShutdownContext(void)
 	}
 	r_warpbuffer = NULL;
 
+#if defined(USE_SDL)
 	if (texture)
 	{
 		SDL_DestroyTexture(texture);
@@ -2075,6 +2089,7 @@ RE_ShutdownContext(void)
 		SDL_DestroyRenderer(renderer);
 	}
 	renderer = NULL;
+#endif  // USE_SDL
 }
 
 /*
@@ -2083,6 +2098,7 @@ point math used in R_ScanEdges() overflows at width 2048 !!
 */
 char shift_size;
 
+#if defined(USE_SDL)
 static void
 RE_CopyFrame (Uint32 * pixels, int pitch, int vmin, int vmax)
 {
@@ -2127,6 +2143,7 @@ RE_CopyFrame (Uint32 * pixels, int pitch, int vmin, int vmax)
 		}
 	}
 }
+#endif  // USE_SDL
 
 static int
 RE_BufferDifferenceStart(int vmin, int vmax)
@@ -2164,6 +2181,7 @@ RE_BufferDifferenceEnd(int vmin, int vmax)
 static void
 RE_CleanFrame(void)
 {
+#if defined(USE_SDL)
 	int pitch;
 	Uint32 *pixels;
 
@@ -2179,6 +2197,7 @@ RE_CleanFrame(void)
 	// only cleanup texture without flush texture to screen
 	memset(pixels, 0, pitch * vid_buffer_height);
 	SDL_UnlockTexture(texture);
+#endif  // USE_SDL
 
 	// All changes flushed
 	VID_NoDamageBuffer();
@@ -2187,6 +2206,7 @@ RE_CleanFrame(void)
 static void
 RE_FlushFrame(int vmin, int vmax)
 {
+#if defined(USE_SDL)
 	int pitch;
 	Uint32 *pixels;
 
@@ -2219,6 +2239,7 @@ RE_FlushFrame(int vmin, int vmax)
 	// replace use next buffer
 	swap_current ++;
 	vid_buffer = swap_frames[swap_current&1];
+#endif  // USE_SDL
 
 	// All changes flushed
 	VID_NoDamageBuffer();
