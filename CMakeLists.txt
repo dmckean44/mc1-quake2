@@ -330,6 +330,14 @@ set(Backends-Unix-Source
 	${BACKENDS_SRC_DIR}/unix/shared/hunk.c
 	)
 
+set(Backends-MC1-Source
+	${BACKENDS_SRC_DIR}/mc1/main.c
+	${BACKENDS_SRC_DIR}/mc1/network.c
+	${BACKENDS_SRC_DIR}/mc1/signalhandler.c
+	${BACKENDS_SRC_DIR}/mc1/system.c
+	${BACKENDS_SRC_DIR}/mc1/shared/hunk.c
+	)
+
 set(Backends-Windows-Source
 	${BACKENDS_SRC_DIR}/windows/icon.rc
 	${BACKENDS_SRC_DIR}/windows/main.c
@@ -350,10 +358,17 @@ set(REF-Unix-Source
 	${BACKENDS_SRC_DIR}/unix/shared/hunk.c
 	)
 
+set(REF-MC1-Source
+	${BACKENDS_SRC_DIR}/mc1/shared/hunk.c
+	)
+
 # Set the nessesary platform specific source
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	set(Platform-Specific-Source ${Backends-Windows-Source} ${Backends-Windows-Header})
 	set(REF-Platform-Specific-Source ${REF-Windows-Source})
+elseif(MC1)
+	set(Platform-Specific-Source ${Backends-MC1-Source})
+	set(REF-Platform-Specific-Source ${REF-MC1-Source})
 else()
 	set(Platform-Specific-Source ${Backends-Unix-Source})
 	set(REF-Platform-Specific-Source ${REF-Unix-Source})
