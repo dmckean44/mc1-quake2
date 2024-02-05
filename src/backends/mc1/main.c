@@ -29,18 +29,28 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#ifndef MR32SIM
+#include <mc1/newlib_integ.h>
+#endif
+
 #include "../../common/header/common.h"
 
+#ifdef MR32SIM
 size_t _getstacksize(void) {
 	// Override stack size (used when building for the MRISC32 simulator).
 	return 8388608;
 }
+#endif
 
 void registerHandler(void);
 
 int
 main(int argc, char **argv)
 {
+#ifndef MR32SIM
+	mc1newlib_init(MC1NEWLIB_ALL);
+#endif
+
 	// register signal handler
 	registerHandler();
 
