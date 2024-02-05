@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef USE_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
+#elif defined(MC1)
+#include <mc1/framebuffer.h>
 #endif
 
 #include "header/local.h"
@@ -1593,6 +1595,7 @@ R_GammaCorrectAndSetPalette( const unsigned char *palette )
 	int i;
 
 	// Replace palette
+#if defined(USE_SDL)
 	for ( i = 0; i < 256; i++ )
 	{
 		if (sw_state.currentpalette[i*4+0] != sw_state.gammatable[palette[i*4+2]] ||
@@ -1607,6 +1610,27 @@ R_GammaCorrectAndSetPalette( const unsigned char *palette )
 			palette_changed = true;
 		}
 	}
+#elif defined(MC1)
+	const unsigned char* _gammatable = sw_state.gammatable;
+	const unsigned char* src = palette;
+	uint32_t* dst = (uint32_t*)sw_state.currentpalette;
+	qboolean _palette_changed = false;
+	for ( i = 0; i < 256; i++ )
+	{
+		const uint32_t col = ((uint32_t)_gammatable[src[0]]) |
+							 (((uint32_t)_gammatable[src[1]]) << 8) |
+							 (((uint32_t)_gammatable[src[2]]) << 16) |
+							 0xff000000U;
+		if (col != *dst)
+		{
+			*dst = col;
+			_palette_changed = true;
+		}
+		src += 4;
+		dst += 1;
+	}
+	palette_changed = _palette_changed;
+#endif
 }
 
 /*
@@ -1913,6 +1937,10 @@ static SDL_Texture	*texture = NULL;
 static SDL_Renderer	*renderer = NULL;
 #endif
 
+#if defined(MC1)
+static fb_t* s_fb;
+#endif
+
 int vid_buffer_height = 0;
 int vid_buffer_width = 0;
 
@@ -1931,6 +1959,10 @@ RE_InitContext(void *win)
 		vid_buffer_height = vid.height;
 		vid_buffer_width = vid.width;
 	}
+
+#if defined(MC1)
+	s_fb = (fb_t*)win;
+#endif
 
 #if defined(USE_SDL)
 	char title[40] = {0};
@@ -2170,6 +2202,39 @@ RE_CopyFrame (Uint32 * pixels, int pitch, int vmin, int vmax)
 		}
 	}
 }
+#elif defined(MC1)
+static void
+RE_CopyFrame (unsigned char* pixels, int pitch, int vmin, int vmax)
+{
+	if (pitch == vid_buffer_width)
+	{
+		// no gaps between images rows
+		pixel_t* buffer_pos = vid_buffer + vmin;
+		unsigned char* pixels_pos = pixels + vmin;
+		const unsigned char* max_pixels = pixels + vmax;
+		memcpy(pixels_pos, buffer_pos, max_pixels - pixels_pos);
+	}
+	else
+	{
+		int y, buffer_pos, ymin, ymax;
+
+		ymin = vmin / vid_buffer_width;
+		ymax = vmax / vid_buffer_width;
+
+		buffer_pos = ymin * vid_buffer_width;
+		pixels += ymin * pitch;
+		for (y=ymin; y < ymax;  y++)
+		{
+			memcpy(pixels, &vid_buffer[buffer_pos], vid_buffer_width);
+			pixels += pitch;
+			buffer_pos += vid_buffer_width;
+		}
+	}
+
+	// Update the palette.
+	// TODO(m): Do this more seldom (no need to keep track of "current palette"?).
+	memcpy(s_fb->palette, sw_state.currentpalette, 1024);
+}
 #endif  // USE_SDL
 
 static int
@@ -2262,11 +2327,23 @@ RE_FlushFrame(int vmin, int vmax)
 
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
+#endif  // USE_SDL
+
+#if defined(MC1)
+	int pitch = s_fb->width;
+	if (sw_partialrefresh->value)
+	{
+		RE_CopyFrame((unsigned char*)s_fb->pixels, pitch, vmin, vmax);
+	}
+	else
+	{
+		RE_CopyFrame((unsigned char*)s_fb->pixels, pitch, 0, vid_buffer_height * vid_buffer_width);
+	}
+#endif
 
 	// replace use next buffer
 	swap_current ++;
 	vid_buffer = swap_frames[swap_current&1];
-#endif  // USE_SDL
 
 	// All changes flushed
 	VID_NoDamageBuffer();

@@ -94,6 +94,7 @@ GLimp_InitGraphics(int fullscreen, int *pwidth, int *pheight)
 		return false;
 	}
 	Com_Printf("Framebuffer: %dx%d, 0x%08x (palette 0x%08x)\n", width, height, (unsigned)s_fb->pixels, (unsigned)s_fb->palette);
+	fb_show(s_fb, LAYER_1);
 
 	if (!re.InitContext((void*)s_fb))
 	{
