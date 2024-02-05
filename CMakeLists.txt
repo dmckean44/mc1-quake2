@@ -1,3 +1,5 @@
+# -*- mode: CMake; tab-width: 4; indent-tabs-mode: t; -*-
+
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 # Enforce "Debug" as standard build type.
@@ -563,8 +565,11 @@ if(USE_SDL)
 		${CLIENT_SRC_DIR}/sound/sdl.c
 		${CLIENT_SRC_DIR}/vid/glimp_sdl.c
 		)
+elseif(MC1)
+	list(APPEND Client-Source
+		${CLIENT_SRC_DIR}/input/input_mc1.c
+		)
 endif()
-
 
 # Build the common static library
 add_library(common STATIC ${Common-Source} ${Common-Header})
