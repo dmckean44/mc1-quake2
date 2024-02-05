@@ -568,6 +568,7 @@ if(USE_SDL)
 elseif(MC1)
 	list(APPEND Client-Source
 		${CLIENT_SRC_DIR}/input/input_mc1.c
+		${CLIENT_SRC_DIR}/vid/glimp_mc1.c
 		)
 endif()
 
