@@ -200,7 +200,10 @@ if(MC1)
 	if(MR32SIM)
 		add_definitions(-msim)
 		list(APPEND mc1quake2LinkerFlags -msim)
+	else()
+		list(APPEND mc1quake2LinkerFlags -mno-crt0 -lmc1crt0-app)
 	endif()
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Tapp-xram.ld -Wl,--defsym=__stack_size=8388608")
 else()
 	# Required libraries to build the different components of the binaries. Find
 	# them and add the include/linker directories and flags (in case the package

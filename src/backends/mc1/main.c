@@ -31,6 +31,11 @@
 
 #include "../../common/header/common.h"
 
+size_t _getstacksize(void) {
+	// Override stack size (used when building for the MRISC32 simulator).
+	return 8388608;
+}
+
 void registerHandler(void);
 
 int
