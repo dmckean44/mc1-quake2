@@ -59,15 +59,14 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 {
 	const pixel_t* _colormap = vid_colormap;
 
-	int light_masked_right, light_masked_left;
-	light_masked_right = R_GreyscaledLight(lightright);
-	if (light_masked_right != LIGHTMASK)
+	const int light_masked_left = R_GreyscaledLight(lightleft);
+	const int light_masked_right = R_GreyscaledLight(lightright);
+	if (light_masked_left != LIGHTMASK && light_masked_right != LIGHTMASK)
 	{
-		light_masked_left = R_GreyscaledLight(lightleft);
 		if (light_masked_left == light_masked_right)
 		{
-			// Gray light, no gradient (fastest case)
-			const pixel_t *lighted_cmap = &_colormap[light_masked_right];
+			// Gray light, no gradient (fastest case).
+			const pixel_t *lighted_cmap = &_colormap[light_masked_left];
 			for (size_t i = 0; i < size; ++i)
 			{
 				prowdest[i] = lighted_cmap[psource[i]];
@@ -75,7 +74,7 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 		}
 		else
 		{
-			// Gray light, with gradient
+			// Gray light, with gradient.
 			const int lightstep = (lightright[0] - lightleft[0]) >> level;
 			int light = lightleft[0];
 			for (size_t i = 0; i < size; ++i)
@@ -87,7 +86,8 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 	}
 	else
 	{
-		// Colored light, with gradient (slowest case)
+		// Colored light, with gradient (slowest and least common case).
+		// Note: When sw_colorlight=0 (default), this path is never taken AFACT.
 		light3_t lightstep;
 		lightstep[0] = (lightright[0] - lightleft[0]) >> level;
 		lightstep[1] = (lightright[1] - lightleft[1]) >> level;

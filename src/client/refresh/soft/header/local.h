@@ -622,13 +622,14 @@ INLINED FUNCTIONS (for improved performance)
 /*
  * Apply color light to texture pixel
  *
- * TODO: This is a key performance killer.
+ * TODO: Once used, this is a performance killer. Can we replace
+ * some look-ups with multiplication, for instance?
  */
 
 static inline pixel_t
 R_ApplyLight(pixel_t pix, const light3_t light)
 {
-	const pixel_t* _colormap = &vid_colormap[pix];
+	const pixel_t* colormap_for_pix = &vid_colormap[pix];
 
 	const int light_masked0 = light[0] & LIGHTMASK;
 	const int light_masked1 = light[1] & LIGHTMASK;
@@ -636,21 +637,26 @@ R_ApplyLight(pixel_t pix, const light3_t light)
 
 	/* Gray light? */
 	if (light_masked0 == light_masked1 && light_masked0 == light_masked2)
-		return _colormap[light_masked0];
+		return colormap_for_pix[light_masked0];
 
-	/* Get index of color component of each component */
-	const pixel_t i_r = _colormap[light_masked0];
-	const pixel_t i_g = _colormap[light_masked1];
-	const pixel_t i_b = _colormap[light_masked2];
+	/* Get light-modulated index for each light component */
+	const pixel_t i_r = colormap_for_pix[light_masked0];
+	const pixel_t i_g = colormap_for_pix[light_masked1];
+	const pixel_t i_b = colormap_for_pix[light_masked2];
+
+	/* Convert indexes to color components for each component */
+	const byte b_r = d_8to24table[i_r * 4 + 0];
+	const byte b_g = d_8to24table[i_g * 4 + 1];
+	const byte b_b = d_8to24table[i_b * 4 + 2];
 
 	/* Convert to 16-bit RGB color */
-	const byte b_r = (i_r >> 3) & 31;
-	const byte b_g = (i_g >> 2) & 63;
-	const byte b_b = (i_b >> 3) & 31;
-	const int i_c = b_r | ( b_g << 5 ) | ( b_b << 11 );
+	const int rgb565 =
+			((b_r >> 3) & 31) |
+			(((b_g >> 2) & 63) << 5) |
+			(((b_b >> 3) & 31) << 11);
 
 	/* Convert back to indexed color */
-	return d_16to8table[i_c];
+	return d_16to8table[rgb565];
 }
 
 /*
