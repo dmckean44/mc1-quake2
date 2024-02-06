@@ -709,12 +709,19 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			light3_t	llight;
 #else
 			int		llight;
-			const pixel_t	*_colormap = vid_colormap;
 #endif
 			zvalue_t	lzi;
 			zvalue_t	*lpz;
 			int		pos_shift = (pspanpackage->v * vid_buffer_width) + pspanpackage->u;
 			qboolean	zdamaged = false;
+
+			const pixel_t	*_colormap = vid_colormap;
+			const zvalue_t	_r_zistepx = r_zistepx;
+			const int	_a_ststepxwhole = a_ststepxwhole;
+			const int	_a_sstepxfrac = a_sstepxfrac;
+			const int	_a_tstepxfrac = a_tstepxfrac;
+			const int	_skinwidth = r_affinetridesc.skinwidth;
+			const qboolean	ir_visible = (r_newrefdef.rdflags & RDF_IRGOGGLES) && (currententity->flags & RF_IR_VISIBLE);
 
 			lpdest = d_viewbuffer + pos_shift;
 			lpz = d_pzbuffer + pos_shift;
@@ -733,8 +740,8 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			{
 				if ((lzi >> SHIFT16XYZ) >= *lpz)
 				{
-					if(r_newrefdef.rdflags & RDF_IRGOGGLES && currententity->flags & RF_IR_VISIBLE)
-						*lpdest = vid_colormap[irtable[*lptex]];
+					if(ir_visible)
+						*lpdest = _colormap[irtable[*lptex]];
 					else
 #ifdef ENABLE_SW_COLORLIGHT
 						*lpdest = R_ApplyLight(*lptex, llight);
@@ -746,7 +753,7 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 					zdamaged = true;
 				}
 				lpdest++;
-				lzi += r_zistepx;
+				lzi += _r_zistepx;
 				lpz++;
 #ifdef ENABLE_SW_COLORLIGHT
 				for(int i=0; i<3; i++)
@@ -754,14 +761,14 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 #else
 				llight += r_lstepx[0];
 #endif
-				lptex += a_ststepxwhole;
-				lsfrac += a_sstepxfrac;
+				lptex += _a_ststepxwhole;
+				lsfrac += _a_sstepxfrac;
 				lptex += lsfrac >> SHIFT16XYZ;
 				lsfrac &= 0xFFFF;
-				ltfrac += a_tstepxfrac;
+				ltfrac += _a_tstepxfrac;
 				if (ltfrac & 0x10000)
 				{
-					lptex += r_affinetridesc.skinwidth;
+					lptex += _skinwidth;
 					ltfrac &= 0xFFFF;
 				}
 			} while (--lcount);
