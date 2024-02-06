@@ -433,7 +433,7 @@ R_PolysetDrawSpans8_33(const entity_t *currententity, spanpackage_t *pspanpackag
 	int		lsfrac, ltfrac;
 	light3_t	llight;
 	zvalue_t	lzi;
-	zvalue_t	*lpz;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -467,7 +467,7 @@ R_PolysetDrawSpans8_33(const entity_t *currententity, spanpackage_t *pspanpackag
 			{
 				int i;
 
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					int temp = R_ApplyLight(*lptex, llight);
 
@@ -499,8 +499,8 @@ void
 R_PolysetDrawSpansConstant8_33(const entity_t *currententity, spanpackage_t *pspanpackage)
 {
 	pixel_t		*lpdest;
-	int		lzi;
-	zvalue_t	*lpz;
+	zvalue_t	lzi;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -528,7 +528,7 @@ R_PolysetDrawSpansConstant8_33(const entity_t *currententity, spanpackage_t *psp
 
 			do
 			{
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					*lpdest = vid_alphamap[r_aliasblendcolor + *lpdest*256];
 				}
@@ -550,7 +550,7 @@ R_PolysetDrawSpans8_66(const entity_t *currententity, spanpackage_t *pspanpackag
 	int		lsfrac, ltfrac;
 	light3_t	llight;
 	zvalue_t	lzi;
-	zvalue_t	*lpz;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -585,7 +585,7 @@ R_PolysetDrawSpans8_66(const entity_t *currententity, spanpackage_t *pspanpackag
 			{
 				int i;
 
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					int temp = R_ApplyLight(*lptex, llight);
 
@@ -629,7 +629,7 @@ R_PolysetDrawSpansConstant8_66(const entity_t *currententity, spanpackage_t *psp
 {
 	pixel_t		*lpdest;
 	zvalue_t	lzi;
-	zvalue_t	*lpz;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -658,7 +658,7 @@ R_PolysetDrawSpansConstant8_66(const entity_t *currententity, spanpackage_t *psp
 
 			do
 			{
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					*lpdest = vid_alphamap[r_aliasblendcolor*256 + *lpdest];
 					zdamaged = true;
@@ -711,7 +711,7 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			int		llight;
 #endif
 			zvalue_t	lzi;
-			zvalue_t	*lpz;
+			zbufvalue_t	*lpz;
 			int		pos_shift = (pspanpackage->v * vid_buffer_width) + pspanpackage->u;
 			qboolean	zdamaged = false;
 
@@ -738,7 +738,7 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 
 			do
 			{
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					if(ir_visible)
 						*lpdest = _colormap[irtable[*lptex]];

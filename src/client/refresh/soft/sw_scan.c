@@ -759,7 +759,7 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 	{
 		int		count;
 		zvalue_t	izi;
-		zvalue_t	*pdest;
+		zbufvalue_t	*pdest;
 		float		zi;
 		float		du, dv;
 
@@ -786,11 +786,11 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 
 		if (safe_step > 1)
 		{
-			const zvalue_t *tdest_max = pdest + count;
+			const zbufvalue_t *tdest_max = pdest + count;
 			do
 			{
 				int	step;
-				zvalue_t izi_shifted = izi >> SHIFT16XYZ;
+				zbufvalue_t izi_shifted = (zbufvalue_t)(izi >> SHIFT16XYZ);
 
 				for(step = 0; (step < safe_step) && (pdest < tdest_max); step++)
 				{
@@ -803,7 +803,7 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 		{
 			while (count > 0)
 			{
-				*pdest++ = izi >> SHIFT16XYZ;
+				*pdest++ = (zbufvalue_t)(izi >> SHIFT16XYZ);
 				izi += izistep;
 				count--;
 			}

@@ -215,7 +215,7 @@ int	sadjust, tadjust, bbextents, bbextentt;
 pixel_t		*cacheblock;
 int		cachewidth;
 pixel_t		*d_viewbuffer;
-zvalue_t	*d_pzbuffer;
+zbufvalue_t	*d_pzbuffer;
 
 static void RE_BeginFrame( float camera_separation );
 static void Draw_BuildGammaTable(void);
@@ -1481,7 +1481,7 @@ R_InitGraphics( int width, int height )
 		sc_base = NULL;
 	}
 
-	d_pzbuffer = malloc(width * height * sizeof(zvalue_t));
+	d_pzbuffer = malloc(width * height * sizeof(zbufvalue_t));
 
 	R_InitCaches();
 
