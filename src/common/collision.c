@@ -66,6 +66,26 @@ typedef struct
 	int		floodvalid;
 } carea_t;
 
+//----------------------------------------------------------------------
+// TODO(m): Many of these arrays are very large. Consider allocating
+// them on the heap (using malloc()) instead of allocating them in the
+// BSS. That would relieve the static relocation memory space and could
+// allow us to use shorter PC-relative offsets (e.g. -mcmodel=small on
+// MRISC32).
+//
+//  Array             Size (bytes)
+//  ------------------------------
+//  map_planes        0x140078
+//  map_leafs         0x100000
+//  map_visibility    0x100000
+//  map_nodes         0xc0048
+//  map_brushsides    0x80000
+//  map_surfaces      0x70000
+//  map_entitystring  0x40000
+//  map_brushes       0x20000
+//  map_leafbrushes   0x20000
+//----------------------------------------------------------------------
+
 byte *cmod_base;
 byte map_visibility[MAX_MAP_VISIBILITY];
 // DG: is casted to int32_t* in SV_FatPVS() so align accordingly

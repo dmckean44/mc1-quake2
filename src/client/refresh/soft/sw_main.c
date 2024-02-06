@@ -22,8 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdint.h>
 #include <limits.h>
 
+#ifdef USE_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
+#elif defined(MC1)
+#include <mc1/framebuffer.h>
+#endif
 
 #include "header/local.h"
 
@@ -219,6 +223,31 @@ static void RE_FlushFrame(int vmin, int vmax);
 static void RE_CleanFrame(void);
 static void RE_EndFrame(void);
 static void R_DrawBeam(const entity_t *e);
+
+/*
+================
+VID_GetTicks
+
+Get the number of millisecond ticks since program start
+================
+*/
+int VID_GetTicks(void)
+{
+#if defined(USE_SDL)
+	static int s_t0;
+	int t = SDL_GetTicks();
+	if (!s_t0) {
+		s_t0 = t;
+	}
+	return t - s_t0;
+#else
+	/* Dummy time tick - this does not do much good, except for
+	   providing a continous time increment */
+	static int s_t0;
+	s_t0 += 16;
+	return s_t0;
+#endif
+}
 
 /*
 ================
@@ -1189,7 +1218,7 @@ R_EdgeDrawing (entity_t *currententity)
 
 	if (r_dspeeds->value)
 	{
-		rw_time1 = SDL_GetTicks();
+		rw_time1 = VID_GetTicks();
 	}
 
 	// Build the Global Edget Table
@@ -1198,7 +1227,7 @@ R_EdgeDrawing (entity_t *currententity)
 
 	if (r_dspeeds->value)
 	{
-		rw_time2 = SDL_GetTicks();
+		rw_time2 = VID_GetTicks();
 		db_time1 = rw_time2;
 	}
 
@@ -1206,7 +1235,7 @@ R_EdgeDrawing (entity_t *currententity)
 
 	if (r_dspeeds->value)
 	{
-		db_time2 = SDL_GetTicks();
+		db_time2 = VID_GetTicks();
 		se_time1 = db_time2;
 	}
 
@@ -1346,7 +1375,7 @@ RE_RenderFrame (refdef_t *fd)
 	VectorCopy (fd->viewangles, lastviewangles);
 
 	if (r_speeds->value || r_dspeeds->value)
-		r_time1 = SDL_GetTicks();
+		r_time1 = VID_GetTicks();
 
 	R_SetupFrame ();
 
@@ -1371,7 +1400,7 @@ RE_RenderFrame (refdef_t *fd)
 
 	if (r_dspeeds->value)
 	{
-		se_time2 = SDL_GetTicks();
+		se_time2 = VID_GetTicks();
 		de_time1 = se_time2;
 	}
 
@@ -1391,15 +1420,15 @@ RE_RenderFrame (refdef_t *fd)
 
 	if (r_dspeeds->value)
 	{
-		de_time2 = SDL_GetTicks();
-		dp_time1 = SDL_GetTicks();
+		de_time2 = VID_GetTicks();
+		dp_time1 = de_time2;
 	}
 
 	// Duh !
 	R_DrawParticles ();
 
 	if (r_dspeeds->value)
-		dp_time2 = SDL_GetTicks();
+		dp_time2 = VID_GetTicks();
 
 	// Perform pixel palette blending ia the pics/colormap.pcx lower part lookup table.
 	R_DrawAlphaSurfaces(&ent);
@@ -1412,8 +1441,8 @@ RE_RenderFrame (refdef_t *fd)
 
 	if (r_dspeeds->value)
 	{
-		da_time1 = SDL_GetTicks();
-		da_time2 = SDL_GetTicks();
+		de_time2 = VID_GetTicks();
+		dp_time1 = de_time2;
 	}
 
 	// Modify the palette (when taking hit or pickup item) so all colors are modified
@@ -1566,6 +1595,7 @@ R_GammaCorrectAndSetPalette( const unsigned char *palette )
 	int i;
 
 	// Replace palette
+#if defined(USE_SDL)
 	for ( i = 0; i < 256; i++ )
 	{
 		if (sw_state.currentpalette[i*4+0] != sw_state.gammatable[palette[i*4+2]] ||
@@ -1580,6 +1610,27 @@ R_GammaCorrectAndSetPalette( const unsigned char *palette )
 			palette_changed = true;
 		}
 	}
+#elif defined(MC1)
+	const unsigned char* _gammatable = sw_state.gammatable;
+	const unsigned char* src = palette;
+	uint32_t* dst = (uint32_t*)sw_state.currentpalette;
+	qboolean _palette_changed = false;
+	for ( i = 0; i < 256; i++ )
+	{
+		const uint32_t col = ((uint32_t)_gammatable[src[0]]) |
+							 (((uint32_t)_gammatable[src[1]]) << 8) |
+							 (((uint32_t)_gammatable[src[2]]) << 16) |
+							 0xff000000U;
+		if (col != *dst)
+		{
+			*dst = col;
+			_palette_changed = true;
+		}
+		src += 4;
+		dst += 1;
+	}
+	palette_changed = _palette_changed;
+#endif
 }
 
 /*
@@ -1788,8 +1839,12 @@ RE_IsVsyncActive(void)
 
 static int RE_PrepareForWindow(void)
 {
+#if defined(USE_SDL)
 	int flags = SDL_SWSURFACE;
 	return flags;
+#else
+	return 0;
+#endif
 }
 
 /*
@@ -1862,6 +1917,7 @@ GetRefAPI(refimport_t imp)
 	return refexport;
 }
 
+#if defined(USE_SDL)
 /*
  * FIXME: The following functions implement the render backend
  * through SDL renderer. Only small parts belong here, refresh.c
@@ -1879,6 +1935,11 @@ GetRefAPI(refimport_t imp)
 static SDL_Window	*window = NULL;
 static SDL_Texture	*texture = NULL;
 static SDL_Renderer	*renderer = NULL;
+#endif
+
+#if defined(MC1)
+static fb_t* s_fb;
+#endif
 
 int vid_buffer_height = 0;
 int vid_buffer_width = 0;
@@ -1886,6 +1947,24 @@ int vid_buffer_width = 0;
 static int
 RE_InitContext(void *win)
 {
+	/* We can't rely on vid, because the context is created
+	   before we had a chance to overwrite it with the drawable
+	   size. */
+	if (IsHighDPIaware)
+	{
+		RE_GetDrawableSize(&vid_buffer_width, &vid_buffer_height);
+	}
+	else
+	{
+		vid_buffer_height = vid.height;
+		vid_buffer_width = vid.width;
+	}
+
+#if defined(MC1)
+	s_fb = (fb_t*)win;
+#endif
+
+#if defined(USE_SDL)
 	char title[40] = {0};
 
 	if(win == NULL)
@@ -1925,19 +2004,6 @@ RE_InitContext(void *win)
 	IsHighDPIaware = (flags & SDL_WINDOW_ALLOW_HIGHDPI) ? true : false;
 #endif
 
-	/* We can't rely on vid, because the context is created
-	   before we had a chance to overwrite it with the drawable
-	   size. */
-	if (IsHighDPIaware)
-	{
-		RE_GetDrawableSize(&vid_buffer_width, &vid_buffer_height);
-	}
-	else
-	{
-		vid_buffer_height = vid.height;
-		vid_buffer_width = vid.width;
-	}
-
 	texture = SDL_CreateTexture(renderer,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 				    SDL_PIXELFORMAT_BGRA8888,
@@ -1946,6 +2012,7 @@ RE_InitContext(void *win)
 #endif
 				    SDL_TEXTUREACCESS_STREAMING,
 				    vid_buffer_width, vid_buffer_height);
+#endif  // USE_SDL
 
 	R_InitGraphics(vid_buffer_width, vid_buffer_height);
 	SWimp_CreateRender(vid_buffer_width, vid_buffer_height);
@@ -1958,7 +2025,12 @@ RE_InitContext(void *win)
  */
 void RE_GetDrawableSize(int* width, int* height)
 {
+#if defined(USE_SDL)
 	SDL_GetRendererOutputSize(renderer, width, height);
+#else
+	*width = 320;
+	*height = 160;
+#endif
 }
 
 
@@ -2064,6 +2136,7 @@ RE_ShutdownContext(void)
 	}
 	r_warpbuffer = NULL;
 
+#if defined(USE_SDL)
 	if (texture)
 	{
 		SDL_DestroyTexture(texture);
@@ -2075,6 +2148,7 @@ RE_ShutdownContext(void)
 		SDL_DestroyRenderer(renderer);
 	}
 	renderer = NULL;
+#endif  // USE_SDL
 }
 
 /*
@@ -2083,6 +2157,7 @@ point math used in R_ScanEdges() overflows at width 2048 !!
 */
 char shift_size;
 
+#if defined(USE_SDL)
 static void
 RE_CopyFrame (Uint32 * pixels, int pitch, int vmin, int vmax)
 {
@@ -2127,6 +2202,40 @@ RE_CopyFrame (Uint32 * pixels, int pitch, int vmin, int vmax)
 		}
 	}
 }
+#elif defined(MC1)
+static void
+RE_CopyFrame (unsigned char* pixels, int pitch, int vmin, int vmax)
+{
+	if (pitch == vid_buffer_width)
+	{
+		// no gaps between images rows
+		pixel_t* buffer_pos = vid_buffer + vmin;
+		unsigned char* pixels_pos = pixels + vmin;
+		const unsigned char* max_pixels = pixels + vmax;
+		memcpy(pixels_pos, buffer_pos, max_pixels - pixels_pos);
+	}
+	else
+	{
+		int y, buffer_pos, ymin, ymax;
+
+		ymin = vmin / vid_buffer_width;
+		ymax = vmax / vid_buffer_width;
+
+		buffer_pos = ymin * vid_buffer_width;
+		pixels += ymin * pitch;
+		for (y=ymin; y < ymax;  y++)
+		{
+			memcpy(pixels, &vid_buffer[buffer_pos], vid_buffer_width);
+			pixels += pitch;
+			buffer_pos += vid_buffer_width;
+		}
+	}
+
+	// Update the palette.
+	// TODO(m): Do this more seldom (no need to keep track of "current palette"?).
+	memcpy(s_fb->palette, sw_state.currentpalette, 1024);
+}
+#endif  // USE_SDL
 
 static int
 RE_BufferDifferenceStart(int vmin, int vmax)
@@ -2164,6 +2273,7 @@ RE_BufferDifferenceEnd(int vmin, int vmax)
 static void
 RE_CleanFrame(void)
 {
+#if defined(USE_SDL)
 	int pitch;
 	Uint32 *pixels;
 
@@ -2179,6 +2289,7 @@ RE_CleanFrame(void)
 	// only cleanup texture without flush texture to screen
 	memset(pixels, 0, pitch * vid_buffer_height);
 	SDL_UnlockTexture(texture);
+#endif  // USE_SDL
 
 	// All changes flushed
 	VID_NoDamageBuffer();
@@ -2187,6 +2298,7 @@ RE_CleanFrame(void)
 static void
 RE_FlushFrame(int vmin, int vmax)
 {
+#if defined(USE_SDL)
 	int pitch;
 	Uint32 *pixels;
 
@@ -2215,6 +2327,19 @@ RE_FlushFrame(int vmin, int vmax)
 
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
+#endif  // USE_SDL
+
+#if defined(MC1)
+	int pitch = s_fb->width;
+	if (sw_partialrefresh->value)
+	{
+		RE_CopyFrame((unsigned char*)s_fb->pixels, pitch, vmin, vmax);
+	}
+	else
+	{
+		RE_CopyFrame((unsigned char*)s_fb->pixels, pitch, 0, vid_buffer_height * vid_buffer_width);
+	}
+#endif
 
 	// replace use next buffer
 	swap_current ++;

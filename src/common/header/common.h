@@ -46,10 +46,10 @@
 #ifdef _WIN32
  #define CFGDIR "MC1Q2"
 #else
- #ifndef __HAIKU__
-   #define CFGDIR ".mc1q2"
- #else
+ #if defined(__HAIKU__) || defined(MC1)
    #define CFGDIR "mc1q2"
+ #else
+   #define CFGDIR ".mc1q2"
  #endif
 #endif
 

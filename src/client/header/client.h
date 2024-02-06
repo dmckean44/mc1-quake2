@@ -49,7 +49,9 @@
 
 #include "../../common/header/common.h"
 
+#ifdef USE_CURL
 #include "../curl/header/download.h"
+#endif
 #include "../sound/header/sound.h"
 #include "../sound/header/vorbis.h"
 #include "../vid/header/ref.h"

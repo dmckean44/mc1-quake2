@@ -542,6 +542,7 @@ S_LoadSound(sfx_t *s)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
@@ -555,6 +556,7 @@ S_LoadSound(sfx_t *s)
 			}
 		}
 	}
+#endif
 
 	FS_FreeFile(data);
 	return sc;
@@ -1034,6 +1036,7 @@ S_IssuePlaysound(playsound_t *ps)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
@@ -1041,6 +1044,7 @@ S_IssuePlaysound(playsound_t *ps)
 			SDL_Spatialize(ch);
 		}
 	}
+#endif
 
 	ch->pos = 0;
 	ch->end = paintedtime + sc->length;
@@ -1220,6 +1224,7 @@ S_StartSound(vec3_t origin, int entnum, int entchannel, sfx_t *sfx,
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
@@ -1227,6 +1232,7 @@ S_StartSound(vec3_t origin, int entnum, int entchannel, sfx_t *sfx,
 			ps->volume = fvol * 255;
 		}
 	}
+#endif
 
 	cvar_t *game = Cvar_Get("game",  "", CVAR_LATCH | CVAR_SERVERINFO);
 
@@ -1325,12 +1331,14 @@ S_StopAllSounds(void)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
 			SDL_ClearBuffer();
 		}
 	}
+#endif
 
 	/* clear all the channels */
 	memset(channels, 0, sizeof(channels));
@@ -1398,12 +1406,14 @@ S_RawSamples(int samples, int rate, int width,
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
 			SDL_RawSamples(samples, rate, width, channels, data, volume);
 		}
 	}
+#endif
 }
 
 /*
@@ -1437,12 +1447,14 @@ S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
 			SDL_Update();
 		}
 	}
+#endif
 }
 
 /*
@@ -1572,9 +1584,11 @@ S_SoundInfo_f(void)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		SDL_SoundInfo();
 	}
+#endif
 }
 
 /*
@@ -1641,6 +1655,7 @@ S_Init(void)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (SDL_BackendInit())
 		{
@@ -1652,6 +1667,7 @@ S_Init(void)
 			return;
 		}
 	}
+#endif
 
 	num_sfx = 0;
 	paintedtime = 0;
@@ -1720,12 +1736,14 @@ S_Shutdown(void)
 	}
 	else
 #endif
+#ifdef USE_SDL
 	{
 		if (sound_started == SS_SDL)
 		{
 			SDL_BackendShutdown();
 		}
 	}
+#endif
 
 	sound_started = SS_NOT;
 	s_numchannels = 0;

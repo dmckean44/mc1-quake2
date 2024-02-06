@@ -1,3 +1,5 @@
+# -*- mode: CMake; tab-width: 4; indent-tabs-mode: t; -*-
+
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 # Enforce "Debug" as standard build type.
@@ -6,22 +8,22 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # CMake project configuration.
-project(yquake2 C)
+project(mc1-quake2 C)
 
 # Cmake module search path.
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/stuff/cmake/modules ${CMAKE_MODULE_PATH})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED OFF)
 
-if(YQUAKE2LIBS)
+if(MC1QUAKE2LIBS)
 	if(CMAKE_CROSSCOMPILING)
-		set(CMAKE_FIND_ROOT_PATH ${YQUAKE2LIBS})
+		set(CMAKE_FIND_ROOT_PATH ${MC1QUAKE2LIBS})
 	else()
-		set(ENV{CMAKE_PREFIX_PATH} ${YQUAKE2LIBS})
+		set(ENV{CMAKE_PREFIX_PATH} ${MC1QUAKE2LIBS})
 	endif()
 
-	set(ENV{OPENALDIR} ${YQUAKE2LIBS})
-	set(ENV{SDL2DIR} ${YQUAKE2LIBS})
+	set(ENV{OPENALDIR} ${MC1QUAKE2LIBS})
+	set(ENV{SDL2DIR} ${MC1QUAKE2LIBS})
 endif()
 
 # Add extended path for FreeBSD and Homebrew on OS X.
@@ -44,7 +46,7 @@ else() # GCC/clang/mingw
 	#  -fvisibility=hidden	-> Force defaultsymbol visibility to hidden
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fno-strict-aliasing -fwrapv -fvisibility=hidden")
 
-	# Use -O2 as maximum optimization level. -O3 has it's problems with yquake2.
+	# Use -O2 as maximum optimization level. -O3 has it's problems with mc1quake2.
 	string(REPLACE "-O3" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif() # MSVC'S else-case
 
@@ -55,6 +57,12 @@ elseif (${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
 	if (CMAKE_C_COMPILER_VERSION GREATER 7.99)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-format-truncation -Wno-format-overflow")
 	endif()
+endif()
+
+# Some option overrides for MC1.
+if(MC1)
+	set(CURL_SUPPORT OFF)
+	set(OPENAL_SUPPORT OFF)
 endif()
 
 # Compilation time options.
@@ -68,15 +76,15 @@ set(STATIC_REF_LIBRARY "ref_soft" CACHE STRING "Renderer to link statically")
 set(SYSTEMDIR "" CACHE STRING "Override the system default directory")
 
 # These variables will act as our list of include folders and linker flags.
-set(yquake2IncludeDirectories)
-set(yquake2LinkerDirectories)
-set(yquake2LinkerFlags)
-set(yquake2ClientLinkerFlags)
-set(yquake2ServerLinkerFlags)
-set(yquake2OpenGLLinkerFlags)
-set(yquake2VulkanLinkerFlags)
-set(yquake2SDLLinkerFlags)
-set(yquake2ZLibLinkerFlags)
+set(mc1quake2IncludeDirectories)
+set(mc1quake2LinkerDirectories)
+set(mc1quake2LinkerFlags)
+set(mc1quake2ClientLinkerFlags)
+set(mc1quake2ServerLinkerFlags)
+set(mc1quake2OpenGLLinkerFlags)
+set(mc1quake2VulkanLinkerFlags)
+set(mc1quake2SDLLinkerFlags)
+set(mc1quake2ZLibLinkerFlags)
 
 # Set directory locations (allowing us to move directories easily)
 set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
@@ -186,19 +194,33 @@ if(NOT (CMAKE_SYSTEM_NAME MATCHES "Linux") AND NOT (CMAKE_SYSTEM_NAME MATCHES "W
 	add_definitions(-DIOAPI_NO_64)
 endif()
 
-# Required libraries to build the different components of the binaries. Find
-# them and add the include/linker directories and flags (in case the package
-# manager find it in a weird place).
-find_package(SDL2 REQUIRED)
-list(APPEND yquake2IncludeDirectories "${SDL2_INCLUDE_DIR}/..")
-list(APPEND yquake2SDLLinkerFlags ${SDL2_LIBRARY})
+if(MC1)
+	add_definitions(-DMC1)
+	list(APPEND mc1quake2LinkerFlags -lmc1)
+	if(MR32SIM)
+		add_definitions(-msim -DMR32SIM)
+		list(APPEND mc1quake2LinkerFlags -msim)
+	else()
+		list(APPEND mc1quake2LinkerFlags -mno-crt0 -lmc1crt0-app)
+	endif()
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Tapp-xram.ld -Wl,--defsym=__stack_size=8388608")
+else()
+	# Required libraries to build the different components of the binaries. Find
+	# them and add the include/linker directories and flags (in case the package
+	# manager find it in a weird place).
+	find_package(SDL2 REQUIRED)
+	list(APPEND mc1quake2IncludeDirectories "${SDL2_INCLUDE_DIR}/..")
+	list(APPEND mc1quake2SDLLinkerFlags ${SDL2_LIBRARY})
+	set(USE_SDL TRUE)
+	add_definitions(-DUSE_SDL)
+endif()
 
 # Do we need an OpenGL implementation?
 if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} MATCHES "ref_gl"))
 	set(OpenGL_GL_PREFERENCE GLVND)
 	find_package(OpenGL REQUIRED)
-	list(APPEND yquake2IncludeDirectories ${OPENGL_INCLUDE_DIR})
-	list(APPEND yquake2OpenGLLinkerFlags ${OPENGL_LIBRARIES})
+	list(APPEND mc1quake2IncludeDirectories ${OPENGL_INCLUDE_DIR})
+	list(APPEND mc1quake2OpenGLLinkerFlags ${OPENGL_LIBRARIES})
 endif()
 
 # backtrace lookup
@@ -210,8 +232,8 @@ check_function_exists(backtrace HAVE_EXECINFO_SYS)
 IF (NOT HAVE_EXECINFO_SYS)
 	check_library_exists(execinfo backtrace "" HAVE_EXECINFO_LIB)
 	if (HAVE_EXECINFO_LIB)
-		list(APPEND yquake2ClientLinkerFlags execinfo)
-		list(APPEND yquake2ServerLinkerFlags execinfo)
+		list(APPEND mc1quake2ClientLinkerFlags execinfo)
+		list(APPEND mc1quake2ServerLinkerFlags execinfo)
 		add_definitions(-DHAVE_EXECINFO)
 	endif()
 else()
@@ -229,8 +251,8 @@ if(${OPENAL_SUPPORT})
 	find_package(OpenAL)
 
 	if(${OPENAL_FOUND})
-		list(APPEND yquake2IncludeDirectories "${OPENAL_INCLUDE_DIR}")
-		list(APPEND yquake2ClientLinkerFlags ${OPENAL_LIBRARY})
+		list(APPEND mc1quake2IncludeDirectories "${OPENAL_INCLUDE_DIR}")
+		list(APPEND mc1quake2ClientLinkerFlags ${OPENAL_LIBRARY})
 
 		if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 			add_definitions(-DUSE_OPENAL -DDEFAULT_OPENAL_DRIVER="openal32.dll")
@@ -246,38 +268,38 @@ endif()
 
 # General linker flags.
 if(NOT MSVC)
-	list(APPEND yquake2LinkerFlags m)
+	list(APPEND mc1quake2LinkerFlags m)
 endif()
 if(NOT STATIC_BUILD)
-	list(APPEND yquake2LinkerFlags ${CMAKE_DL_LIBS})
+	list(APPEND mc1quake2LinkerFlags ${CMAKE_DL_LIBS})
 endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	if(!MSVC)
-		list(APPEND yquake2LinkerFlags "-static-libgcc")
+		list(APPEND mc1quake2LinkerFlags "-static-libgcc")
 	endif()
 else()
 	if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Haiku")
 		if(NOT STATIC_BUILD)
-			list(APPEND yquake2LinkerFlags "-rdynamic")
+			list(APPEND mc1quake2LinkerFlags "-rdynamic")
 		endif()
 	else()
-		list(APPEND yquake2LinkerFlags "-lnetwork")
+		list(APPEND mc1quake2LinkerFlags "-lnetwork")
                 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	endif()
 	if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-		list(APPEND yquake2LinkerFlags "-lsocket -lnsl")
+		list(APPEND mc1quake2LinkerFlags "-lsocket -lnsl")
 	endif()
 endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD" AND NOT WIN32)
-	list(APPEND yquake2LinkerFlags "-Wl,--no-undefined")
+	list(APPEND mc1quake2LinkerFlags "-Wl,--no-undefined")
 endif()
 
 # With all of those libraries and user defined paths
 # added, lets give them to the compiler and linker.
-include_directories(${yquake2IncludeDirectories})
-link_directories(${yquake2LinkerDirectories})
+include_directories(${mc1quake2IncludeDirectories})
+link_directories(${mc1quake2LinkerDirectories})
 
 # these settings only work for GCC and clang
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
@@ -313,6 +335,14 @@ set(Backends-Unix-Source
 	${BACKENDS_SRC_DIR}/unix/shared/hunk.c
 	)
 
+set(Backends-MC1-Source
+	${BACKENDS_SRC_DIR}/mc1/main.c
+	${BACKENDS_SRC_DIR}/mc1/network.c
+	${BACKENDS_SRC_DIR}/mc1/signalhandler.c
+	${BACKENDS_SRC_DIR}/mc1/system.c
+	${BACKENDS_SRC_DIR}/mc1/shared/hunk.c
+	)
+
 set(Backends-Windows-Source
 	${BACKENDS_SRC_DIR}/windows/icon.rc
 	${BACKENDS_SRC_DIR}/windows/main.c
@@ -333,10 +363,17 @@ set(REF-Unix-Source
 	${BACKENDS_SRC_DIR}/unix/shared/hunk.c
 	)
 
+set(REF-MC1-Source
+	${BACKENDS_SRC_DIR}/mc1/shared/hunk.c
+	)
+
 # Set the nessesary platform specific source
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	set(Platform-Specific-Source ${Backends-Windows-Source} ${Backends-Windows-Header})
 	set(REF-Platform-Specific-Source ${REF-Windows-Source})
+elseif(MC1)
+	set(Platform-Specific-Source ${Backends-MC1-Source})
+	set(REF-Platform-Specific-Source ${REF-MC1-Source})
 else()
 	set(Platform-Specific-Source ${Backends-Unix-Source})
 	set(REF-Platform-Specific-Source ${REF-Unix-Source})
@@ -484,17 +521,14 @@ set(Client-Source
 	${CLIENT_SRC_DIR}/cl_view.c
 	${CLIENT_SRC_DIR}/curl/download.c
 	${CLIENT_SRC_DIR}/curl/qcurl.c
-	${CLIENT_SRC_DIR}/input/sdl.c
 	${CLIENT_SRC_DIR}/menu/menu.c
 	${CLIENT_SRC_DIR}/menu/qmenu.c
 	${CLIENT_SRC_DIR}/menu/videomenu.c
 	${CLIENT_SRC_DIR}/sound/ogg.c
 	${CLIENT_SRC_DIR}/sound/openal.c
 	${CLIENT_SRC_DIR}/sound/qal.c
-	${CLIENT_SRC_DIR}/sound/sdl.c
 	${CLIENT_SRC_DIR}/sound/sound.c
 	${CLIENT_SRC_DIR}/sound/wave.c
-	${CLIENT_SRC_DIR}/vid/glimp_sdl.c
 	${CLIENT_SRC_DIR}/vid/vid.c
 	${SERVER_SRC_DIR}/sv_cmd.c
 	${SERVER_SRC_DIR}/sv_conless.c
@@ -528,6 +562,19 @@ set(Client-Header
 	${SERVER_SRC_DIR}/header/server.h
 	)
 
+if(USE_SDL)
+	list(APPEND Client-Source
+		${CLIENT_SRC_DIR}/input/sdl.c
+		${CLIENT_SRC_DIR}/sound/sdl.c
+		${CLIENT_SRC_DIR}/vid/glimp_sdl.c
+		)
+elseif(MC1)
+	list(APPEND Client-Source
+		${CLIENT_SRC_DIR}/input/input_mc1.c
+		${CLIENT_SRC_DIR}/vid/glimp_mc1.c
+		)
+endif()
+
 # Build the common static library
 add_library(common STATIC ${Common-Source} ${Common-Header})
 
@@ -551,7 +598,7 @@ else() # single-config, like normal Makefiles
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release/baseq2
 		)
 endif()
-target_link_libraries(game common ${yquake2LinkerFlags})
+target_link_libraries(game common ${mc1quake2LinkerFlags})
 
 # Build the GL1 renderer
 if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_gl1"))
@@ -598,7 +645,7 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_gl1"))
 				SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
 				)
 	endif()
-	target_link_libraries(ref_gl1 common ${yquake2LinkerFlags} ${yquake2OpenGLLinkerFlags} ${yquake2SDLLinkerFlags})
+	target_link_libraries(ref_gl1 common ${mc1quake2LinkerFlags} ${mc1quake2OpenGLLinkerFlags} ${mc1quake2SDLLinkerFlags})
 endif()
 
 set(GL3-Source
@@ -653,7 +700,7 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_gl3"))
 				)
 	endif()
 	target_include_directories(ref_gl3 PRIVATE ${CMAKE_SOURCE_DIR}/src/client/refresh/gl3/glad/include)
-	target_link_libraries(ref_gl3 common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
+	target_link_libraries(ref_gl3 common ${mc1quake2LinkerFlags} ${mc1quake2SDLLinkerFlags})
 endif()
 
 # Build the GLES3 renderer?
@@ -677,7 +724,7 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_gles3"))
 	endif()
 	target_include_directories(ref_gles3 PRIVATE ${CMAKE_SOURCE_DIR}/src/client/refresh/gl3/glad-gles3/include)
 	target_compile_definitions(ref_gles3 PRIVATE MC1Q2_GL3_GLES3=1 MC1Q2_GL3_GLES=1)
-	target_link_libraries(ref_gles3 common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
+	target_link_libraries(ref_gles3 common ${mc1quake2LinkerFlags} ${mc1quake2SDLLinkerFlags})
 endif()
 
 # Build the software renderer?
@@ -725,23 +772,23 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_soft"))
 				SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
 				)
 	endif()
-	target_link_libraries(ref_soft common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags})
+	target_link_libraries(ref_soft common ${mc1quake2LinkerFlags} ${mc1quake2SDLLinkerFlags})
 endif()
 
 # Main Quake 2 executable
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	add_executable(yquake2 WIN32 ${Client-Source} ${Client-Header} ${Platform-Specific-Source}
+	add_executable(mc1quake2 WIN32 ${Client-Source} ${Client-Header} ${Platform-Specific-Source}
 			${Backends-Generic-Source})
-	set_target_properties(yquake2 PROPERTIES
+	set_target_properties(mc1quake2 PROPERTIES
 			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 			)
-	target_link_libraries(yquake2 common ${yquake2LinkerFlags} ${yquake2ClientLinkerFlags}
-			${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
+	target_link_libraries(mc1quake2 common ${mc1quake2LinkerFlags} ${mc1quake2ClientLinkerFlags}
+			${mc1quake2SDLLinkerFlags} ${mc1quake2ZLibLinkerFlags} ws2_32 winmm)
 
 	if(MSVC AND CMAKE_MAJOR_VERSION GREATER 3 OR ( CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6 ))
 		# CMake >= 3.6 supports setting the default project started for debugging (instead of trying to launch ALL_BUILD ...)
-		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT yquake2)
-		set_target_properties(yquake2 PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/release)
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT mc1quake2)
+		set_target_properties(mc1quake2 PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 	endif()
 
 	# Wrapper for the Windows binary
@@ -757,8 +804,8 @@ else()
 	set_target_properties(quake2 PROPERTIES
 			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 			)
-	target_link_libraries(quake2 common ${yquake2LinkerFlags} ${yquake2ClientLinkerFlags}
-			${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags})
+	target_link_libraries(quake2 common ${mc1quake2LinkerFlags} ${mc1quake2ClientLinkerFlags}
+			${mc1quake2SDLLinkerFlags} ${mc1quake2ZLibLinkerFlags})
 	if(STATIC_BUILD)
 		target_link_libraries(quake2 game ${STATIC_REF_LIBRARY})
 	endif()
@@ -790,8 +837,8 @@ if(BUILD_Q2DED)
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/release
 		)
 	if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-		target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2SDLLinkerFlags} ${yquake2ZLibLinkerFlags} ws2_32 winmm)
+		target_link_libraries(q2ded common ${mc1quake2LinkerFlags} ${mc1quake2SDLLinkerFlags} ${mc1quake2ZLibLinkerFlags} ws2_32 winmm)
 	else()
-		target_link_libraries(q2ded common ${yquake2LinkerFlags} ${yquake2ServerLinkerFlags} ${yquake2ZLibLinkerFlags})
+		target_link_libraries(q2ded common ${mc1quake2LinkerFlags} ${mc1quake2ServerLinkerFlags} ${mc1quake2ZLibLinkerFlags})
 	endif()
 endif()
