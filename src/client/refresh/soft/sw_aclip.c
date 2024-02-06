@@ -57,15 +57,15 @@ R_Alias_clip_scale (const finalvert_t *pfv0, const finalvert_t *pfv1, float scal
 {
 	int i;
 
-	out->cv.u  = pfv1->cv.u  + ( pfv0->cv.u  - pfv1->cv.u ) * scale + 0.5;
-	out->cv.v  = pfv1->cv.v  + ( pfv0->cv.v  - pfv1->cv.v ) * scale + 0.5;
-	out->cv.s  = pfv1->cv.s  + ( pfv0->cv.s  - pfv1->cv.s ) * scale + 0.5;
-	out->cv.t  = pfv1->cv.t  + ( pfv0->cv.t  - pfv1->cv.t ) * scale + 0.5;
+	out->cv.u  = pfv1->cv.u  + ( pfv0->cv.u  - pfv1->cv.u ) * scale + 0.5F;
+	out->cv.v  = pfv1->cv.v  + ( pfv0->cv.v  - pfv1->cv.v ) * scale + 0.5F;
+	out->cv.s  = pfv1->cv.s  + ( pfv0->cv.s  - pfv1->cv.s ) * scale + 0.5F;
+	out->cv.t  = pfv1->cv.t  + ( pfv0->cv.t  - pfv1->cv.t ) * scale + 0.5F;
 
 	for(i=0; i<3; i++)
-		out->cv.l[i]  = pfv1->cv.l[i]  + ( pfv0->cv.l[i]  - pfv1->cv.l[i] ) * scale + 0.5;
+		out->cv.l[i]  = pfv1->cv.l[i]  + ( pfv0->cv.l[i]  - pfv1->cv.l[i] ) * scale + 0.5F;
 
-	out->cv.zi = pfv1->cv.zi + ( pfv0->cv.zi - pfv1->cv.zi) * scale + 0.5;
+	out->cv.zi = pfv1->cv.zi + ( pfv0->cv.zi - pfv1->cv.zi) * scale + 0.5F;
 }
 
 static void

@@ -392,10 +392,10 @@ R_LeadingEdgeSearch (const edge_t *edge, const surf_t *surf, surf_t *surf2)
 			return surf2;
 
 		// must be two bmodels in the same leaf; sort on 1/z
-		fu = (float)(edge->u - (1<<shift_size) + 1) * (1.0 / (1<<shift_size));
+		fu = (float)(edge->u + (1 - (1<<shift_size))) * (1.0F / (1<<shift_size));
 		newzi = surf->d_ziorigin + fv*surf->d_zistepv +
 				fu*surf->d_zistepu;
-		newzibottom = newzi * 0.99;
+		newzibottom = newzi * 0.99F;
 
 		testzi = surf2->d_ziorigin + fv*surf2->d_zistepv +
 				fu*surf2->d_zistepu;
@@ -405,7 +405,7 @@ R_LeadingEdgeSearch (const edge_t *edge, const surf_t *surf, surf_t *surf2)
 			return surf2;
 		}
 
-		newzitop = newzi * 1.01;
+		newzitop = newzi * 1.01F;
 	}
 	while(newzitop < testzi || surf->d_zistepu < surf2->d_zistepu);
 
@@ -485,10 +485,10 @@ R_LeadingEdge (const edge_t *edge)
 				float	fu, newzi, testzi, newzitop, newzibottom;
 
 				// must be two bmodels in the same leaf; sort on 1/z
-				fu = (float)(edge->u - (1<<shift_size) + 1) * (1.0 / (1<<shift_size));
+				fu = (float)(edge->u + (1 - (1<<shift_size))) * (1.0F / (1<<shift_size));
 				newzi = surf->d_ziorigin + fv*surf->d_zistepv +
 						fu*surf->d_zistepu;
-				newzibottom = newzi * 0.99;
+				newzibottom = newzi * 0.99F;
 
 				testzi = surf2->d_ziorigin + fv*surf2->d_zistepv +
 						fu*surf2->d_zistepu;
@@ -500,7 +500,7 @@ R_LeadingEdge (const edge_t *edge)
 					return;
 				}
 
-				newzitop = newzi * 1.01;
+				newzitop = newzi * 1.01F;
 				if (newzitop >= testzi)
 				{
 					if (surf->d_zistepu >= surf2->d_zistepu)
@@ -785,7 +785,7 @@ D_CalcGradients (msurface_t *pface, float d_ziorigin, float d_zistepu, float d_z
 	vec3_t		p_saxis, p_taxis;
 	float		t;
 
-	mipscale = 1.0 / (float)(1 << miplevel);
+	mipscale = 1.0F / (float)(1 << miplevel);
 
 	TransformVector (pface->texinfo->vecs[0], p_saxis);
 	TransformVector (pface->texinfo->vecs[1], p_taxis);
@@ -806,10 +806,10 @@ D_CalcGradients (msurface_t *pface, float d_ziorigin, float d_zistepu, float d_z
 	VectorScale (transformed_modelorg, mipscale, p_temp1);
 
 	t = SHIFT16XYZ_MULT * mipscale;
-	sadjust = ((int)(DotProduct (p_temp1, p_saxis) * SHIFT16XYZ_MULT + 0.5)) -
+	sadjust = ((int)(DotProduct (p_temp1, p_saxis) * SHIFT16XYZ_MULT + 0.5F)) -
 			((pface->texturemins[0] << SHIFT16XYZ) >> miplevel)
 			+ pface->texinfo->vecs[0][3]*t;
-	tadjust = ((int)(DotProduct (p_temp1, p_taxis) * SHIFT16XYZ_MULT + 0.5)) -
+	tadjust = ((int)(DotProduct (p_temp1, p_taxis) * SHIFT16XYZ_MULT + 0.5F)) -
 			((pface->texturemins[1] << SHIFT16XYZ) >> miplevel)
 			+ pface->texinfo->vecs[1][3]*t;
 
@@ -817,9 +817,9 @@ D_CalcGradients (msurface_t *pface, float d_ziorigin, float d_zistepu, float d_z
 	if (pface->texinfo->flags & SURF_FLOWING)
 	{
 		if(pface->texinfo->flags & SURF_WARP)
-			sadjust += SHIFT16XYZ_MULT * (-128 * ( (r_newrefdef.time * 0.25) - (int)(r_newrefdef.time * 0.25) ));
+			sadjust += SHIFT16XYZ_MULT * (-128 * ( (r_newrefdef.time * 0.25F) - (int)(r_newrefdef.time * 0.25F) ));
 		else
-			sadjust += SHIFT16XYZ_MULT * (-128 * ( (r_newrefdef.time * 0.77) - (int)(r_newrefdef.time * 0.77) ));
+			sadjust += SHIFT16XYZ_MULT * (-128 * ( (r_newrefdef.time * 0.77F) - (int)(r_newrefdef.time * 0.77F) ));
 	}
 
 	//
@@ -843,7 +843,7 @@ D_BackgroundSurf (surf_t *s)
 	D_FlatFillSurface (s, (int)sw_clearcolor->value & 0xFF);
 	// set up a gradient for the background surface that places it
 	// effectively at infinity distance from the viewpoint
-	D_DrawZSpans (s->spans, -0.9, 0, 0);
+	D_DrawZSpans (s->spans, -0.9F, 0, 0);
 }
 
 /*
@@ -924,7 +924,7 @@ D_SkySurf (surf_t *s)
 
 	// set up a gradient for the background surface that places it
 	// effectively at infinity distance from the viewpoint
-	D_DrawZSpans (s->spans, -0.9, 0, 0);
+	D_DrawZSpans (s->spans, -0.9F, 0, 0);
 }
 
 /*
@@ -957,10 +957,10 @@ D_SolidSurf (entity_t *currententity, surf_t *s)
 
 	len1 = VectorLength (pface->texinfo->vecs[0]);
 	len2 = VectorLength (pface->texinfo->vecs[1]);
-	mipadjust = sqrt(len1*len1 + len2*len2);
-	if (mipadjust < 0.01)
+	mipadjust = sqrtf(len1*len1 + len2*len2);
+	if (mipadjust < 0.01F)
 	{
-		mipadjust = 0.01;
+		mipadjust = 0.01F;
 	}
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip * mipadjust);
 

@@ -85,7 +85,7 @@ int	r_numallocatedverts;
 int	r_numallocatedtriangles;
 int	r_numallocatedlights;
 int	r_numallocatededgebasespans;
-float	r_aliasuvscale = 1.0;
+float	r_aliasuvscale = 1.0F;
 qboolean	r_outofsurfaces;
 qboolean	r_outofedges;
 qboolean	r_outofverts;
@@ -386,8 +386,8 @@ R_InitTurb (int width)
 	memset(blanktable, 0, (width+CYCLE) * sizeof(int));
 	for (i = 0; i < (width+CYCLE); i++)
 	{
-		sintable[i] = AMP + sin(i*3.14159*2/CYCLE)*AMP;
-		intsintable[i] = AMP2 + sin(i*3.14159*2/CYCLE)*AMP2; // AMP2, not 20
+		sintable[i] = AMP + sinf(i*(3.14159F*2.0F/CYCLE))*AMP;
+		intsintable[i] = AMP2 + sinf(i*(3.14159F*2.0F/CYCLE))*AMP2; // AMP2, not 20
 	}
 }
 
@@ -498,7 +498,7 @@ RE_Init(void)
 	r_refdef.xOrigin = XCENTERING;
 	r_refdef.yOrigin = YCENTERING;
 
-	r_aliasuvscale = 1.0;
+	r_aliasuvscale = 1.0F;
 
 	GetPCXPalette (&vid_colormap, (unsigned *)d_8to24table);
 	vid_alphamap = vid_colormap + 64*256;
@@ -1284,7 +1284,7 @@ R_CalcPalette (void)
 	premult[1] = r_newrefdef.blend[1]*alpha*255;
 	premult[2] = r_newrefdef.blend[2]*alpha*255;
 
-	one_minus_alpha = (1.0 - alpha);
+	one_minus_alpha = (1.0F - alpha);
 
 	in = d_8to24table;
 	out = palette[0];
@@ -1312,13 +1312,13 @@ R_SetLightLevel (const entity_t *currententity)
 
 	if ((r_newrefdef.rdflags & RDF_NOWORLDMODEL) || (!r_drawentities->value) || (!currententity))
 	{
-		r_lightlevel->value = 150.0;
+		r_lightlevel->value = 150.0F;
 		return;
 	}
 
 	// save off light value for server to look at (BIG HACK!)
 	R_LightPoint (currententity, r_newrefdef.vieworg, light);
-	r_lightlevel->value = 150.0 * light[0];
+	r_lightlevel->value = 150.0F * light[0];
 }
 
 static int
@@ -1677,15 +1677,15 @@ Draw_BuildGammaTable (void)
 
 	overbright = sw_overbrightbits->value;
 
-	if(overbright < 0.5)
-		overbright = 0.5;
+	if(overbright < 0.5F)
+		overbright = 0.5F;
 
-	if(overbright > 4.0)
-		overbright = 4.0;
+	if(overbright > 4.0F)
+		overbright = 4.0F;
 
-	g = (2.1 - vid_gamma->value);
+	g = (2.1F - vid_gamma->value);
 
-	if (g == 1.0)
+	if (g == 1.0F)
 	{
 		for (i=0 ; i<256 ; i++) {
 			int inf;
@@ -1705,7 +1705,7 @@ Draw_BuildGammaTable (void)
 		{
 			int inf;
 
-			inf = (255 * pow ( (i+0.5)/255.5 , g ) + 0.5) * overbright;
+			inf = (255.0F * powf( (i+0.5F)*(1.0F/255.5F) , g ) + 0.5F) * overbright;
 			if (inf < 0)
 				inf = 0;
 			if (inf > 255)
@@ -1749,7 +1749,7 @@ R_DrawBeam(const entity_t *e)
 
 	for ( i = 0; i < NUM_BEAM_SEGS; i++ )
 	{
-		RotatePointAroundVector( start_points[i], normalized_direction, perpvec, (360.0/NUM_BEAM_SEGS)*i );
+		RotatePointAroundVector( start_points[i], normalized_direction, perpvec, (360.0F/NUM_BEAM_SEGS)*(float)i );
 		VectorAdd( start_points[i], origin, start_points[i] );
 		VectorAdd( start_points[i], direction, end_points[i] );
 	}

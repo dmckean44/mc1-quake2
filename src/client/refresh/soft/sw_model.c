@@ -375,8 +375,8 @@ CalcSurfaceExtents (model_t *loadmodel, msurface_t *s)
 
 	for (i=0 ; i<2 ; i++)
 	{
-		bmins[i] = floor(mins[i]/16);
-		bmaxs[i] = ceil(maxs[i]/16);
+		bmins[i] = floorf(mins[i] * (1.0F/16.0F));
+		bmaxs[i] = ceilf(maxs[i] * (1.0F/16));
 
 		s->texturemins[i] = bmins[i] * 16;
 		s->extents[i] = (bmaxs[i] - bmins[i]) * 16;

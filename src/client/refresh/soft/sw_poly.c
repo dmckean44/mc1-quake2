@@ -780,7 +780,7 @@ R_PolygonScanLeftEdge (espan_t *s_polygon_spans)
 	if (lmaxindex == 0)
 		lmaxindex = r_polydesc.nump;
 
-	vtop = ceil (r_polydesc.pverts[i].v);
+	vtop = ceilf(r_polydesc.pverts[i].v);
 
 	do
 	{
@@ -789,7 +789,7 @@ R_PolygonScanLeftEdge (espan_t *s_polygon_spans)
 		pvert = &r_polydesc.pverts[i];
 		pnext = pvert - 1;
 
-		vbottom = ceil (pnext->v);
+		vbottom = ceilf(pnext->v);
 
 		if (vtop < vbottom)
 		{
@@ -849,7 +849,7 @@ R_PolygonScanRightEdge(espan_t *s_polygon_spans)
 	if (vvert > r_refdef.fvrectbottom_adj)
 		vvert = r_refdef.fvrectbottom_adj;
 
-	vtop = ceil (vvert);
+	vtop = ceilf(vvert);
 
 	do
 	{
@@ -864,7 +864,7 @@ R_PolygonScanRightEdge(espan_t *s_polygon_spans)
 		if (vnext > r_refdef.fvrectbottom_adj)
 			vnext = r_refdef.fvrectbottom_adj;
 
-		vbottom = ceil (vnext);
+		vbottom = ceilf(vnext);
 
 		if (vtop < vbottom)
 		{
@@ -945,14 +945,14 @@ R_ClipAndDrawPoly ( float alpha, int isturbulent, qboolean textured )
 			{
 				if ( isturbulent )
 				{
-					if ( alpha > 0.33 )
+					if ( alpha > 0.33F )
 						r_polydesc.drawspanlet = R_DrawSpanletTurbulentStipple66;
 					else
 						r_polydesc.drawspanlet = R_DrawSpanletTurbulentStipple33;
 				}
 				else
 				{
-					if ( alpha > 0.33 )
+					if ( alpha > 0.33F )
 						r_polydesc.drawspanlet = R_DrawSpanlet66Stipple;
 					else
 						r_polydesc.drawspanlet = R_DrawSpanlet33Stipple;
@@ -962,14 +962,14 @@ R_ClipAndDrawPoly ( float alpha, int isturbulent, qboolean textured )
 			{
 				if ( isturbulent )
 				{
-					if ( alpha > 0.33 )
+					if ( alpha > 0.33F )
 						r_polydesc.drawspanlet = R_DrawSpanletTurbulentBlended66;
 					else
 						r_polydesc.drawspanlet = R_DrawSpanletTurbulentBlended33;
 				}
 				else
 				{
-					if ( alpha > 0.33 )
+					if ( alpha > 0.33F )
 						r_polydesc.drawspanlet = R_DrawSpanlet66;
 					else
 						r_polydesc.drawspanlet = R_DrawSpanlet33;
@@ -1008,7 +1008,7 @@ R_ClipAndDrawPoly ( float alpha, int isturbulent, qboolean textured )
 			transformed[2] = NEAR_CLIP;
 
 		pout = &outverts[i];
-		pout->zi = 1.0 / transformed[2];
+		pout->zi = 1.0F / transformed[2];
 
 		pout->s = pv[3];
 		pout->t = pv[4];
@@ -1107,7 +1107,7 @@ R_BuildPolygonFromSurface(const entity_t *currententity, const model_t *currentm
 	// scrolling texture addition
 	if (fa->texinfo->flags & SURF_FLOWING)
 	{
-		r_polydesc.s_offset += -128 * ( (r_newrefdef.time*0.25) - (int)(r_newrefdef.time*0.25) );
+		r_polydesc.s_offset += -128.0F * ( (r_newrefdef.time*0.25F) - (int)(r_newrefdef.time*0.25F) );
 	}
 
 	r_polydesc.nump = lnumverts;
@@ -1127,7 +1127,7 @@ R_PolygonCalculateGradients (float *p_ziorigin, float *p_zistepu, float *p_ziste
 	TransformVector (r_polydesc.vright, p_saxis);
 	TransformVector (r_polydesc.vup, p_taxis);
 
-	distinv = 1.0 / (-(DotProduct (r_polydesc.viewer_position, r_polydesc.vpn)) + r_polydesc.dist );
+	distinv = 1.0F / (-(DotProduct (r_polydesc.viewer_position, r_polydesc.vpn)) + r_polydesc.dist );
 
 	d_sdivzstepu  =  p_saxis[0] * xscaleinv;
 	d_sdivzstepv  = -p_saxis[1] * yscaleinv;
@@ -1193,8 +1193,8 @@ R_DrawPoly(int iswater, espan_t *spans)
 		pverts++;
 	}
 
-	ymin = ceil (ymin);
-	ymax = ceil (ymax);
+	ymin = ceilf(ymin);
+	ymax = ceilf(ymax);
 
 	if (ymin >= ymax)
 		return; // doesn't cross any scans at all

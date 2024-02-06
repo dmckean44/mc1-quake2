@@ -155,7 +155,7 @@ extern oldrefdef_t	r_refdef;
 #define MAXWORKINGVERTS	(MAXVERTS+4)    // max points in an intermediate
 					//  polygon (while processing)
 
-#define PARTICLE_Z_CLIP 8.0
+#define PARTICLE_Z_CLIP 8.0F
 
 #define TRANSPARENT_COLOR	0xFF
 
@@ -172,12 +172,12 @@ extern oldrefdef_t	r_refdef;
 #define BMODEL_FULLY_CLIPPED	0x10 // value returned by R_BmodelCheckBBox ()
 				     //  if bbox is trivially rejected
 
-#define XCENTERING	(1.0 / 2.0)
-#define YCENTERING	(1.0 / 2.0)
+#define XCENTERING	(1.0F / 2.0F)
+#define YCENTERING	(1.0F / 2.0F)
 
-#define BACKFACE_EPSILON	0.01
+#define BACKFACE_EPSILON	0.01F
 
-#define NEAR_CLIP	0.01
+#define NEAR_CLIP	0.01F
 
 #define ALIAS_Z_CLIP_PLANE	4
 

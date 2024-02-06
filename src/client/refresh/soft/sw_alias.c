@@ -476,7 +476,7 @@ R_AliasProjectAndClipTestFinalVert( finalvert_t *fv )
 	x = fv->xyz[0];
 	y = fv->xyz[1];
 	z = fv->xyz[2];
-	zi = 1.0 / z;
+	zi = 1.0F / z;
 
 	fv->cv.zi = zi * s_ziscale;
 
@@ -553,7 +553,7 @@ R_AliasSetupLighting(entity_t *currententity)
 	if ( currententity->flags & RF_FULLBRIGHT )
 	{
 		for (i=0 ; i<3 ; i++)
-			light[i] = 1.0;
+			light[i] = 1.0F;
 	}
 	else
 	{
@@ -562,26 +562,26 @@ R_AliasSetupLighting(entity_t *currententity)
 
 	// save off light value for server to look at (BIG HACK!)
 	if ( currententity->flags & RF_WEAPONMODEL )
-		r_lightlevel->value = 150.0 * light[0];
+		r_lightlevel->value = 150.0F * light[0];
 
 
 	if ( currententity->flags & RF_MINLIGHT )
 	{
 		for (i=0 ; i<3 ; i++)
-			if (light[i] < 0.1)
-				light[i] = 0.1;
+			if (light[i] < 0.1F)
+				light[i] = 0.1F;
 	}
 
 	if ( currententity->flags & RF_GLOW )
 	{	// bonus items will pulse with time
 		float	scale;
 
-		scale = 0.1 * sin(r_newrefdef.time*7);
+		scale = 0.1F * sinf(r_newrefdef.time*7);
 		for (i=0 ; i<3 ; i++)
 		{
 			float min;
 
-			min = light[i] * 0.8;
+			min = light[i] * 0.8F;
 			light[i] += scale;
 			if (light[i] < min)
 				light[i] = min;
@@ -590,7 +590,7 @@ R_AliasSetupLighting(entity_t *currententity)
 
 	if(r_colorlight->value == 0)
 	{
-		float temp = (light[0] + light[1] + light[2]) / 3.0;
+		float temp = (light[0] + light[1] + light[2]) * (1.0F / 3.0F);
 
 		light[0] = light[1] = light[2] = temp;
 	}
@@ -741,7 +741,7 @@ R_AliasDrawModel(entity_t *currententity, const model_t *currentmodel)
 
 		if (r_gunfov->value >= 0)
 		{
-			float gunfov = 2 * tan((float)r_gunfov->value / 360 * M_PI);
+			float gunfov = 2.0F * tanf((M_PI/360.0F) * (float)r_gunfov->value);
 			aliasxscale = ((float)r_refdef.vrect.width / gunfov) * r_aliasuvscale;
 			aliasyscale = aliasxscale;
 		}
@@ -815,16 +815,16 @@ R_AliasDrawModel(entity_t *currententity, const model_t *currentmodel)
 		else
 			r_aliasblendcolor = SHELL_WHITE_COLOR;
 
-		if ( currententity->alpha > 0.33 )
+		if ( currententity->alpha > 0.33F )
 			d_pdrawspans = R_PolysetDrawSpansConstant8_66;
 		else
 			d_pdrawspans = R_PolysetDrawSpansConstant8_33;
 	}
 	else if ( currententity->flags & RF_TRANSLUCENT )
 	{
-		if ( currententity->alpha > 0.66 )
+		if ( currententity->alpha > 0.66F )
 			d_pdrawspans = R_PolysetDrawSpans8_Opaque;
-		else if ( currententity->alpha > 0.33 )
+		else if ( currententity->alpha > 0.33F )
 			d_pdrawspans = R_PolysetDrawSpans8_66;
 		else
 			d_pdrawspans = R_PolysetDrawSpans8_33;
@@ -840,7 +840,7 @@ R_AliasDrawModel(entity_t *currententity, const model_t *currentmodel)
 	R_AliasSetUpLerpData(currententity, s_pmdl, currententity->backlerp);
 
 	if (currententity->flags & RF_DEPTHHACK)
-		s_ziscale = (float)0x8000 * (float)SHIFT16XYZ_MULT * 3.0;
+		s_ziscale = (float)(0x8000 * 3) * (float)SHIFT16XYZ_MULT;
 	else
 		s_ziscale = (float)0x8000 * (float)SHIFT16XYZ_MULT;
 
