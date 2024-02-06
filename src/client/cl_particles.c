@@ -72,14 +72,14 @@ CL_ParticleEffect(vec3_t org, vec3_t dir, int color, int count)
 		for (j = 0; j < 3; j++)
 		{
 			p->org[j] = org[j] + ((randk() & 7) - 4) + d * dir[j];
-			p->vel[j] = crandk() * 20;
+			p->vel[j] = crandk() * 20.0F;
 		}
 
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = -PARTICLE_GRAVITY + 0.2f;
 		p->alpha = 1.0;
 
-		p->alphavel = -1.0 / (0.5 + frandk() * 0.3);
+		p->alphavel = -1.0F / (0.5F + frandk() * 0.3F);
 	}
 }
 
@@ -113,12 +113,12 @@ CL_ParticleEffect2(vec3_t org, vec3_t dir, int color, int count)
 		for (j = 0; j < 3; j++)
 		{
 			p->org[j] = org[j] + ((randk() & 7) - 4) + d * dir[j];
-			p->vel[j] = crandk() * 20;
+			p->vel[j] = crandk() * 20.0F;
 		}
 
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = -PARTICLE_GRAVITY;
-		p->alpha = 1.0;
+		p->alpha = 1.0F;
 
 		p->alphavel = -1.0f / (0.5f + frandk() * 0.3f);
 	}
@@ -154,12 +154,12 @@ CL_ParticleEffect3(vec3_t org, vec3_t dir, int color, int count)
 		for (j = 0; j < 3; j++)
 		{
 			p->org[j] = org[j] + ((randk() & 7) - 4) + d * dir[j];
-			p->vel[j] = crandk() * 20;
+			p->vel[j] = crandk() * 20.0F;
 		}
 
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = PARTICLE_GRAVITY;
-		p->alpha = 1.0;
+		p->alpha = 1.0F;
 
 		p->alphavel = -1.0f / (0.5f + frandk() * 0.3f);
 	}
@@ -184,7 +184,7 @@ CL_AddParticles(void)
 
 		if (p->alphavel != INSTANT_PARTICLE)
 		{
-			time = (cl.time - p->time) * 0.001;
+			time = (cl.time - p->time) * 0.001F;
 			alpha = p->alpha + time * p->alphavel;
 
 			if (alpha <= 0)
@@ -230,8 +230,8 @@ CL_AddParticles(void)
 
 		if (p->alphavel == INSTANT_PARTICLE)
 		{
-			p->alphavel = 0.0;
-			p->alpha = 0.0;
+			p->alphavel = 0.0F;
+			p->alpha = 0.0F;
 		}
 	}
 
@@ -278,12 +278,12 @@ CL_GenericParticleEffect(vec3_t org, vec3_t dir, int color,
 		for (j = 0; j < 3; j++)
 		{
 			p->org[j] = org[j] + ((randk() & 7) - 4) + d * dir[j];
-			p->vel[j] = crandk() * 20;
+			p->vel[j] = crandk() * 20.0F;
 		}
 
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = -PARTICLE_GRAVITY;
-		p->alpha = 1.0;
+		p->alpha = 1.0F;
 
 		p->alphavel = -1.0f / (0.5f + frandk() * alphavel);
 	}

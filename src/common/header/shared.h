@@ -225,7 +225,7 @@ typedef int fixed8_t;
 typedef int fixed16_t;
 
 #ifndef M_PI
- #define M_PI 3.14159265358979323846 /* matches value in gcc v2 math.h */
+ #define M_PI 3.14159265358979323846F /* matches value in gcc v2 math.h */
 #endif
 
 struct cplane_s;
@@ -1189,8 +1189,8 @@ typedef enum
  * ==========================================================
  */
 
-#define ANGLE2SHORT(x) ((int)((x) * 65536 / 360) & 65535)
-#define SHORT2ANGLE(x) ((x) * (360.0 / 65536))
+#define ANGLE2SHORT(x) ((int)((x) * (65536.0F / 360.0F)) & 65535)
+#define SHORT2ANGLE(x) ((x) * (360.0F / 65536.0F))
 
 /* config strings are a general means of communication from
  * the server to all connected clients. Each config string
