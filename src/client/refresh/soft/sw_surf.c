@@ -57,39 +57,49 @@ static void
 R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 						int level, light3_t lightleft, light3_t lightright)
 {
-	int light_masked_right, light_masked_left;
+	const pixel_t* _colormap = vid_colormap;
 
+	int light_masked_right, light_masked_left;
 	light_masked_right = R_GreyscaledLight(lightright);
 	if (light_masked_right != LIGHTMASK)
 	{
 		light_masked_left = R_GreyscaledLight(lightleft);
-
-		// Full same light from both side
 		if (light_masked_left == light_masked_right)
 		{
-			const pixel_t *_colormap = &vid_colormap[light_masked_right];
+			// Gray light, no gradient (fastest case)
+			const pixel_t *lighted_cmap = &_colormap[light_masked_right];
 			for (size_t i = 0; i < size; ++i)
 			{
-				prowdest[i] = _colormap[psource[i]];
+				prowdest[i] = lighted_cmap[psource[i]];
 			}
-			return;
+		}
+		else
+		{
+			// Gray light, with gradient
+			const int lightstep = (lightright[0] - lightleft[0]) >> level;
+			int light = lightleft[0];
+			for (size_t i = 0; i < size; ++i)
+			{
+				prowdest[i] = _colormap[psource[i] + (light & LIGHTMASK)];
+				light += lightstep;
+			}
 		}
 	}
-
-	// same color light shades
+	else
 	{
-		light3_t lightstep, light;
+		// Colored light, with gradient (slowest case)
+		light3_t lightstep;
+		lightstep[0] = (lightright[0] - lightleft[0]) >> level;
+		lightstep[1] = (lightright[1] - lightleft[1]) >> level;
+		lightstep[2] = (lightright[2] - lightleft[2]) >> level;
 
-		lightstep[0] = (lightleft[0] - lightright[0]) >> level;
-		lightstep[1] = (lightleft[1] - lightright[1]) >> level;
-		lightstep[2] = (lightleft[2] - lightright[2]) >> level;
-
-		light[0] = lightright[0];
-		light[1] = lightright[1];
-		light[2] = lightright[2];
-		for (int b = (int)(size - 1); b >= 0; --b)
+		light3_t light;
+		light[0] = lightleft[0];
+		light[1] = lightleft[1];
+		light[2] = lightleft[2];
+		for (size_t i = 0; i < size; ++i)
 		{
-			prowdest[b] = R_ApplyLight(psource[b], light);
+			prowdest[i] = R_ApplyLight(psource[i], light);
 			light[0] += lightstep[0];
 			light[1] += lightstep[1];
 			light[2] += lightstep[2];
