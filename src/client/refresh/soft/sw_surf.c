@@ -42,18 +42,17 @@ surfcache_t	*sc_base;
 static qboolean
 R_GreyscaledLight(const light3_t light)
 {
-	light3_t light_masked;
-
-	light_masked[0] = light[0] & LIGHTMASK;
-	light_masked[1] = light[1] & LIGHTMASK;
-	light_masked[2] = light[2] & LIGHTMASK;
-
-	if (light_masked[0] == light_masked[1] && light_masked[0] == light_masked[2])
-		return light_masked[0];
+	const int light_masked0 = light[0] & LIGHTMASK;
+	const int light_masked1 = light[1] & LIGHTMASK;
+	const int light_masked2 = light[2] & LIGHTMASK;
+	if (light_masked0 == light_masked1 && light_masked0 == light_masked2)
+		return light_masked0;
 
 	return LIGHTMASK;
 }
 
+/* This is the most performance hungry function in the entire renderer. */
+/* TODO(m): Vectorize this for MRISC32. */
 static void
 R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 						int level, light3_t lightleft, light3_t lightright)
@@ -64,51 +63,36 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 	if (light_masked_right != LIGHTMASK)
 	{
 		light_masked_left = R_GreyscaledLight(lightleft);
-	}
 
-	// Full same light from both side
-	if (light_masked_right != LIGHTMASK && light_masked_left == light_masked_right)
-	{
-		pixel_t *dest, *dest_max, *src;
-
-		dest = prowdest;
-		dest_max = prowdest + size;
-		src = psource;
-
-		while (dest < dest_max)
+		// Full same light from both side
+		if (light_masked_left == light_masked_right)
 		{
-			*dest = vid_colormap[*src + light_masked_right];
-
-			dest++;
-			src++;
+			const pixel_t *_colormap = &vid_colormap[light_masked_right];
+			for (size_t i = 0; i < size; ++i)
+			{
+				prowdest[i] = _colormap[psource[i]];
+			}
+			return;
 		}
-
-		return;
 	}
 
 	// same color light shades
 	{
-		int b, j;
 		light3_t lightstep, light;
 
-		for(j=0; j<3; j++)
+		lightstep[0] = (lightleft[0] - lightright[0]) >> level;
+		lightstep[1] = (lightleft[1] - lightright[1]) >> level;
+		lightstep[2] = (lightleft[2] - lightright[2]) >> level;
+
+		light[0] = lightright[0];
+		light[1] = lightright[1];
+		light[2] = lightright[2];
+		for (int b = (int)(size - 1); b >= 0; --b)
 		{
-			int lighttemp;
-
-			lighttemp = lightleft[j] - lightright[j];
-			lightstep[j] = lighttemp >> level;
-		}
-
-		memcpy(light, lightright, sizeof(light3_t));
-
-		for (b=(size-1); b>=0; b--)
-		{
-			pixel_t pix;
-			pix = psource[b];
-			prowdest[b] = R_ApplyLight(pix, light);
-
-			for(j=0; j<3; j++)
-				light[j] += lightstep[j];
+			prowdest[b] = R_ApplyLight(psource[b], light);
+			light[0] += lightstep[0];
+			light[1] += lightstep[1];
+			light[2] += lightstep[2];
 		}
 	}
 }
@@ -150,14 +134,13 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 
 			R_DrawSurfaceBlock_Light(prowdest, psource, size, level, lightleft, lightright);
 
-			psource += sourcetstep;
-
 			for(j=0; j<3; j++)
 			{
 				lightright[j] += lightrightstep[j];
 				lightleft[j] += lightleftstep[j];
 			}
 
+			psource += sourcetstep;
 			prowdest += surfrowbytes;
 		}
 
@@ -420,10 +403,20 @@ D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel
 	// if the surface is animating or flashing, flush the cache
 	//
 	r_drawsurf.image = R_TextureAnimation (currententity, surface->texinfo);
-	r_drawsurf.lightadj[0] = r_newrefdef.lightstyles[surface->styles[0]].white*128;
-	r_drawsurf.lightadj[1] = r_newrefdef.lightstyles[surface->styles[1]].white*128;
-	r_drawsurf.lightadj[2] = r_newrefdef.lightstyles[surface->styles[2]].white*128;
-	r_drawsurf.lightadj[3] = r_newrefdef.lightstyles[surface->styles[3]].white*128;
+
+	const byte* _styles = &surface->styles[0];
+	const lightstyle_t* _lightstyles = &r_newrefdef.lightstyles[0];
+	const fixed8_t lightadj0 = FloatToFixed8(_lightstyles[_styles[0]].white);
+	const fixed8_t lightadj1 = FloatToFixed8(_lightstyles[_styles[1]].white);
+	const fixed8_t lightadj2 = FloatToFixed8(_lightstyles[_styles[2]].white);
+	const fixed8_t lightadj3 = FloatToFixed8(_lightstyles[_styles[3]].white);
+	{
+		fixed8_t* _lightadj = &r_drawsurf.lightadj[0];
+		_lightadj[0] = lightadj0;
+		_lightadj[1] = lightadj1;
+		_lightadj[2] = lightadj2;
+		_lightadj[3] = lightadj3;
+	}
 
 	//
 	// see if the cache holds apropriate data
@@ -432,16 +425,16 @@ D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel
 
 	if (cache && !cache->dlight && surface->dlightframe != r_framecount
 			&& cache->image == r_drawsurf.image
-			&& cache->lightadj[0] == r_drawsurf.lightadj[0]
-			&& cache->lightadj[1] == r_drawsurf.lightadj[1]
-			&& cache->lightadj[2] == r_drawsurf.lightadj[2]
-			&& cache->lightadj[3] == r_drawsurf.lightadj[3] )
+			&& cache->lightadj[0] == lightadj0
+			&& cache->lightadj[1] == lightadj1
+			&& cache->lightadj[2] == lightadj2
+			&& cache->lightadj[3] == lightadj3 )
 		return cache;
 
 	//
 	// determine shape of surface
 	//
-	surfscale = 1.0 / (1<<miplevel);
+	surfscale = 1.0F / (1<<miplevel);
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
@@ -467,10 +460,10 @@ D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel
 	r_drawsurf.surfdat = (pixel_t *)cache->data;
 
 	cache->image = r_drawsurf.image;
-	cache->lightadj[0] = r_drawsurf.lightadj[0];
-	cache->lightadj[1] = r_drawsurf.lightadj[1];
-	cache->lightadj[2] = r_drawsurf.lightadj[2];
-	cache->lightadj[3] = r_drawsurf.lightadj[3];
+	cache->lightadj[0] = lightadj0;
+	cache->lightadj[1] = lightadj1;
+	cache->lightadj[2] = lightadj2;
+	cache->lightadj[3] = lightadj3;
 
 	//
 	// draw and light the surface texture

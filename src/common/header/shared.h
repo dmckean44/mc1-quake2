@@ -236,6 +236,16 @@ extern vec3_t vec3_origin;
 
 #define IS_NAN(x) (((*(int *)&x) & nanmask) == nanmask)
 
+static inline fixed8_t
+FloatToFixed8(float x)
+{
+#ifdef __MRISC32__
+	return _mr32_ftoi(x, 7);
+#else
+	return (fixed8_t)(x * 128.0F);
+#endif
+}
+
 // FIXME: use int instead of long, it's only used with int anyway?
 #define Q_ftol(f) (long)(f)
 
