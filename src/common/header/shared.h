@@ -123,6 +123,14 @@ typedef unsigned char byte;
 	#define MC1Q2_ATTR_NORETURN_FUNCPTR  /* nothing */
 #endif
 
+/* Macros for suppressing warnings */
+#if defined(__GNUC__)
+	/* Both GCC and Clang understand this attribute */
+	#define MC1Q2_NO_SANITIZE(S) __attribute__((no_sanitize(S)))
+#else
+	#define MC1Q2_NO_SANITIZE(S)
+#endif
+
 /* angle indexes */
 #define PITCH 0                     /* up / down */
 #define YAW 1                       /* left / right */

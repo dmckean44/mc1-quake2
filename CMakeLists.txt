@@ -273,6 +273,13 @@ if(${OPENAL_SUPPORT})
 	endif()
 endif()
 
+# Enable sanitizers when building with Clang for native hosts.
+if((NOT ${CMAKE_CROSSCOMPILING}) AND (${CMAKE_C_COMPILER_ID} MATCHES "Clang"))
+	set(SANITIZERS -fsanitize=undefined)
+	add_compile_options(-g ${SANITIZERS})
+	list(APPEND mc1quake2ClientLinkerFlags ${SANITIZERS})
+endif()
+
 # General linker flags.
 if(NOT MSVC)
 	list(APPEND mc1quake2LinkerFlags m)
@@ -770,7 +777,7 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_soft"))
 		${REF_SRC_DIR}/soft/header/model.h
 		)
 
-		add_library(ref_soft ${MODULE_LIBRARY_TYPE} ${SOFT-Source} ${SOFT-Header} ${REF-Platform-Specific-Source})
+	add_library(ref_soft ${MODULE_LIBRARY_TYPE} ${SOFT-Source} ${SOFT-Header} ${REF-Platform-Specific-Source})
 	if(NOT STATIC_BUILD)
 		set_target_properties(ref_soft PROPERTIES
 				PREFIX ""
