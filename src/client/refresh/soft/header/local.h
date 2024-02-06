@@ -101,6 +101,8 @@ extern pixel_t	*vid_colormap;	// 256 * VID_GRADES size
 extern pixel_t	*vid_alphamap;	// 256 * 256 translucency map
 extern light_t	vid_lightthreshold; // full light distance maximum
 extern char	shift_size;	// shift size in fixed-point
+extern byte *d_16to8table;	// 16 to 8 bit conversion table (65536 entries)
+extern byte d_8to24table[256 * 4];
 
 typedef struct
 {
@@ -153,7 +155,7 @@ extern oldrefdef_t	r_refdef;
 #define MAXWORKINGVERTS	(MAXVERTS+4)    // max points in an intermediate
 					//  polygon (while processing)
 
-#define PARTICLE_Z_CLIP 8.0
+#define PARTICLE_Z_CLIP 8.0F
 
 #define TRANSPARENT_COLOR	0xFF
 
@@ -170,12 +172,12 @@ extern oldrefdef_t	r_refdef;
 #define BMODEL_FULLY_CLIPPED	0x10 // value returned by R_BmodelCheckBBox ()
 				     //  if bbox is trivially rejected
 
-#define XCENTERING	(1.0 / 2.0)
-#define YCENTERING	(1.0 / 2.0)
+#define XCENTERING	(1.0F / 2.0F)
+#define YCENTERING	(1.0F / 2.0F)
 
-#define BACKFACE_EPSILON	0.01
+#define BACKFACE_EPSILON	0.01F
 
-#define NEAR_CLIP	0.01
+#define NEAR_CLIP	0.01F
 
 #define ALIAS_Z_CLIP_PLANE	4
 
@@ -587,14 +589,12 @@ void	RE_Draw_TileClear (int x, int y, int w, int h, char *name);
 void	RE_Draw_Fill (int x, int y, int w, int h, int c);
 void	RE_Draw_FadeScreen (void);
 
-extern byte d_8to24table[256 * 4];
 void	R_InitImages(void);
 void	R_ShutdownImages(void);
 image_t	*R_FindImage(const char *name, imagetype_t type);
 byte	*Get_BestImageSize(const image_t *image, int *req_width, int *req_height);
 void	R_FreeUnusedImages(void);
 qboolean R_ImageHasFreeSpace(void);
-pixel_t	R_ApplyLight(pixel_t pix, const light3_t light);
 void	R_Convert32To8bit(const unsigned char* pic_in, pixel_t* pic_out, size_t size, qboolean transparent);
 
 void R_InitSkyBox(model_t *loadmodel);
@@ -610,6 +610,48 @@ qboolean VID_CheckDamageZBuffer(int u, int v, int ucount, int vcount);
 
 // VID helpers.
 int VID_GetTicks(void);
+
+/*
+====================================================================
+
+INLINED FUNCTIONS (for improved performance)
+
+====================================================================
+*/
+
+/*
+ * Apply color light to texture pixel
+ *
+ * TODO: This is a key performance killer.
+ */
+
+static inline pixel_t
+R_ApplyLight(pixel_t pix, const light3_t light)
+{
+	const pixel_t* _colormap = &vid_colormap[pix];
+
+	const int light_masked0 = light[0] & LIGHTMASK;
+	const int light_masked1 = light[1] & LIGHTMASK;
+	const int light_masked2 = light[2] & LIGHTMASK;
+
+	/* Gray light? */
+	if (light_masked0 == light_masked1 && light_masked0 == light_masked2)
+		return _colormap[light_masked0];
+
+	/* Get index of color component of each component */
+	const pixel_t i_r = _colormap[light_masked0];
+	const pixel_t i_g = _colormap[light_masked1];
+	const pixel_t i_b = _colormap[light_masked2];
+
+	/* Convert to 16-bit RGB color */
+	const byte b_r = (i_r >> 3) & 31;
+	const byte b_g = (i_g >> 2) & 63;
+	const byte b_b = (i_b >> 3) & 31;
+	const int i_c = b_r | ( b_g << 5 ) | ( b_b << 11 );
+
+	/* Convert back to indexed color */
+	return d_16to8table[i_c];
+}
 
 /*
 ====================================================================

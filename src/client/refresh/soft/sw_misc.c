@@ -27,7 +27,7 @@ int		d_minmip;
 float		d_scalemip[NUM_MIPS-1];
 
 static int	r_frustum_indexes[4*6];
-static const float	basemip[NUM_MIPS-1] = {1.0, 0.5*0.8, 0.25*0.8};
+static const float	basemip[NUM_MIPS-1] = {1.0F, 0.5F*0.8F, 0.25F*0.8F};
 int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 float	xcenter, ycenter;
 int	d_pix_min, d_pix_max, d_pix_mul;
@@ -40,17 +40,17 @@ D_ViewChanged
 static void
 D_ViewChanged (void)
 {
-	scale_for_mip = sqrt(xscale*xscale + yscale*yscale);
+	scale_for_mip = sqrtf(xscale*xscale + yscale*yscale);
 
 	d_pix_min = r_refdef.vrect.height / 240;
 	if (d_pix_min < 1)
 		d_pix_min = 1;
 
-	d_pix_max = (int)((float)r_refdef.vrect.height / (240.0 / 4.0) + 0.5);
+	d_pix_max = (int)((float)r_refdef.vrect.height * (4.0F / 240.0F) + 0.5F);
 	if (d_pix_max < 1)
 		d_pix_max = 1;
 
-	d_pix_mul = (int)((float)r_refdef.vrect.height / 240.0 + 0.5);
+	d_pix_mul = (int)((float)r_refdef.vrect.height * (1.0F / 240.0F) + 0.5F);
 
 	d_vrectx = r_refdef.vrect.x;
 	d_vrecty = r_refdef.vrect.y;
@@ -220,22 +220,22 @@ R_ViewChanged (const vrect_t *vr)
 
 	r_refdef.vrect = *vr;
 
-	r_refdef.horizontalFieldOfView = 2*tan((float)r_newrefdef.fov_x/360*M_PI);;
-	verticalFieldOfView = 2*tan((float)r_newrefdef.fov_y/360*M_PI);
+	r_refdef.horizontalFieldOfView = 2.0F*tanf((float)r_newrefdef.fov_x * (M_PI/360.0F));
+	verticalFieldOfView = 2.0F*tanf((float)r_newrefdef.fov_y * (M_PI/360.0F));
 
 	r_refdef.fvrectx = (float)r_refdef.vrect.x;
-	r_refdef.fvrectx_adj = (float)r_refdef.vrect.x - 0.5;
+	r_refdef.fvrectx_adj = (float)r_refdef.vrect.x - 0.5F;
 	r_refdef.vrect_x_adj_shift20 = (r_refdef.vrect.x<<shift_size) + (1<<(shift_size-1)) - 1;
 	r_refdef.fvrecty = (float)r_refdef.vrect.y;
-	r_refdef.fvrecty_adj = (float)r_refdef.vrect.y - 0.5;
+	r_refdef.fvrecty_adj = (float)r_refdef.vrect.y - 0.5F;
 	r_refdef.vrectright = r_refdef.vrect.x + r_refdef.vrect.width;
 	r_refdef.vrectright_adj_shift20 = (r_refdef.vrectright<<shift_size) + (1<<(shift_size-1)) - 1;
 	r_refdef.fvrectright = (float)r_refdef.vrectright;
-	r_refdef.fvrectright_adj = (float)r_refdef.vrectright - 0.5;
-	r_refdef.vrectrightedge = (float)r_refdef.vrectright - 0.99;
+	r_refdef.fvrectright_adj = (float)r_refdef.vrectright - 0.5F;
+	r_refdef.vrectrightedge = (float)r_refdef.vrectright - 0.99F;
 	r_refdef.vrectbottom = r_refdef.vrect.y + r_refdef.vrect.height;
 	r_refdef.fvrectbottom = (float)r_refdef.vrectbottom;
-	r_refdef.fvrectbottom_adj = (float)r_refdef.vrectbottom - 0.5;
+	r_refdef.fvrectbottom_adj = (float)r_refdef.vrectbottom - 0.5F;
 
 	r_refdef.aliasvrect.x = (int)(r_refdef.vrect.x * r_aliasuvscale);
 	r_refdef.aliasvrect.y = (int)(r_refdef.vrect.y * r_aliasuvscale);
@@ -256,45 +256,45 @@ R_ViewChanged (const vrect_t *vr)
 	// but will definately render in the [range] row and column, so adjust the
 	// buffer origin to get an exact edge to edge fill
 	xcenter = ((float)r_refdef.vrect.width * XCENTERING) +
-			r_refdef.vrect.x - 0.5;
+			r_refdef.vrect.x - 0.5F;
 	aliasxcenter = xcenter * r_aliasuvscale;
 	ycenter = ((float)r_refdef.vrect.height * YCENTERING) +
-			r_refdef.vrect.y - 0.5;
+			r_refdef.vrect.y - 0.5F;
 	aliasycenter = ycenter * r_aliasuvscale;
 
 	xscale = r_refdef.vrect.width / r_refdef.horizontalFieldOfView;
 	aliasxscale = xscale * r_aliasuvscale;
-	xscaleinv = 1.0 / xscale;
+	xscaleinv = 1.0F / xscale;
 
 	yscale = xscale;
 	aliasyscale = yscale * r_aliasuvscale;
-	yscaleinv = 1.0 / yscale;
+	yscaleinv = 1.0F / yscale;
 	xscaleshrink = (r_refdef.vrect.width-6)/r_refdef.horizontalFieldOfView;
 	yscaleshrink = xscaleshrink;
 
 	// left side clip
-	screenedge[0].normal[0] = -1.0 / (xOrigin*r_refdef.horizontalFieldOfView);
-	screenedge[0].normal[1] = 0;
-	screenedge[0].normal[2] = 1;
+	screenedge[0].normal[0] = -1.0F / (xOrigin*r_refdef.horizontalFieldOfView);
+	screenedge[0].normal[1] = 0.0F;
+	screenedge[0].normal[2] = 1.0F;
 	screenedge[0].type = PLANE_ANYZ;
 
 	// right side clip
 	screenedge[1].normal[0] =
-			1.0 / ((1.0-xOrigin)*r_refdef.horizontalFieldOfView);
-	screenedge[1].normal[1] = 0;
-	screenedge[1].normal[2] = 1;
+			1.0F / ((1.0F-xOrigin)*r_refdef.horizontalFieldOfView);
+	screenedge[1].normal[1] = 0.0F;
+	screenedge[1].normal[2] = 1.0F;
 	screenedge[1].type = PLANE_ANYZ;
 
 	// top side clip
-	screenedge[2].normal[0] = 0;
-	screenedge[2].normal[1] = -1.0 / (yOrigin*verticalFieldOfView);
-	screenedge[2].normal[2] = 1;
+	screenedge[2].normal[0] = 0.0F;
+	screenedge[2].normal[1] = -1.0F / (yOrigin*verticalFieldOfView);
+	screenedge[2].normal[2] = 1.0F;
 	screenedge[2].type = PLANE_ANYZ;
 
 	// bottom side clip
 	screenedge[3].normal[0] = 0;
-	screenedge[3].normal[1] = 1.0 / ((1.0-yOrigin)*verticalFieldOfView);
-	screenedge[3].normal[2] = 1;
+	screenedge[3].normal[1] = 1.0F / ((1.0F-yOrigin)*verticalFieldOfView);
+	screenedge[3].normal[2] = 1.0F;
 	screenedge[3].type = PLANE_ANYZ;
 
 	for (i=0 ; i<4 ; i++)

@@ -67,9 +67,9 @@ R_DrawParticle(particle_t *pparticle, int level)
 	** project the point
 	*/
 	// FIXME: preadjust xcenter and ycenter
-	zi = 1.0 / transformed[2];
-	u = (int)(xcenter + zi * transformed[0] + 0.5);
-	v = (int)(ycenter - zi * transformed[1] + 0.5);
+	zi = 1.0F / transformed[2];
+	u = (int)(xcenter + zi * transformed[0] + 0.5F);
+	v = (int)(ycenter - zi * transformed[1] + 0.5F);
 
 	if ((v > d_vrectbottom_particle) ||
 		(u > d_vrectright_particle) ||
@@ -242,9 +242,9 @@ R_DrawParticles (void)
 	{
 		int level;
 
-		if ( p->alpha > 0.66 )
+		if ( p->alpha > 0.66F )
 			level = PARTICLE_OPAQUE;
-		else if ( p->alpha > 0.33 )
+		else if ( p->alpha > 0.33F )
 			level = PARTICLE_66;
 		else
 			level = PARTICLE_33;

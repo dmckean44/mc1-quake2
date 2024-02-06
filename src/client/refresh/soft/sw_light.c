@@ -163,7 +163,7 @@ RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end, vec3_t pointcolor)
 				float	scale;
 
 				scale = rgb[j] * r_modulate->value;
-				pointcolor[j] += lightmap[j] * scale * (1.0 / 255);
+				pointcolor[j] += lightmap[j] * scale * (1.0F / 255.0F);
 			}
 
 			lightmap += 3 * ((surf->extents[0] >> 4) + 1) *
@@ -194,7 +194,7 @@ R_LightPoint (const entity_t *currententity, vec3_t p, vec3_t color)
 
 	if (!r_worldmodel->lightdata)
 	{
-		color[0] = color[1] = color[2] = 1.0;
+		color[0] = color[1] = color[2] = 1.0F;
 		return;
 	}
 
@@ -225,7 +225,7 @@ R_LightPoint (const entity_t *currententity, vec3_t p, vec3_t color)
 						dl->origin,
 						dist);
 		add = dl->intensity - VectorLength(dist);
-		add *= (1.0/256);
+		add *= (1.0F/256.0F);
 		if (add > 0)
 		{
 			VectorMA (color, add, dl->color, color);
@@ -300,7 +300,7 @@ R_AddDynamicLights (drawsurf_t* drawsurf)
 
 		dist = DotProduct (dl->origin, surf->plane->normal) -
 				surf->plane->dist;
-		rad -= fabs(dist);
+		rad -= fabsf(dist);
 		minlight = DLIGHT_CUTOFF;	// dl->minlight;
 		if (rad < minlight)
 			continue;

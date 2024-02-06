@@ -76,9 +76,9 @@ R_RotateBmodel(const entity_t *currententity)
 
 	// yaw
 	angle = currententity->angles[YAW];
-	angle = angle * M_PI*2 / 360;
-	s = sin(angle);
-	c = cos(angle);
+	angle = angle * (M_PI * 2.0F / 360.0F);
+	s = sinf(angle);
+	c = cosf(angle);
 
 	temp1[0][0] = c;
 	temp1[0][1] = s;
@@ -93,9 +93,9 @@ R_RotateBmodel(const entity_t *currententity)
 
 	// pitch
 	angle = currententity->angles[PITCH];
-	angle = angle * M_PI*2 / 360;
-	s = sin(angle);
-	c = cos(angle);
+	angle = angle * (M_PI * 2.0F / 360.0F);
+	s = sinf(angle);
+	c = cosf(angle);
 
 	temp2[0][0] = c;
 	temp2[0][1] = 0;
@@ -111,9 +111,9 @@ R_RotateBmodel(const entity_t *currententity)
 
 	// roll
 	angle = currententity->angles[ROLL];
-	angle = angle * M_PI*2 / 360;
-	s = sin(angle);
-	c = cos(angle);
+	angle = angle * (M_PI * 2.0F / 360.0F);
+	s = sinf(angle);
+	c = cosf(angle);
 
 	temp1[0][0] = 1;
 	temp1[0][1] = 0;

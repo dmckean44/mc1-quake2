@@ -634,9 +634,9 @@ static float stbir__srgb_uchar_to_linear_float[256] = {
 static float stbir__srgb_to_linear(float f)
 {
     if (f <= 0.04045f)
-        return f / 12.92f;
+        return f * (1.0f / 12.92f);
     else
-        return (float)pow((f + 0.055f) / 1.055f, 2.4f);
+        return powf((f + 0.055f) * (1.0f / 1.055f), 2.4f);
 }
 
 static float stbir__linear_to_srgb(float f)
@@ -644,7 +644,7 @@ static float stbir__linear_to_srgb(float f)
     if (f <= 0.0031308f)
         return f * 12.92f;
     else
-        return 1.055f * (float)pow(f, 1 / 2.4f) - 0.055f;
+        return 1.055f * powf(f, 1.0f / 2.4f) - 0.055f;
 }
 
 #ifndef STBIR_NON_IEEE_FLOAT
@@ -758,7 +758,7 @@ static stbir_uint8 stbir__linear_to_srgb_uchar(float f)
 
 static float stbir__filter_trapezoid(float x, float scale)
 {
-    float halfscale = scale / 2;
+    float halfscale = scale * 0.5f;
     float t = 0.5f + halfscale;
     STBIR_ASSERT(scale <= 1);
 
@@ -779,7 +779,7 @@ static float stbir__filter_trapezoid(float x, float scale)
 static float stbir__support_trapezoid(float scale)
 {
     STBIR_ASSERT(scale <= 1);
-    return 0.5f + scale / 2;
+    return 0.5f + scale * 0.5f;
 }
 
 static float stbir__filter_triangle(float x, float s)
@@ -801,9 +801,9 @@ static float stbir__filter_cubic(float x, float s)
     x = (float)fabs(x);
 
     if (x < 1.0f)
-        return (4 + x*x*(3*x - 6))/6;
+        return (4 + x*x*(3*x - 6))* (1.0f/6.0f);
     else if (x < 2.0f)
-        return (8 + x*(-12 + x*(6 - x)))/6;
+        return (8 + x*(-12 + x*(6 - x))) * (1.0f/6.0f);
 
     return (0.0f);
 }
@@ -829,9 +829,9 @@ static float stbir__filter_mitchell(float x, float s)
     x = (float)fabs(x);
 
     if (x < 1.0f)
-        return (16 + x*x*(21 * x - 36))/18;
+        return (16 + x*x*(21 * x - 36)) * (1.0f/18.0f);
     else if (x < 2.0f)
-        return (32 + x*(-60 + x*(36 - 7*x)))/18;
+        return (32 + x*(-60 + x*(36 - 7*x))) * (1.0f/18.0f);
 
     return (0.0f);
 }
@@ -886,9 +886,9 @@ static int stbir__get_filter_pixel_width(stbir_filter filter, float scale)
     STBIR_ASSERT(filter < STBIR__ARRAY_SIZE(stbir__filter_info_table));
 
     if (stbir__use_upsampling(scale))
-        return (int)ceil(stbir__filter_info_table[filter].support(1/scale) * 2);
+        return (int)ceilf(stbir__filter_info_table[filter].support(1/scale) * 2);
     else
-        return (int)ceil(stbir__filter_info_table[filter].support(scale) * 2 / scale);
+        return (int)ceilf(stbir__filter_info_table[filter].support(scale) * 2 / scale);
 }
 
 // This is how much to expand buffers to account for filters seeking outside
@@ -901,9 +901,9 @@ static int stbir__get_filter_pixel_margin(stbir_filter filter, float scale)
 static int stbir__get_coefficient_width(stbir_filter filter, float scale)
 {
     if (stbir__use_upsampling(scale))
-        return (int)ceil(stbir__filter_info_table[filter].support(1 / scale) * 2);
+        return (int)ceilf(stbir__filter_info_table[filter].support(1 / scale) * 2);
     else
-        return (int)ceil(stbir__filter_info_table[filter].support(scale) * 2);
+        return (int)ceilf(stbir__filter_info_table[filter].support(scale) * 2);
 }
 
 static int stbir__get_contributors(float scale, stbir_filter filter, int input_size, int output_size)
@@ -1016,8 +1016,8 @@ static void stbir__calculate_sample_range_upsample(int n, float out_filter_radiu
     float in_pixel_influence_upperbound = (out_pixel_influence_upperbound + out_shift) / scale_ratio;
 
     *in_center_of_out = (out_pixel_center + out_shift) / scale_ratio;
-    *in_first_pixel = (int)(floor(in_pixel_influence_lowerbound + 0.5));
-    *in_last_pixel = (int)(floor(in_pixel_influence_upperbound - 0.5));
+    *in_first_pixel = (int)(floorf(in_pixel_influence_lowerbound + 0.5f));
+    *in_last_pixel = (int)(floorf(in_pixel_influence_upperbound - 0.5f));
 }
 
 // What output pixels does this input pixel contribute to?
@@ -1031,8 +1031,8 @@ static void stbir__calculate_sample_range_downsample(int n, float in_pixels_radi
     float out_pixel_influence_upperbound = in_pixel_influence_upperbound * scale_ratio - out_shift;
 
     *out_center_of_in = in_pixel_center * scale_ratio - out_shift;
-    *out_first_pixel = (int)(floor(out_pixel_influence_lowerbound + 0.5));
-    *out_last_pixel = (int)(floor(out_pixel_influence_upperbound - 0.5));
+    *out_first_pixel = (int)(floorf(out_pixel_influence_lowerbound + 0.5f));
+    *out_last_pixel = (int)(floorf(out_pixel_influence_upperbound - 0.5f));
 }
 
 static void stbir__calculate_coefficients_upsample(stbir_filter filter, float scale, int in_first_pixel, int in_last_pixel, float in_center_of_out, stbir__contributors* contributor, float* coefficient_group)
@@ -1041,7 +1041,7 @@ static void stbir__calculate_coefficients_upsample(stbir_filter filter, float sc
     float total_filter = 0;
     float filter_scale;
 
-    STBIR_ASSERT(in_last_pixel - in_first_pixel <= (int)ceil(stbir__filter_info_table[filter].support(1/scale) * 2)); // Taken directly from stbir__get_coefficient_width() which we can't call because we don't know if we're horizontal or vertical.
+    STBIR_ASSERT(in_last_pixel - in_first_pixel <= (int)ceilf(stbir__filter_info_table[filter].support(1/scale) * 2)); // Taken directly from stbir__get_coefficient_width() which we can't call because we don't know if we're horizontal or vertical.
 
     contributor->n0 = in_first_pixel;
     contributor->n1 = in_last_pixel;
@@ -1070,11 +1070,11 @@ static void stbir__calculate_coefficients_upsample(stbir_filter filter, float sc
     // on the image aspect ratio which can get pretty extreme.
     //STBIR_ASSERT(stbir__filter_info_table[filter].kernel((float)(in_last_pixel + 1) + 0.5f - in_center_of_out, 1/scale) == 0);
 
-    STBIR_ASSERT(total_filter > 0.9);
+    STBIR_ASSERT(total_filter > 0.9f);
     STBIR_ASSERT(total_filter < 1.1f); // Make sure it's not way off.
 
     // Make sure the sum of all coefficients is 1.
-    filter_scale = 1 / total_filter;
+    filter_scale = 1.0f / total_filter;
 
     for (i = 0; i <= in_last_pixel - in_first_pixel; i++)
         coefficient_group[i] *= filter_scale;
@@ -1093,7 +1093,7 @@ static void stbir__calculate_coefficients_downsample(stbir_filter filter, float 
 {
     int i;
 
-    STBIR_ASSERT(out_last_pixel - out_first_pixel <= (int)ceil(stbir__filter_info_table[filter].support(scale_ratio) * 2)); // Taken directly from stbir__get_coefficient_width() which we can't call because we don't know if we're horizontal or vertical.
+    STBIR_ASSERT(out_last_pixel - out_first_pixel <= (int)ceilf(stbir__filter_info_table[filter].support(scale_ratio) * 2)); // Taken directly from stbir__get_coefficient_width() which we can't call because we don't know if we're horizontal or vertical.
 
     contributor->n0 = out_first_pixel;
     contributor->n1 = out_last_pixel;
@@ -1149,7 +1149,7 @@ static void stbir__normalize_downsample_coefficients(stbir__contributors* contri
         STBIR_ASSERT(total > 0.9f);
         STBIR_ASSERT(total < 1.1f);
 
-        scale = 1 / total;
+        scale = 1.0f / total;
 
         for (j = 0; j < num_contributors; j++)
         {
@@ -1731,8 +1731,8 @@ static void stbir__encode_scanline(stbir__info* stbir_info, int num_pixels, void
         }
     }
 
-    #define STBIR__ROUND_INT(f)    ((int)          ((f)+0.5))
-    #define STBIR__ROUND_UINT(f)   ((stbir_uint32) ((f)+0.5))
+    #define STBIR__ROUND_INT(f)    ((int)          ((f)+0.5f))
+    #define STBIR__ROUND_UINT(f)   ((stbir_uint32) ((f)+0.5f))
 
     #ifdef STBIR__SATURATE_INT
     #define STBIR__ENCODE_LINEAR8(f)   stbir__saturate8 (STBIR__ROUND_INT((f) * stbir__max_uint8_as_float ))

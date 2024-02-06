@@ -306,21 +306,21 @@ FloorDivMod (float numer, float denom, int *quotient,
 	int		q, r;
 	float	x;
 
-	if (numer >= 0.0)
+	if (numer >= 0.0F)
 	{
 
-		x = floor(numer / denom);
+		x = floorf(numer / denom);
 		q = (int)x;
-		r = (int)floor(numer - (x * denom));
+		r = (int)floorf(numer - (x * denom));
 	}
 	else
 	{
 		//
 		// perform operations with positive values, and fix mod to make floor-based
 		//
-		x = floor(-numer / denom);
+		x = floorf(-numer / denom);
 		q = -(int)x;
-		r = (int)floor(-numer - (x * denom));
+		r = (int)floorf(-numer - (x * denom));
 		if (r != 0)
 		{
 			q--;
@@ -373,7 +373,7 @@ R_PolysetCalcGradients (int skinwidth)
 	p10_minus_p20 = r_p1.u - r_p2.u;
 	p11_minus_p21 = r_p1.v - r_p2.v;
 
-	xstepdenominv = 1.0 / (float)d_xdenom;
+	xstepdenominv = 1.0F / (float)d_xdenom;
 
 	ystepdenominv = -xstepdenominv;
 
@@ -385,9 +385,9 @@ R_PolysetCalcGradients (int skinwidth)
 		t0 = r_p0.l[i] - r_p2.l[i];
 		t1 = r_p1.l[i] - r_p2.l[i];
 		r_lstepx[i] = (int)
-				ceil((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
+				ceilf((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
 		r_lstepy[i] = (int)
-				ceil((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
+				ceilf((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
 	}
 
 	t0 = r_p0.s - r_p2.s;

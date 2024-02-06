@@ -508,12 +508,13 @@ static pixel_t *
 D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int tstep, int spancount)
 {
 	const pixel_t *tdest_max = pdest + spancount;
+	const int _cachewidth = cachewidth;
 
 	// horisontal span (span in same row)
 	if (((t + tstep * spancount) >> SHIFT16XYZ) == (t >> SHIFT16XYZ))
 	{
 		// position in texture
-		const pixel_t *tbase = pbase + (t >> SHIFT16XYZ) * cachewidth;
+		const pixel_t *tbase = pbase + (t >> SHIFT16XYZ) * _cachewidth;
 
 		do
 		{
@@ -529,7 +530,7 @@ D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int ts
 
 		do
 		{
-			*pdest++ = *(tbase + (t >> SHIFT16XYZ) * cachewidth);
+			*pdest++ = *(tbase + (t >> SHIFT16XYZ) * _cachewidth);
 			t += tstep;
 		} while (pdest < tdest_max);
 	}
@@ -538,7 +539,7 @@ D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int ts
 	{
 		do
 		{
-			*pdest++ = *(pbase + (s >> SHIFT16XYZ) + (t >> SHIFT16XYZ) * cachewidth);
+			*pdest++ = *(pbase + (s >> SHIFT16XYZ) + (t >> SHIFT16XYZ) * _cachewidth);
 			s += sstep;
 			t += tstep;
 		} while (pdest < tdest_max);
@@ -553,9 +554,11 @@ D_DrawSpanFiltered
 =============
 */
 static pixel_t *
-D_DrawSpanFiltered(pixel_t *pdest, pixel_t *pbase, int s, int t, int sstep, int tstep, int spancount,
+D_DrawSpanFiltered(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int tstep, int spancount,
 	   const espan_t *pspan)
 {
+	const int _cachewidth = cachewidth;
+
 	do
 	{
 		int idiths = s;
@@ -576,7 +579,7 @@ D_DrawSpanFiltered(pixel_t *pdest, pixel_t *pbase, int s, int t, int sstep, int 
 		iditht = iditht ? iditht -1 : iditht;
 
 
-		*pdest++ = *(pbase + idiths + iditht * cachewidth);
+		*pdest++ = *(pbase + idiths + iditht * _cachewidth);
 		s += sstep;
 		t += tstep;
 	} while (--spancount > 0);

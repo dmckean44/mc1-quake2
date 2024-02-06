@@ -32,11 +32,15 @@
 
 #include <assert.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef __MRISC32__
+#include <mr32intrin.h>
+#endif
 
 #ifdef true
  #undef true
@@ -220,9 +224,8 @@ typedef int fixed4_t;
 typedef int fixed8_t;
 typedef int fixed16_t;
 
-#ifndef M_PI
- #define M_PI 3.14159265358979323846 /* matches value in gcc v2 math.h */
-#endif
+#undef M_PI
+#define M_PI 3.14159265358979323846F /* matches value in gcc v2 math.h */
 
 struct cplane_s;
 
@@ -231,6 +234,16 @@ extern vec3_t vec3_origin;
 #define nanmask (255 << 23)
 
 #define IS_NAN(x) (((*(int *)&x) & nanmask) == nanmask)
+
+static inline fixed8_t
+FloatToFixed8(float x)
+{
+#ifdef __MRISC32__
+	return _mr32_ftoi(x, 7);
+#else
+	return (fixed8_t)(x * 128.0F);
+#endif
+}
 
 // FIXME: use int instead of long, it's only used with int anyway?
 #define Q_ftol(f) (long)(f)
@@ -363,10 +376,62 @@ qboolean Info_Validate(char *s);
 /* ============================================= */
 
 /* Random number generator */
-int randk(void);
-float frandk(void);
-float crandk(void);
-void randk_seed(void);
+extern uint32_t prng_state;
+
+static inline uint32_t
+randk_step(void)
+{
+	uint32_t r = prng_state;
+	prng_state = (r * 1103515245U) + 12345U;
+	return r;
+}
+
+/*
+ * Generate a pseudorandom
+ * integer >0.
+ */
+static inline int
+randk(void)
+{
+	return (int)(randk_step() >> 1);
+}
+
+/*
+ * Generate a pseudorandom
+ * signed float between
+ * 0.0 and 1.0.
+ */
+static inline float
+frandk(void)
+{
+#ifdef __MRISC32__
+	return _mr32_utof(randk_step(), 32);
+#else
+	return ((float)(randk_step() & 32767U)) * (1.0F / 32767.0F);
+#endif
+}
+
+/* Generate a pseudorandom
+ * float between -1.0 and 1.0.
+ */
+static inline float
+crandk(void)
+{
+#ifdef __MRISC32__
+	return _mr32_itof(randk_step(), 31);
+#else
+	return (((float)(randk_step() & 32767U)) * (2.0F / 32767.0F)) - 1.0F;
+#endif
+}
+
+/*
+ * Seeds the PRNG
+ */
+static inline void
+randk_seed(void)
+{
+	prng_state = 0xf001baaaU;
+}
 
 /*
  * ==============================================================
@@ -1123,8 +1188,8 @@ typedef enum
  * ==========================================================
  */
 
-#define ANGLE2SHORT(x) ((int)((x) * 65536 / 360) & 65535)
-#define SHORT2ANGLE(x) ((x) * (360.0 / 65536))
+#define ANGLE2SHORT(x) ((int)((x) * (65536.0F / 360.0F)) & 65535)
+#define SHORT2ANGLE(x) ((x) * (360.0F / 65536.0F))
 
 /* config strings are a general means of communication from
  * the server to all connected clients. Each config string
