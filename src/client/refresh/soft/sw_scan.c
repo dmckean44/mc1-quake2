@@ -801,11 +801,36 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 		}
 		else
 		{
-			while (count > 0)
+			/* Align to a multiple of two Z samples if necessary */
+			if ((((uintptr_t)pdest) & 2U) != 0U)
 			{
 				*pdest++ = (zbufvalue_t)(izi >> SHIFT16XYZ);
 				izi += izistep;
 				count--;
+			}
+
+			/* Main loop that calculates two Z values per iteration */
+			while (count >= 2)
+			{
+				const zvalue_t izi1 = izi;
+				izi += izistep;
+				const zvalue_t izi2 = izi;
+				izi += izistep;
+#ifdef __MRISC32__
+				const uint32_t packed = _mr32_packhi(izi2, izi1);
+#else
+				const uint32_t packed = (izi2 & 0xffff0000U) |
+				                        (((uint32_t)izi1) >> SHIFT16XYZ);
+#endif
+				*(uint32_t*)pdest = packed;
+				count -= 2;
+				pdest += 2;
+			}
+
+			/* Handle tail if necessary */
+			if (count > 0)
+			{
+				*pdest++ = (zbufvalue_t)(izi >> SHIFT16XYZ);
 			}
 		}
 	} while ((pspan = pspan->pnext) != NULL);
