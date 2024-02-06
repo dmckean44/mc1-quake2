@@ -101,6 +101,8 @@ extern pixel_t	*vid_colormap;	// 256 * VID_GRADES size
 extern pixel_t	*vid_alphamap;	// 256 * 256 translucency map
 extern light_t	vid_lightthreshold; // full light distance maximum
 extern char	shift_size;	// shift size in fixed-point
+extern byte *d_16to8table;	// 16 to 8 bit conversion table (65536 entries)
+extern byte d_8to24table[256 * 4];
 
 typedef struct
 {
@@ -587,14 +589,12 @@ void	RE_Draw_TileClear (int x, int y, int w, int h, char *name);
 void	RE_Draw_Fill (int x, int y, int w, int h, int c);
 void	RE_Draw_FadeScreen (void);
 
-extern byte d_8to24table[256 * 4];
 void	R_InitImages(void);
 void	R_ShutdownImages(void);
 image_t	*R_FindImage(const char *name, imagetype_t type);
 byte	*Get_BestImageSize(const image_t *image, int *req_width, int *req_height);
 void	R_FreeUnusedImages(void);
 qboolean R_ImageHasFreeSpace(void);
-pixel_t	R_ApplyLight(pixel_t pix, const light3_t light);
 void	R_Convert32To8bit(const unsigned char* pic_in, pixel_t* pic_out, size_t size, qboolean transparent);
 
 void R_InitSkyBox(model_t *loadmodel);
@@ -610,6 +610,63 @@ qboolean VID_CheckDamageZBuffer(int u, int v, int ucount, int vcount);
 
 // VID helpers.
 int VID_GetTicks(void);
+
+/*
+====================================================================
+
+INLINED FUNCTIONS (for improved performance)
+
+====================================================================
+*/
+
+/*
+ * Apply color light to texture pixel
+ *
+ * TODO: This is a key performance killer.
+ */
+
+static inline pixel_t
+R_ApplyLight(pixel_t pix, const light3_t light)
+{
+	pixel_t i_r, i_g, i_b;
+	byte b_r, b_g, b_b;
+	int i_c;
+	const pixel_t* _colormap = &vid_colormap[pix];
+
+	const int light_masked0 = light[0] & LIGHTMASK;
+	const int light_masked1 = light[1] & LIGHTMASK;
+	const int light_masked2 = light[2] & LIGHTMASK;
+
+	/* same light or colorlight == 0 */
+	if (light_masked0 == light_masked1 && light_masked0 == light_masked2)
+		return _colormap[light_masked0];
+
+	/* get index of color component of each component */
+	i_r = _colormap[light_masked0];
+	i_g = _colormap[light_masked1];
+	i_b = _colormap[light_masked2];
+
+#if 0
+	/* get color component for each component */
+	/* TODO(m): What is this? Is it necessary? */
+	b_r = d_8to24table[i_r * 4 + 0];
+	b_g = d_8to24table[i_g * 4 + 1];
+	b_b = d_8to24table[i_b * 4 + 2];
+#else
+	b_r = i_r;
+	b_g = i_g;
+	b_b = i_b;
+#endif
+
+	/* convert back to indexed color */
+	b_r = ( b_r >> 3 ) & 31;
+	b_g = ( b_g >> 2 ) & 63;
+	b_b = ( b_b >> 3 ) & 31;
+
+	i_c = b_r | ( b_g << 5 ) | ( b_b << 11 );
+
+	return d_16to8table[i_c];
+}
 
 /*
 ====================================================================
