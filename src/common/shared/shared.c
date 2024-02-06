@@ -28,7 +28,7 @@
 
 #include "../header/shared.h"
 
-#define DEG2RAD(a) (a * M_PI) / 180.0F
+#define DEG2RAD(a) (a * (M_PI / 180.0F))
 
 vec3_t vec3_origin = {0, 0, 0};
 
@@ -77,10 +77,10 @@ RotatePointAroundVector(vec3_t dst, const vec3_t dir,
 	memset(zrot, 0, sizeof(zrot));
 	zrot[2][2] = 1.0F;
 
-	zrot[0][0] = (float)cos(DEG2RAD(degrees));
-	zrot[0][1] = (float)sin(DEG2RAD(degrees));
-	zrot[1][0] = (float)-sin(DEG2RAD(degrees));
-	zrot[1][1] = (float)cos(DEG2RAD(degrees));
+	zrot[0][0] = cosf(DEG2RAD(degrees));
+	zrot[0][1] = sinf(DEG2RAD(degrees));
+	zrot[1][0] = -sinf(DEG2RAD(degrees));
+	zrot[1][1] = cosf(DEG2RAD(degrees));
 
 	R_ConcatRotations(m, zrot, tmpmat);
 	R_ConcatRotations(tmpmat, im, rot);
@@ -96,17 +96,17 @@ void
 AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float angle;
-	static float sr, sp, sy, cr, cp, cy;
+	float sr, sp, sy, cr, cp, cy;
 
 	angle = angles[YAW] * (M_PI * 2 / 360);
-	sy = (float)sin(angle);
-	cy = (float)cos(angle);
+	sy = sinf(angle);
+	cy = cosf(angle);
 	angle = angles[PITCH] * (M_PI * 2 / 360);
-	sp = (float)sin(angle);
-	cp = (float)cos(angle);
+	sp = sinf(angle);
+	cp = cosf(angle);
 	angle = angles[ROLL] * (M_PI * 2 / 360);
-	sr = (float)sin(angle);
-	cr = (float)cos(angle);
+	sr = sinf(angle);
+	cr = cosf(angle);
 
 	if (forward)
 	{
@@ -154,7 +154,7 @@ AngleVectors2(vec3_t value1, vec3_t angles)
 	{
 		if (value1[0])
 		{
-			yaw = ((float)atan2(value1[1], value1[0]) * 180 / M_PI);
+			yaw = atan2f(value1[1], value1[0]) * (180 / M_PI);
 		}
 
 		else if (value1[1] > 0)
@@ -172,8 +172,8 @@ AngleVectors2(vec3_t value1, vec3_t angles)
 			yaw += 360;
 		}
 
-		forward = (float)sqrt(value1[0] * value1[0] + value1[1] * value1[1]);
-		pitch = ((float)atan2(value1[2], forward) * 180 / M_PI);
+		forward = sqrtf(value1[0] * value1[0] + value1[1] * value1[1]);
+		pitch = atan2f(value1[2], forward) * (180.0F / M_PI);
 
 		if (pitch < 0)
 		{
@@ -221,7 +221,7 @@ PerpendicularVector(vec3_t dst, const vec3_t src)
 		if (fabs(src[i]) < minelem)
 		{
 			pos = i;
-			minelem = (float)fabs(src[i]);
+			minelem = fabsf(src[i]);
 		}
 	}
 
@@ -317,7 +317,7 @@ LerpAngle(float a2, float a1, float frac)
 float
 anglemod(float a)
 {
-	a = (360.0 / 65536) * ((int)(a * (65536 / 360.0)) & 65535);
+	a = (360.0F / 65536.0F) * ((int)(a * (65536.0F / 360.0F)) & 65535);
 	return a;
 }
 
@@ -505,11 +505,11 @@ VectorNormalize(vec3_t v)
 	float length, ilength;
 
 	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	length = (float)sqrt(length);
+	length = length;
 
 	if (length)
 	{
-		ilength = 1 / length;
+		ilength = 1.0F / sqrtf(length);
 		v[0] *= ilength;
 		v[1] *= ilength;
 		v[2] *= ilength;
@@ -572,24 +572,11 @@ CrossProduct(vec3_t v1, vec3_t v2, vec3_t cross)
 	cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
 }
 
-double sqrt(double x);
-
 vec_t
 VectorLength(vec3_t v)
 {
-	int i;
-	float length;
-
-	length = 0;
-
-	for (i = 0; i < 3; i++)
-	{
-		length += v[i] * v[i];
-	}
-
-	length = (float)sqrt(length);
-
-	return length;
+	const float length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+	return sqrtf(length);
 }
 
 void
