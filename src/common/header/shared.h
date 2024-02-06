@@ -32,11 +32,15 @@
 
 #include <assert.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef __MRISC32__
+#include <mr32intrin.h>
+#endif
 
 #ifdef true
  #undef true
@@ -363,10 +367,62 @@ qboolean Info_Validate(char *s);
 /* ============================================= */
 
 /* Random number generator */
-int randk(void);
-float frandk(void);
-float crandk(void);
-void randk_seed(void);
+extern uint32_t prng_state;
+
+static inline uint32_t
+randk_step(void)
+{
+	uint32_t r = prng_state;
+	prng_state = (r * 1103515245U) + 12345U;
+	return r;
+}
+
+/*
+ * Generate a pseudorandom
+ * integer >0.
+ */
+static inline int
+randk(void)
+{
+	return (int)(randk_step() >> 1);
+}
+
+/*
+ * Generate a pseudorandom
+ * signed float between
+ * 0.0 and 1.0.
+ */
+static inline float
+frandk(void)
+{
+#ifdef __MRISC32__
+	return _mr32_utof(randk_step(), 32);
+#else
+	return ((float)(randk_step() & 32767U)) * (1.0F / 32767.0F);
+#endif
+}
+
+/* Generate a pseudorandom
+ * float between -1.0 and 1.0.
+ */
+static inline float
+crandk(void)
+{
+#ifdef __MRISC32__
+	return _mr32_itof(randk_step(), 31);
+#else
+	return (((float)(randk_step() & 32767U)) * (2.0F / 32767.0F)) - 1.0F;
+#endif
+}
+
+/*
+ * Seeds the PRNG
+ */
+static inline void
+randk_seed(void)
+{
+	prng_state = 0xf001baaaU;
+}
 
 /*
  * ==============================================================
