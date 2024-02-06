@@ -179,6 +179,16 @@ static field_t clientfields[] = {
 	#include "tables/clientfields.h"
 };
 
+static void
+CheckedFread(void *buffer, size_t size, size_t count, FILE *stream)
+{
+	const size_t objects_read = fread(buffer, size, count, stream);
+	if (objects_read != count)
+	{
+		gi.error ("CheckedFread: Could not read %d bytes", (int)(size * count));
+	}
+}
+
 /* ========================================================= */
 
 /*
@@ -594,7 +604,7 @@ ReadField(FILE *f, field_t *field, byte *base)
 			else
 			{
 				*(char **)p = gi.TagMalloc(32 + len, TAG_LEVEL);
-				fread(*(char **)p, len, 1, f);
+				CheckedFread(*(char **)p, len, 1, f);
 			}
 
 			break;
@@ -652,7 +662,7 @@ ReadField(FILE *f, field_t *field, byte *base)
 							(int)sizeof(funcStr));
 				}
 
-				fread (funcStr, len, 1, f);
+				CheckedFread (funcStr, len, 1, f);
 
 				if ( !(*(byte **)p = FindFunctionByName (funcStr)) )
 				{
@@ -676,7 +686,7 @@ ReadField(FILE *f, field_t *field, byte *base)
 							(int)sizeof(funcStr));
 				}
 
-				fread (funcStr, len, 1, f);
+				CheckedFread (funcStr, len, 1, f);
 
 				if ( !(*(mmove_t **)p = FindMmoveByName (funcStr)) )
 				{
@@ -728,7 +738,7 @@ ReadClient(FILE *f, gclient_t *client, short save_ver)
 {
 	field_t *field;
 
-	fread(client, sizeof(*client), 1, f);
+	CheckedFread(client, sizeof(*client), 1, f);
 
 	for (field = clientfields; field->name; field++)
 	{
@@ -820,7 +830,7 @@ ReadGame(const char *filename)
 	}
 
 	/* Sanity checks */
-	fread(&sv, sizeof(sv), 1, f);
+	CheckedFread(&sv, sizeof(sv), 1, f);
 
 	static const struct {
 		const char* verstr;
@@ -907,7 +917,7 @@ ReadGame(const char *filename)
 	g_edicts = gi.TagMalloc(game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
 
-	fread(&game, sizeof(game), 1, f);
+	CheckedFread(&game, sizeof(game), 1, f);
 	game.clients = gi.TagMalloc(game.maxclients * sizeof(game.clients[0]),
 			TAG_GAME);
 
@@ -1039,7 +1049,7 @@ ReadEdict(FILE *f, edict_t *ent)
 {
 	field_t *field;
 
-	fread(ent, sizeof(*ent), 1, f);
+	CheckedFread(ent, sizeof(*ent), 1, f);
 
 	for (field = fields; field->name; field++)
 	{
@@ -1058,7 +1068,7 @@ ReadLevelLocals(FILE *f)
 {
 	field_t *field;
 
-	fread(&level, sizeof(level), 1, f);
+	CheckedFread(&level, sizeof(level), 1, f);
 
 	for (field = levelfields; field->name; field++)
 	{
@@ -1099,7 +1109,7 @@ ReadLevel(const char *filename)
 	globals.num_edicts = maxclients->value + 1;
 
 	/* check edict size */
-	fread(&i, sizeof(i), 1, f);
+	CheckedFread(&i, sizeof(i), 1, f);
 
 	if (i != sizeof(edict_t))
 	{

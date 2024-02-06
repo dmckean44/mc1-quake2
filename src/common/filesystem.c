@@ -798,6 +798,7 @@ fsPack_t *
 FS_LoadPAK(const char *packPath)
 {
 	int i; /* Loop counter. */
+	int r; /* Number of bytes read from file. */
 	int numFiles; /* Number of files in PAK. */
 	FILE *handle; /* File handle. */
 	fsPackFile_t *files; /* List of files in PAK. */
@@ -812,8 +813,13 @@ FS_LoadPAK(const char *packPath)
 		return NULL;
 	}
 
-	fread(&header, 1, sizeof(dpackheader_t), handle);
-
+	r = fread(&header, 1, sizeof(dpackheader_t), handle);
+	if (r != sizeof(dpackheader_t))
+	{
+		Com_Error(ERR_FATAL,
+				"FS_LoadPAK: Could not read header from '%s'",
+				packPath);
+	}
 	if (LittleLong(header.ident) != IDPAKHEADER)
 	{
 		fclose(handle);
@@ -848,7 +854,13 @@ FS_LoadPAK(const char *packPath)
 	files = Z_Malloc(numFiles * sizeof(fsPackFile_t));
 
 	fseek(handle, header.dirofs, SEEK_SET);
-	fread(info, 1, header.dirlen, handle);
+	r = fread(info, 1, header.dirlen, handle);
+	if (r != header.dirlen)
+	{
+		Com_Error(ERR_FATAL,
+				"FS_LoadPAK: Could not read directory from '%s'",
+				packPath);
+	}
 
 	/* Parse the directory. */
 	for (i = 0; i < numFiles; i++)

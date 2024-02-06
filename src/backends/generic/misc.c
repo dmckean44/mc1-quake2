@@ -131,7 +131,10 @@ static void SetExecutablePath(char* exePath)
 	{
 		exePath[0] = '\0';
 	}
-
+#elif defined(MC1)
+	// There is currently no way to get the executable path on MC1.
+	// TODO(m): We could possibly use argv[0].
+	exePath[0] = '\0';
 #else
 
 	// Several platforms (for example OpenBSD) donn't provide a
