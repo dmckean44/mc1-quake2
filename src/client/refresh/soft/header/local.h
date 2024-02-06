@@ -621,14 +621,14 @@ INLINED FUNCTIONS (for improved performance)
 
 /*
  * Apply color light to texture pixel
- *
- * TODO: Once used, this is a performance killer. Can we replace
- * some look-ups with multiplication, for instance?
  */
 
 static inline pixel_t
 R_ApplyLight(pixel_t pix, const light3_t light)
 {
+#ifdef ENABLE_SW_COLORLIGHT
+	// TODO: Once used, this is a performance killer. Can we replace
+	// some look-ups with multiplication, for instance?
 	const pixel_t* colormap_for_pix = &vid_colormap[pix];
 
 	const int light_masked0 = light[0] & LIGHTMASK;
@@ -657,6 +657,9 @@ R_ApplyLight(pixel_t pix, const light3_t light)
 
 	/* Convert back to indexed color */
 	return d_16to8table[rgb565];
+#else
+	return vid_colormap[pix + (light[0] & LIGHTMASK)];
+#endif
 }
 
 /*

@@ -705,7 +705,12 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			int		lsfrac, ltfrac;
 			pixel_t		*lpdest;
 			pixel_t		*lptex;
+#ifdef ENABLE_SW_COLORLIGHT
 			light3_t	llight;
+#else
+			int		llight;
+			const pixel_t	*_colormap = vid_colormap;
+#endif
 			zvalue_t	lzi;
 			zvalue_t	*lpz;
 			int		pos_shift = (pspanpackage->v * vid_buffer_width) + pspanpackage->u;
@@ -717,19 +722,25 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			lptex = pspanpackage->ptex;
 			lsfrac = pspanpackage->sfrac;
 			ltfrac = pspanpackage->tfrac;
+#ifdef ENABLE_SW_COLORLIGHT
 			memcpy(llight, pspanpackage->light, sizeof(light3_t));
+#else
+			llight = pspanpackage->light[0];
+#endif
 			lzi = pspanpackage->zi;
 
 			do
 			{
-				int i;
-
 				if ((lzi >> SHIFT16XYZ) >= *lpz)
 				{
 					if(r_newrefdef.rdflags & RDF_IRGOGGLES && currententity->flags & RF_IR_VISIBLE)
 						*lpdest = vid_colormap[irtable[*lptex]];
 					else
+#ifdef ENABLE_SW_COLORLIGHT
 						*lpdest = R_ApplyLight(*lptex, llight);
+#else
+						*lpdest = _colormap[*lptex + (llight & LIGHTMASK)];
+#endif
 
 					*lpz = lzi >> SHIFT16XYZ;
 					zdamaged = true;
@@ -737,8 +748,12 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 				lpdest++;
 				lzi += r_zistepx;
 				lpz++;
-				for(i=0; i<3; i++)
+#ifdef ENABLE_SW_COLORLIGHT
+				for(int i=0; i<3; i++)
 					llight[i] += r_lstepx[i];
+#else
+				llight += r_lstepx[0];
+#endif
 				lptex += a_ststepxwhole;
 				lsfrac += a_sstepxfrac;
 				lptex += lsfrac >> SHIFT16XYZ;

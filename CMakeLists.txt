@@ -63,12 +63,14 @@ endif()
 if(MC1)
 	set(CURL_SUPPORT OFF)
 	set(OPENAL_SUPPORT OFF)
+	set(SW_COLORLIGHT_SUPPORT OFF)
 endif()
 
 # Compilation time options.
 option(CURL_SUPPORT "cURL support" ON)
 option(OPENAL_SUPPORT "OpenAL support" ON)
 option(SYSTEMWIDE_SUPPORT "Enable systemwide installation of game assets" OFF)
+option(SW_COLORLIGHT_SUPPORT "Support color light in the software renderer" ON)
 option(BUILD_Q2DED "Build Quake 2 dedicated server" OFF)
 option(STATIC_BUILD "Build Quake 2 with static linking" ON)
 set(STATIC_REF_LIBRARY "ref_soft" CACHE STRING "Renderer to link statically")
@@ -185,6 +187,11 @@ if(${SYSTEMWIDE_SUPPORT})
     if(NOT ${SYSTEMDIR} STREQUAL "")
       add_definitions(-DSYSTEMDIR="${SYSTEMDIR}")
     endif()
+endif()
+
+# Compile-time configuration of the code.
+if(${SW_COLORLIGHT_SUPPORT})
+    add_definitions(-DENABLE_SW_COLORLIGHT)
 endif()
 
 # We need to pass some options to minizip / unzip.

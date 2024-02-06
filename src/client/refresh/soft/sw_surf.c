@@ -36,6 +36,7 @@ static int	sc_size;
 static surfcache_t	*sc_rover;
 surfcache_t	*sc_base;
 
+#ifdef ENABLE_SW_COLORLIGHT
 /*
  * Color light apply is not required
  */
@@ -50,11 +51,13 @@ R_GreyscaledLight(const light3_t light)
 
 	return LIGHTMASK;
 }
+#endif  // ENABLE_SW_COLORLIGHT
 
 /* This is the most performance hungry function in the entire renderer. */
 /* TODO(m): Vectorize this for MRISC32. */
+#ifdef ENABLE_SW_COLORLIGHT
 static void
-R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
+R_DrawSurfaceBlock_ColorLight (pixel_t *prowdest, pixel_t *psource, size_t size,
 						int level, light3_t lightleft, light3_t lightright)
 {
 	const pixel_t* _colormap = vid_colormap;
@@ -106,6 +109,39 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 		}
 	}
 }
+#endif  // ENABLE_SW_COLORLIGHT
+
+#ifndef ENABLE_SW_COLORLIGHT
+static void
+R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
+						int level, int lightleft, int lightright)
+{
+	const pixel_t* _colormap = vid_colormap;
+
+	const int light_masked_left = lightleft & LIGHTMASK;
+	const int light_masked_right = lightright & LIGHTMASK;
+	if (light_masked_left == light_masked_right)
+	{
+		// Gray light, no gradient (fastest case).
+		const pixel_t *lighted_cmap = &_colormap[light_masked_left];
+		for (size_t i = 0; i < size; ++i)
+		{
+			prowdest[i] = lighted_cmap[psource[i]];
+		}
+	}
+	else
+	{
+		// Gray light, with gradient.
+		const int lightstep = (lightright - lightleft) >> level;
+		int light = lightleft;
+		for (size_t i = 0; i < size; ++i)
+		{
+			prowdest[i] = _colormap[psource[i] + (light & LIGHTMASK)];
+			light += lightstep;
+		}
+	}
+}
+#endif  // !ENABLE_SW_COLORLIGHT
 
 
 /*
@@ -125,6 +161,7 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 
 	for (v=0 ; v<r_numvblocks ; v++)
 	{
+#ifdef ENABLE_SW_COLORLIGHT
 		light3_t	lightleft, lightright;
 		light3_t	lightleftstep, lightrightstep;
 
@@ -142,7 +179,7 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 		{
 			int j;
 
-			R_DrawSurfaceBlock_Light(prowdest, psource, size, level, lightleft, lightright);
+			R_DrawSurfaceBlock_ColorLight(prowdest, psource, size, level, lightleft, lightright);
 
 			for(j=0; j<3; j++)
 			{
@@ -153,6 +190,23 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 			psource += sourcetstep;
 			prowdest += surfrowbytes;
 		}
+#else
+		// FIXME: use delta rather than both right and left, like ASM?
+		int lightleft = r_lightptr[0];
+		int lightright = r_lightptr[3];
+		r_lightptr += r_lightwidth * 3;
+		int lightleftstep = (r_lightptr[0] - lightleft) >> level;
+		int lightrightstep = (r_lightptr[3] - lightright) >> level;
+		for (i=0 ; i<size ; i++)
+		{
+			R_DrawSurfaceBlock_Light(prowdest, psource, size, level, lightleft, lightright);
+			lightright += lightrightstep;
+			lightleft += lightleftstep;
+
+			psource += sourcetstep;
+			prowdest += surfrowbytes;
+		}
+#endif
 
 		if (psource >= r_sourcemax)
 			psource -= r_stepback;
