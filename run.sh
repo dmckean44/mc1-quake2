@@ -26,7 +26,7 @@ while true ; do
 done
 
 # Run the executable in the simulator.
-mr32sim -v -g -gw 320 -gh 180 -gd 8 -ga 0x400029d4 -gp 0x4000202c ${SIM_ARGS} "${EXE_FILE}" "$@"
+mr32sim -v -g -gw 320 -gh 180 -gd 8 -ga 0x400029d4 -gp 0x4000202c ${SIM_ARGS} "${EXE_FILE}" +set r_mode 0 +set cl_showfps 1 "$@"
 
 # Delete the temporary profiling data.
 if [ -n "${PROFILE_FILE}" ] ; then

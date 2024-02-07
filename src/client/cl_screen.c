@@ -265,12 +265,12 @@ SCR_DrawCenterString(void)
 
 	if (scr_center_lines <= 4)
 	{
-		y = (viddef.height * 0.35) / scale;
+		y = (viddef.height * 0.35F) / scale;
 	}
 
 	else
 	{
-		y = 48 / scale;
+		y = 48.0F / scale;
 	}
 
 	do
@@ -509,7 +509,7 @@ SCR_RunConsole(void)
 	/* decide on the height of the console */
 	if (cls.key_dest == key_console)
 	{
-		scr_conlines = 0.5; /* half screen */
+		scr_conlines = 0.5F; /* half screen */
 	}
 	else
 	{
@@ -544,14 +544,14 @@ SCR_DrawConsole(void)
 	if ((cls.state == ca_disconnected) || (cls.state == ca_connecting))
 	{
 		/* forced full screen console */
-		Con_DrawConsole(1.0);
+		Con_DrawConsole(1.0F);
 		return;
 	}
 
 	if ((cls.state != ca_active) || !cl.refresh_prepped)
 	{
 		/* connected, but can't render */
-		Con_DrawConsole(0.5);
+		Con_DrawConsole(0.5F);
 		Draw_Fill(0, viddef.height / 2, viddef.width, viddef.height / 2, 0);
 		return;
 	}
@@ -664,7 +664,7 @@ SCR_TimeRefresh_f(void)
 
 			for (i = 0; i < 128; i++)
 			{
-				cl.refdef.viewangles[1] = i / 128.0f * 360.0f;
+				cl.refdef.viewangles[1] = i * (360.0F / 128.0f);
 				R_RenderFrame(&cl.refdef);
 			}
 
@@ -675,7 +675,7 @@ SCR_TimeRefresh_f(void)
 	{
 		for (i = 0; i < 128; i++)
 		{
-			cl.refdef.viewangles[1] = i / 128.0f * 360.0f;
+			cl.refdef.viewangles[1] = i * (360.0F / 128.0f);
 
 			R_BeginFrame(0);
 			R_RenderFrame(&cl.refdef);
@@ -684,8 +684,8 @@ SCR_TimeRefresh_f(void)
 	}
 
 	stop = Sys_Milliseconds();
-	time = (stop - start) / 1000.0f;
-	Com_Printf("%f seconds (%f fps)\n", time, 128 / time);
+	time = (stop - start) * (1.0f / 1000.0f);
+	Com_Printf("%f seconds (%f fps)\n", time, 128.0F / time);
 }
 
 void
@@ -729,7 +729,7 @@ SCR_TileClear(void)
 	int top, bottom, left, right;
 	dirty_t clear;
 
-	if (scr_con_current == 1.0)
+	if (scr_con_current == 1.0f)
 	{
 		return; /* full screen console */
 	}
@@ -1447,12 +1447,15 @@ SCR_DrawLayout(void)
 
 // ----
 
+#define FPS_AVERAGING_WINDOW  30
+#define FPS_MAX_DELTA_US      1000000
+
 void
 SCR_Framecounter(void) {
-	long long newtime;
 	static int frame;
-	static int frametimes[60] = {0};
+	static int frametimes[FPS_AVERAGING_WINDOW] = {0};
 	static long long oldtime;
+	long long newtime;
 
 	/* skip statistics without show fps */
 	if (cl_showfps->value < 1)
@@ -1463,7 +1466,7 @@ SCR_Framecounter(void) {
 
 	oldtime = newtime;
 	frame++;
-	if (frame > 59) {
+	if (frame >= FPS_AVERAGING_WINDOW) {
 		frame = 0;
 	}
 
@@ -1474,16 +1477,16 @@ SCR_Framecounter(void) {
 		int avg = 0;
 		int num = 0;
 
-		for (int i = 0; i < 60; i++) {
-			if (frametimes[i] != 0) {
-				avg += frametimes[i];
+		for (int i = 0; i < FPS_AVERAGING_WINDOW; i++) {
+			const int dt = frametimes[i];
+			if (dt > 0 && dt < FPS_MAX_DELTA_US) {
+				avg += dt;
 				num++;
 			}
 		}
 
-
 		char str[10];
-		snprintf(str, sizeof(str), "%3.2ffps", (1000.0 * 1000.0) / (avg / num));
+		snprintf(str, sizeof(str), "%3.2ffps", (1000.0F * 1000.0F) * num / avg);
 		DrawStringScaled(viddef.width - scale*(strlen(str)*8 + 2), 0, str, scale);
 		SCR_AddDirtyPoint(viddef.width - scale*(strlen(str)*8 + 2), 0);
 		SCR_AddDirtyPoint(viddef.width, 0);
@@ -1492,9 +1495,10 @@ SCR_Framecounter(void) {
 		int avg = 0;
 		int num = 0;
 
-		for (int i = 0; i < 60; i++) {
-			if (frametimes[i] != 0) {
-				avg += frametimes[i];
+		for (int i = 0; i < FPS_AVERAGING_WINDOW; i++) {
+			const int dt = frametimes[i];
+			if (dt > 0 && dt < FPS_MAX_DELTA_US) {
+				avg += dt;
 				num++;
 			}
 		}
@@ -1504,7 +1508,7 @@ SCR_Framecounter(void) {
 		int min = frametimes[0];
 		int max = frametimes[1];
 
-		for (int i = 1; i < 60; i++) {
+		for (int i = 1; i < FPS_AVERAGING_WINDOW; i++) {
 			if ((frametimes[i] > 0) &&  (min < frametimes[i])) {
 				min = frametimes[i];
 			}
@@ -1516,7 +1520,7 @@ SCR_Framecounter(void) {
 
 		char str[64];
 		snprintf(str, sizeof(str), "Min: %7.2ffps, Max: %7.2ffps, Avg: %7.2ffps",
-		         (1000.0 * 1000.0) / min, (1000.0 * 1000.0) / max, (1000.0 * 1000.0) / (avg / num));
+		         (1000.0F * 1000.0F) / min, (1000.0F * 1000.0F) / max, (1000.0F * 1000.0F) * num / avg);
 		DrawStringScaled(viddef.width - scale*(strlen(str)*8 + 2), 0, str, scale);
 		SCR_AddDirtyPoint(viddef.width - scale*(strlen(str)*8 + 2), 0);
 		SCR_AddDirtyPoint(viddef.width, 0);
