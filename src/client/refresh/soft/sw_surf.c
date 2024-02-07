@@ -310,11 +310,11 @@ R_InitCaches (void)
 	// calculate size to allocate
 	int pix;
 	// surface cache size at 320X240
-	size = 1024*768;
+	size = 4*1024*1024;
 
 	pix = vid_buffer_width*vid_buffer_height;
 	if (pix > 64000)
-		size += (pix-64000)*3;
+		size += (pix-64000)*8;
 
 	if (r_farsee->value > 0)
 		size *= 2;
