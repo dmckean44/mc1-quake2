@@ -110,202 +110,170 @@ qboolean show_gamepad = false, show_haptic = false, show_gyro = false;
 /* ------------------------------------------------------------------ */
 
 static int
-IN_TranslateMC1toQ2Key(uint32_t keysym)
+IN_TranslateScancode(const uint32_t scancode)
 {
-	int key = 0;
-
-#define MY_SC_CASE(X) case KB_ ## X : return K_SC_ ## X;
-
-	switch (keysym)
+	switch (scancode)
 	{
-		// case KB_A : return K_SC_A;
-		MY_SC_CASE(A)
-		MY_SC_CASE(B)
-		MY_SC_CASE(C)
-		MY_SC_CASE(D)
-		MY_SC_CASE(E)
-		MY_SC_CASE(F)
-		MY_SC_CASE(G)
-		MY_SC_CASE(H)
-		MY_SC_CASE(I)
-		MY_SC_CASE(J)
-		MY_SC_CASE(K)
-		MY_SC_CASE(L)
-		MY_SC_CASE(M)
-		MY_SC_CASE(N)
-		MY_SC_CASE(O)
-		MY_SC_CASE(P)
-		MY_SC_CASE(Q)
-		MY_SC_CASE(R)
-		MY_SC_CASE(S)
-		MY_SC_CASE(T)
-		MY_SC_CASE(U)
-		MY_SC_CASE(V)
-		MY_SC_CASE(W)
-		MY_SC_CASE(X)
-		MY_SC_CASE(Y)
-		MY_SC_CASE(Z)
+		case KB_A: return K_SC_A;
+		case KB_B: return K_SC_B;
+		case KB_C: return K_SC_C;
+		case KB_D: return K_SC_D;
+		case KB_E: return K_SC_E;
+		case KB_F: return K_SC_F;
+		case KB_G: return K_SC_G;
+		case KB_H: return K_SC_H;
+		case KB_I: return K_SC_I;
+		case KB_J: return K_SC_J;
+		case KB_K: return K_SC_K;
+		case KB_L: return K_SC_L;
+		case KB_M: return K_SC_M;
+		case KB_N: return K_SC_N;
+		case KB_O: return K_SC_O;
+		case KB_P: return K_SC_P;
+		case KB_Q: return K_SC_Q;
+		case KB_R: return K_SC_R;
+		case KB_S: return K_SC_S;
+		case KB_T: return K_SC_T;
+		case KB_U: return K_SC_U;
+		case KB_V: return K_SC_V;
+		case KB_W: return K_SC_W;
+		case KB_X: return K_SC_X;
+		case KB_Y: return K_SC_Y;
+		case KB_Z: return K_SC_Z;
 
-		case KB_TAB:
-			key = K_TAB;
-			break;
-		case KB_ENTER:
-			key = K_ENTER;
-			break;
-		case KB_ESC:
-			key = K_ESCAPE;
-			break;
-		case KB_BACKSPACE:
-			key = K_BACKSPACE;
-			break;
+		case KB_TAB: return K_TAB;
+		case KB_ENTER: return K_ENTER;
+		case KB_ESC: return K_ESCAPE;
+		case KB_BACKSPACE: return K_BACKSPACE;
 		case KB_LMETA:
-		case KB_RMETA:
-			key = K_COMMAND; // Win key
-			break;
-		case KB_ACPI_POWER:
-			key = K_POWER;
-			break;
-		case KB_MM_PLAY_PAUSE:
-			key = K_PAUSE;
-			break;
+		case KB_RMETA: return K_COMMAND; // Win key
+		case KB_ACPI_POWER: return K_POWER;
+		case KB_MM_PLAY_PAUSE: return K_PAUSE;
 
-		case KB_UP:
-			key = K_UPARROW;
-			break;
-		case KB_DOWN:
-			key = K_DOWNARROW;
-			break;
-		case KB_LEFT:
-			key = K_LEFTARROW;
-			break;
-		case KB_RIGHT:
-			key = K_RIGHTARROW;
-			break;
+		case KB_UP: return K_UPARROW;
+		case KB_DOWN: return K_DOWNARROW;
+		case KB_LEFT: return K_LEFTARROW;
+		case KB_RIGHT: return K_RIGHTARROW;
 
 		case KB_RALT:
-		case KB_LALT:
-			key = K_ALT;
-			break;
+		case KB_LALT: return K_ALT;
 		case KB_LCTRL:
-		case KB_RCTRL:
-			key = K_CTRL;
-			break;
+		case KB_RCTRL: return K_CTRL;
 		case KB_LSHIFT:
-		case KB_RSHIFT:
-			key = K_SHIFT;
-			break;
-		case KB_INSERT:
-			key = K_INS;
-			break;
-		case KB_DEL:
-			key = K_DEL;
-			break;
-		case KB_PGDN:
-			key = K_PGDN;
-			break;
-		case KB_PGUP:
-			key = K_PGUP;
-			break;
-		case KB_HOME:
-			key = K_HOME;
-			break;
-		case KB_END:
-			key = K_END;
-			break;
+		case KB_RSHIFT: return K_SHIFT;
+		case KB_INSERT: return K_INS;
+		case KB_DEL: return K_DEL;
+		case KB_PGDN: return K_PGDN;
+		case KB_PGUP: return K_PGUP;
+		case KB_HOME: return K_HOME;
+		case KB_END: return K_END;
 
-		case KB_F1:
-			key = K_F1;
-			break;
-		case KB_F2:
-			key = K_F2;
-			break;
-		case KB_F3:
-			key = K_F3;
-			break;
-		case KB_F4:
-			key = K_F4;
-			break;
-		case KB_F5:
-			key = K_F5;
-			break;
-		case KB_F6:
-			key = K_F6;
-			break;
-		case KB_F7:
-			key = K_F7;
-			break;
-		case KB_F8:
-			key = K_F8;
-			break;
-		case KB_F9:
-			key = K_F9;
-			break;
-		case KB_F10:
-			key = K_F10;
-			break;
-		case KB_F11:
-			key = K_F11;
-			break;
-		case KB_F12:
-			key = K_F12;
-			break;
+		case KB_F1: return K_F1;
+		case KB_F2: return K_F2;
+		case KB_F3: return K_F3;
+		case KB_F4: return K_F4;
+		case KB_F5: return K_F5;
+		case KB_F6: return K_F6;
+		case KB_F7: return K_F7;
+		case KB_F8: return K_F8;
+		case KB_F9: return K_F9;
+		case KB_F10: return K_F10;
+		case KB_F11: return K_F11;
+		case KB_F12: return K_F12;
 
-		case KB_KP_7:
-			key = K_KP_HOME;
-			break;
-		case KB_KP_8:
-			key = K_KP_UPARROW;
-			break;
-		case KB_KP_9:
-			key = K_KP_PGUP;
-			break;
-		case KB_KP_4:
-			key = K_KP_LEFTARROW;
-			break;
-		case KB_KP_5:
-			key = K_KP_5;
-			break;
-		case KB_KP_6:
-			key = K_KP_RIGHTARROW;
-			break;
-		case KB_KP_1:
-			key = K_KP_END;
-			break;
-		case KB_KP_2:
-			key = K_KP_DOWNARROW;
-			break;
-		case KB_KP_3:
-			key = K_KP_PGDN;
-			break;
-		case KB_KP_ENTER:
-			key = K_KP_ENTER;
-			break;
-		case KB_KP_0:
-			key = K_KP_INS;
-			break;
-		case KB_KP_PERIOD:
-			key = K_KP_DEL;
-			break;
-		case KB_KP_DIV:
-			key = K_KP_SLASH;
-			break;
-		case KB_KP_MINUS:
-			key = K_KP_MINUS;
-			break;
-		case KB_KP_PLUS:
-			key = K_KP_PLUS;
-			break;
-		case KB_KP_MUL:
-			key = K_KP_STAR;
-			break;
+		case KB_KP_7: return K_KP_HOME;
+		case KB_KP_8: return K_KP_UPARROW;
+		case KB_KP_9: return K_KP_PGUP;
+		case KB_KP_4: return K_KP_LEFTARROW;
+		case KB_KP_5: return K_KP_5;
+		case KB_KP_6: return K_KP_RIGHTARROW;
+		case KB_KP_1: return K_KP_END;
+		case KB_KP_2: return K_KP_DOWNARROW;
+		case KB_KP_3: return K_KP_PGDN;
+		case KB_KP_ENTER: return K_KP_ENTER;
+		case KB_KP_0: return K_KP_INS;
+		case KB_KP_PERIOD: return K_KP_DEL;
+		case KB_KP_DIV: return K_KP_SLASH;
+		case KB_KP_MINUS: return K_KP_MINUS;
+		case KB_KP_PLUS: return K_KP_PLUS;
+		case KB_KP_MUL: return K_KP_STAR;
 
 		default:
-			break;
+			return 0;
+	}
+}
+
+static void
+IN_HandleKeyboardEvents(void)
+{
+	kb_poll();
+	uint32_t event;
+	while ((event = kb_get_next_event()) != 0U)
+	{
+		const uint32_t sc = kb_event_scancode(event);
+		const uint32_t key = IN_TranslateScancode(sc);
+		const uint32_t c = kb_event_to_char(event);
+		const qboolean press = kb_event_is_press(event);
+
+		if (c != 0U && press)
+		{
+			Char_Event((int)c);
+		}
+
+		if (key != 0)
+		{
+			/* Most non-printable characters are considered special */
+			const qboolean special = (c == 0U) || !(c >= 32 && c <= 126);
+
+			Key_Event(key, press, special);
+		}
+	}
+}
+
+static void
+IN_HandleOneMouseButton(const uint32_t btns, const uint32_t old_btns, unsigned bit, int key)
+{
+	const unsigned mask = 1U << bit;
+	const unsigned state = btns & mask;
+	const unsigned old_state = old_btns & mask;
+	if (state != old_state)
+	{
+		Key_Event(key, state != 0U, true);
+	}
+}
+
+static void
+IN_HandleMouseButtonEvents(void)
+{
+	static uint32_t old_btns;
+	const uint32_t btns = MMIO(MOUSEBTNS);
+	IN_HandleOneMouseButton(btns, old_btns, 0, K_MOUSE1);
+	IN_HandleOneMouseButton(btns, old_btns, 1, K_MOUSE2);
+	IN_HandleOneMouseButton(btns, old_btns, 2, K_MOUSE3);
+	old_btns = btns;
+}
+
+static void
+IN_HandleMouseMovementEvents(void)
+{
+	/* Get the mouse position and calculate the mouse delta */
+	int mouse_dx;
+	int mouse_dy;
+	{
+		static uint16_t old_x;
+		static uint16_t old_y;
+		uint32_t mouse_pos = MMIO(MOUSEPOS);
+		uint16_t x = (uint16_t)(mouse_pos >> 16);
+		uint16_t y = (uint16_t)(mouse_pos & 0xffffU);
+		mouse_dx = (int)(int16_t)(x - old_x);
+		mouse_dy = (int)(int16_t)(y - old_y);
+		old_x = x;
+		old_y = y;
 	}
 
-#undef MY_SC_CASE
-
-	return key;
+	/* Increment the global mouse coordinate (used by IN_Move) */
+	mouse_x += (float)mouse_dx;
+	mouse_y += (float)mouse_dy;
 }
 
 /* ------------------------------------------------------------------ */
@@ -327,44 +295,10 @@ IN_Update(void)
 	// know the exact time of the last input events.
 	sys_frame_time = Sys_Milliseconds();
 
-	/* Process keyboard events */
-	/* TODO(m): This is very incomplete and probably wrong.  */
-	kb_poll();
-	uint32_t event;
-	while ((event = kb_get_next_event()) != 0U)
-	{
-		uint32_t key = IN_TranslateMC1toQ2Key(kb_event_scancode(event));
-
-		if (kb_event_is_press(event)) {
-			uint32_t c = kb_event_to_char(event);
-			if (c != 0U) {
-				Char_Event((int)c);
-			} else {
-				Key_Event(key, true, false);
-			}
-		} else {
-			Key_Event(key, false, false);
-		}
-	}
-
-	/* Get the mouse position and calculate the mouse delta */
-	int mouse_dx;
-	int mouse_dy;
-	{
-		static uint16_t old_x;
-		static uint16_t old_y;
-		uint32_t mouse_pos = MMIO(MOUSEPOS);
-		uint16_t x = (uint16_t)(mouse_pos >> 16);
-		uint16_t y = (uint16_t)(mouse_pos & 0xffffU);
-		mouse_dx = (int)(int16_t)(x - old_x);
-		mouse_dy = (int)(int16_t)(y - old_y);
-		old_x = x;
-		old_y = y;
-	}
-
-	/* Increment the global mouse coordinate (used by IN_Move) */
-	mouse_x += (float)mouse_dx;
-	mouse_y += (float)mouse_dy;
+	/* Process input events */
+	IN_HandleKeyboardEvents();
+	IN_HandleMouseButtonEvents();
+	IN_HandleMouseMovementEvents();
 }
 
 /*
