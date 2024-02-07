@@ -54,7 +54,6 @@ R_GreyscaledLight(const light3_t light)
 #endif  // ENABLE_SW_COLORLIGHT
 
 /* This is the most performance hungry function in the entire renderer. */
-/* TODO(m): Vectorize this for MRISC32. */
 #ifdef ENABLE_SW_COLORLIGHT
 static void
 R_DrawSurfaceBlock_ColorLight (pixel_t *prowdest, pixel_t *psource, size_t size,
@@ -113,6 +112,88 @@ R_DrawSurfaceBlock_ColorLight (pixel_t *prowdest, pixel_t *psource, size_t size,
 
 #ifndef ENABLE_SW_COLORLIGHT
 static void
+R_DrawSurfaceBlock_LightGray (pixel_t *prowdest,
+                              const pixel_t *psource,
+                              const pixel_t* lighted_cmap,
+                              size_t size)
+{
+#if defined(__MRISC32_VECTOR_OPS__)
+    // This vectorized routine takes <4 clock-cycles per pixel.
+    __asm__ volatile(
+        "    bz      %[size], 2f\n"
+        "    getsr   vl, #0x10\n"
+        "1:\n"
+        "    min     vl, vl, %[size]\n"
+        "    sub     %[size], %[size], vl\n"
+        "    ldub    v1, [%[psource], #1]\n"
+        "    ldub    v1, [%[lighted_cmap], v1]\n"
+        "    stb     v1, [%[prowdest], #1]\n"
+        "    ldea    %[psource], [%[psource], vl]\n"
+        "    ldea    %[prowdest], [%[prowdest], vl]\n"
+        "    bnz     %[size], 1b\n"
+        "2:"
+        : [psource] "+r"(psource),
+          [prowdest] "+r"(prowdest),
+          [size] "+r"(size)
+        : [lighted_cmap] "r"(lighted_cmap)
+        : "vl", "v1", "v2"
+    );
+#else
+	for (size_t i = 0; i < size; ++i)
+	{
+		prowdest[i] = lighted_cmap[psource[i]];
+	}
+#endif
+}
+
+static void
+R_DrawSurfaceBlock_LightGrayGradient (pixel_t *prowdest,
+                                      const pixel_t *psource,
+                                      const pixel_t* colormap,
+                                      int light,
+                                      const int lightstep,
+                                      size_t size)
+{
+#if defined(__MRISC32_VECTOR_OPS__)
+    // This vectorized routine takes <7 clock-cycles per pixel.
+    unsigned lightstepN;
+    __asm__ volatile(
+        "    bz      %[size], 2f\n"
+        "    getsr   vl, #0x10\n"
+        "    mul     %[lightstepN], %[lightstep], vl\n"
+        "    ldea    v1, [%[light], %[lightstep]]\n"
+        "1:\n"
+        "    min     vl, vl, %[size]\n"
+        "    sub     %[size], %[size], vl\n"
+        "    ldub    v2, [%[psource], #1]\n"
+        "    shuf    v3, v1, #0b0100100001100\n"  // & 0xFF00
+        "    add     v3, v2, v3\n"
+        "    ldub    v2, [%[colormap], v3]\n"
+        "    stb     v2, [%[prowdest], #1]\n"
+        "    ldea    %[psource], [%[psource], vl]\n"
+        "    ldea    %[prowdest], [%[prowdest], vl]\n"
+        "    add     v1, v1, %[lightstepN]\n"
+        "    bnz     %[size], 1b\n"
+        "2:"
+        : [psource] "+r"(psource),
+          [prowdest] "+r"(prowdest),
+          [size] "+r"(size),
+          [lightstepN] "=&r"(lightstepN)
+        : [colormap] "r"(colormap),
+          [light] "r"(light),
+          [lightstep] "r"(lightstep)
+        : "vl", "v1", "v2", "v3"
+    );
+#else
+	for (size_t i = 0; i < size; ++i)
+	{
+		prowdest[i] = colormap[psource[i] + (light & LIGHTMASK)];
+		light += lightstep;
+	}
+#endif
+}
+
+static void
 R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 						int level, int lightleft, int lightright)
 {
@@ -124,21 +205,15 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 	{
 		// Gray light, no gradient (fastest case).
 		const pixel_t *lighted_cmap = &_colormap[light_masked_left];
-		for (size_t i = 0; i < size; ++i)
-		{
-			prowdest[i] = lighted_cmap[psource[i]];
-		}
+		R_DrawSurfaceBlock_LightGray(prowdest, psource, lighted_cmap, size);
 	}
 	else
 	{
 		// Gray light, with gradient.
 		const int lightstep = (lightright - lightleft) >> level;
 		int light = lightleft;
-		for (size_t i = 0; i < size; ++i)
-		{
-			prowdest[i] = _colormap[psource[i] + (light & LIGHTMASK)];
-			light += lightstep;
-		}
+		R_DrawSurfaceBlock_LightGrayGradient(
+				prowdest, psource, _colormap, light, lightstep, size);
 	}
 }
 #endif  // !ENABLE_SW_COLORLIGHT
