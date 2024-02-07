@@ -49,7 +49,9 @@ static cvar_t *vk_dynamic;
 
 static menuframework_s s_opengl_menu;
 
+#if !defined(MC1Q2STATIC)
 static menulist_s s_renderer_list;
+#endif
 static menulist_s s_mode_list;
 static menulist_s s_display_list;
 static menulist_s s_uiscale_list;
@@ -73,6 +75,7 @@ static menuaction_s s_apply_action;
 
 // --------
 
+#if !defined(MC1Q2STATIC)
 // gl1, gl3, gles3, vk, soft
 #define MAXRENDERERS 5
 
@@ -145,6 +148,7 @@ Renderer_GetRenderer(void)
 	// Unknown renderer.
 	return numrenderer;
 }
+#endif  // !MC1Q2STATIC
 
 // --------
 
@@ -183,6 +187,7 @@ ApplyChanges(void *unused)
 {
 	qboolean restart = false;
 
+#if !defined(MC1Q2STATIC)
 	/* Renderer */
 	if (s_renderer_list.curvalue != Renderer_GetRenderer())
 	{
@@ -195,6 +200,7 @@ ApplyChanges(void *unused)
 			restart = true;
 		}
 	}
+#endif
 
 	/* auto mode */
 	if (!strcmp(s_mode_list.itemnames[s_mode_list.curvalue],
@@ -314,8 +320,10 @@ ApplyChanges(void *unused)
 void
 VID_MenuInit(void)
 {
+	const qboolean use_large_height_menu = (viddef.height >= 240);
 	int y = 30;
 
+#if !defined(MC1Q2STATIC)
 	// Renderer selection box.
 	// MAXRENDERERS + Custom + NULL.
 	static const char *renderers[MAXRENDERERS + 2] = { NULL };
@@ -327,6 +335,7 @@ VID_MenuInit(void)
 	}
 
 	renderers[numrenderer] = CUSTOM_MODE_NAME;
+#endif
 
 	// must be kept in sync with vid_modes[] in vid.c
 	static const char *resolutions[] = {
@@ -458,12 +467,14 @@ VID_MenuInit(void)
 	s_opengl_menu.x = viddef.width * 0.50;
 	s_opengl_menu.nitems = 0;
 
+#if !defined(MC1Q2STATIC)
 	s_renderer_list.generic.type = MTYPE_SPINCONTROL;
 	s_renderer_list.generic.name = "renderer";
 	s_renderer_list.generic.x = 0;
 	s_renderer_list.generic.y = y;
 	s_renderer_list.itemnames = renderers;
 	s_renderer_list.curvalue = Renderer_GetRenderer();
+#endif
 
 	s_mode_list.generic.type = MTYPE_SPINCONTROL;
 	s_mode_list.generic.name = "video mode";
@@ -639,36 +650,39 @@ VID_MenuInit(void)
 	s_vsync_list.itemnames = yesno_names;
 	s_vsync_list.curvalue = (r_vsync->value != 0);
 
-	s_af_list.generic.type = MTYPE_SPINCONTROL;
-	s_af_list.generic.name = "aniso filtering";
-	s_af_list.generic.x = 0;
-	s_af_list.generic.y = (y += 10);
-	s_af_list.itemnames = pow2_names;
-	s_af_list.curvalue = 0;
-	if (gl_anisotropic->value)
+	if (use_large_height_menu)
 	{
-		do
+		s_af_list.generic.type = MTYPE_SPINCONTROL;
+		s_af_list.generic.name = "aniso filtering";
+		s_af_list.generic.x = 0;
+		s_af_list.generic.y = (y += 10);
+		s_af_list.itemnames = pow2_names;
+		s_af_list.curvalue = 0;
+		if (gl_anisotropic->value)
 		{
-			s_af_list.curvalue++;
-		} while (pow2_names[s_af_list.curvalue] &&
-				pow(2, s_af_list.curvalue) <= gl_anisotropic->value);
-		s_af_list.curvalue--;
-	}
+			do
+			{
+				s_af_list.curvalue++;
+			} while (pow2_names[s_af_list.curvalue] &&
+					pow(2, s_af_list.curvalue) <= gl_anisotropic->value);
+			s_af_list.curvalue--;
+		}
 
-	s_msaa_list.generic.type = MTYPE_SPINCONTROL;
-	s_msaa_list.generic.name = "multisampling";
-	s_msaa_list.generic.x = 0;
-	s_msaa_list.generic.y = (y += 10);
-	s_msaa_list.itemnames = pow2_names;
-	s_msaa_list.curvalue = 0;
-	if (gl_msaa_samples->value)
-	{
-		do
+		s_msaa_list.generic.type = MTYPE_SPINCONTROL;
+		s_msaa_list.generic.name = "multisampling";
+		s_msaa_list.generic.x = 0;
+		s_msaa_list.generic.y = (y += 10);
+		s_msaa_list.itemnames = pow2_names;
+		s_msaa_list.curvalue = 0;
+		if (gl_msaa_samples->value)
 		{
-			s_msaa_list.curvalue++;
-		} while (pow2_names[s_msaa_list.curvalue] &&
-				pow(2, s_msaa_list.curvalue) <= gl_msaa_samples->value);
-		s_msaa_list.curvalue--;
+			do
+			{
+				s_msaa_list.curvalue++;
+			} while (pow2_names[s_msaa_list.curvalue] &&
+					pow(2, s_msaa_list.curvalue) <= gl_msaa_samples->value);
+			s_msaa_list.curvalue--;
+		}
 	}
 
 	s_defaults_action.generic.type = MTYPE_ACTION;
@@ -683,7 +697,9 @@ VID_MenuInit(void)
 	s_apply_action.generic.y = (y += 10);
 	s_apply_action.generic.callback = ApplyChanges;
 
+#if !defined(MC1Q2STATIC)
 	Menu_AddItem(&s_opengl_menu, (void *)&s_renderer_list);
+#endif
 	Menu_AddItem(&s_opengl_menu, (void *)&s_mode_list);
 
 	// only show this option if we have multiple displays
@@ -715,8 +731,11 @@ VID_MenuInit(void)
 	Menu_AddItem(&s_opengl_menu, (void *)&s_uiscale_list);
 	Menu_AddItem(&s_opengl_menu, (void *)&s_fs_box);
 	Menu_AddItem(&s_opengl_menu, (void *)&s_vsync_list);
-	Menu_AddItem(&s_opengl_menu, (void *)&s_af_list);
-	Menu_AddItem(&s_opengl_menu, (void *)&s_msaa_list);
+	if (use_large_height_menu)
+	{
+		Menu_AddItem(&s_opengl_menu, (void *)&s_af_list);
+		Menu_AddItem(&s_opengl_menu, (void *)&s_msaa_list);
+	}
 	Menu_AddItem(&s_opengl_menu, (void *)&s_defaults_action);
 	Menu_AddItem(&s_opengl_menu, (void *)&s_apply_action);
 

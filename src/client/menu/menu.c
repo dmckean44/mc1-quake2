@@ -86,6 +86,20 @@ typedef struct
 menulayer_t m_layers[MAX_MENU_DEPTH];
 int m_menudepth;
 
+static float
+M_ReduceScaleToFitPicOnScreen(int w, int h, float scale)
+{
+	if ((scale * (float)w) > (float)viddef.width)
+	{
+		scale = (float)viddef.width / (float)w;
+	}
+	if ((scale * (float)h) > (float)viddef.height)
+	{
+		scale = (float)viddef.height / (float)h;
+	}
+	return scale;
+}
+
 static qboolean
 M_IsGame(const char *gamename)
 {
@@ -104,9 +118,11 @@ static void
 M_Banner(char *name)
 {
     int w, h;
-	float scale = SCR_GetMenuScale();
-
     Draw_GetPicSize(&w, &h, name);
+
+	float scale = SCR_GetMenuScale();
+    scale = M_ReduceScaleToFitPicOnScreen(w, h, scale);
+
     Draw_PicScaled(viddef.width / 2 - (w * scale) / 2, viddef.height / 2 - (110 * scale), name, scale);
 }
 
@@ -607,6 +623,7 @@ QuitFunc(void *unused)
 static void
 InitMainMenu(void)
 {
+    const qboolean use_large_height_menu = (viddef.height >= 240);
     float scale = SCR_GetMenuScale();
     int i = 0;
     int x = 0;
@@ -615,7 +632,7 @@ InitMainMenu(void)
     int h = 0;
     int widest = -1;
 
-    char * names[] = {
+    char * names_all[] = {
         "m_main_game",
         "m_main_multiplayer",
         "m_main_options",
@@ -623,6 +640,16 @@ InitMainMenu(void)
         "m_main_quit",
         0
     };
+
+    char * names_short[] = {
+        "m_main_game",
+        "m_main_options",
+        "m_main_video",
+        "m_main_quit",
+        0
+    };
+
+    char ** names = use_large_height_menu ? names_all : names_short;
 
     for (i = 0; names[i] != 0; i++)
     {
@@ -639,25 +666,31 @@ InitMainMenu(void)
 
     memset(&s_main, 0, sizeof( menuframework_s ));
 
-    Draw_GetPicSize(&w, &h, "m_main_plaque");
+    if (use_large_height_menu)
+    {
+        Draw_GetPicSize(&w, &h, "m_main_plaque");
 
-    s_plaque.generic.type = MTYPE_BITMAP;
-    s_plaque.generic.flags = QMF_LEFT_JUSTIFY | QMF_INACTIVE;
-    s_plaque.generic.x = (x - (m_cursor_width + 5) - w);
-    s_plaque.generic.y = y;
-    s_plaque.generic.name = "m_main_plaque";
-    s_plaque.generic.callback = 0;
-    s_plaque.focuspic = 0;
+	    s_plaque.generic.type = MTYPE_BITMAP;
+	    s_plaque.generic.flags = QMF_LEFT_JUSTIFY | QMF_INACTIVE;
+	    s_plaque.generic.x = (x - (m_cursor_width + 5) - w);
+	    s_plaque.generic.y = y;
+	    s_plaque.generic.name = "m_main_plaque";
+	    s_plaque.generic.callback = 0;
+	    s_plaque.focuspic = 0;
 
-    s_logo.generic.type = MTYPE_BITMAP;
-    s_logo.generic.flags = QMF_LEFT_JUSTIFY | QMF_INACTIVE;
-    s_logo.generic.x = (x - (m_cursor_width + 5) - w);
-    s_logo.generic.y = y + h + 5;
-    s_logo.generic.name = "m_main_logo";
-    s_logo.generic.callback = 0;
-    s_logo.focuspic = 0;
-
-    y += 10;
+        s_logo.generic.type = MTYPE_BITMAP;
+        s_logo.generic.flags = QMF_LEFT_JUSTIFY | QMF_INACTIVE;
+        s_logo.generic.x = (x - (m_cursor_width + 5) - w);
+        s_logo.generic.y = y + h + 5;
+        s_logo.generic.name = "m_main_logo";
+        s_logo.generic.callback = 0;
+        s_logo.focuspic = 0;
+        y += 10;
+    }
+    else
+    {
+        y += 20;
+    }
 
     s_game.generic.type = MTYPE_BITMAP;
     s_game.generic.flags = QMF_LEFT_JUSTIFY | QMF_HIGHLIGHT_IF_FOCUS;
@@ -670,16 +703,19 @@ InitMainMenu(void)
     Draw_GetPicSize(&w, &h, ( char * )s_game.generic.name);
     y += h + 8;
 
-    s_multiplayer.generic.type = MTYPE_BITMAP;
-    s_multiplayer.generic.flags = QMF_LEFT_JUSTIFY | QMF_HIGHLIGHT_IF_FOCUS;
-    s_multiplayer.generic.x = x;
-    s_multiplayer.generic.y = y;
-    s_multiplayer.generic.name = "m_main_multiplayer";
-    s_multiplayer.generic.callback = MultiplayerFunc;
-    s_multiplayer.focuspic = "m_main_multiplayer_sel";
+    if (use_large_height_menu)
+    {
+        s_multiplayer.generic.type = MTYPE_BITMAP;
+        s_multiplayer.generic.flags = QMF_LEFT_JUSTIFY | QMF_HIGHLIGHT_IF_FOCUS;
+        s_multiplayer.generic.x = x;
+        s_multiplayer.generic.y = y;
+        s_multiplayer.generic.name = "m_main_multiplayer";
+        s_multiplayer.generic.callback = MultiplayerFunc;
+        s_multiplayer.focuspic = "m_main_multiplayer_sel";
 
-    Draw_GetPicSize(&w, &h, ( char * )s_multiplayer.generic.name);
-    y += h + 8;
+        Draw_GetPicSize(&w, &h, ( char * )s_multiplayer.generic.name);
+        y += h + 8;
+    }
 
     s_options.generic.type = MTYPE_BITMAP;
     s_options.generic.flags = QMF_LEFT_JUSTIFY | QMF_HIGHLIGHT_IF_FOCUS;
@@ -711,10 +747,16 @@ InitMainMenu(void)
     s_quit.generic.callback = QuitFunc;
     s_quit.focuspic = "m_main_quit_sel";
 
-    Menu_AddItem(&s_main, (void *)&s_plaque);
-    Menu_AddItem(&s_main, (void *)&s_logo);
+    if (use_large_height_menu)
+    {
+        Menu_AddItem(&s_main, (void *)&s_plaque);
+        Menu_AddItem(&s_main, (void *)&s_logo);
+    }
     Menu_AddItem(&s_main, (void *)&s_game);
-    Menu_AddItem(&s_main, (void *)&s_multiplayer);
+    if (use_large_height_menu)
+    {
+        Menu_AddItem(&s_main, (void *)&s_multiplayer);
+    }
     Menu_AddItem(&s_main, (void *)&s_options);
     Menu_AddItem(&s_main, (void *)&s_video);
     Menu_AddItem(&s_main, (void *)&s_quit);
@@ -2323,6 +2365,7 @@ static void
 Options_MenuInit(void)
 {
     extern qboolean show_gamepad;
+    const qboolean use_large_height_menu = (viddef.height >= 240);
 
     static const char *ogg_shuffle_items[] =
     {
@@ -2385,27 +2428,30 @@ Options_MenuInit(void)
     s_options_sfxvolume_slider.minvalue = 0.0f;
     s_options_sfxvolume_slider.maxvalue = 1.0f;
 
-    s_options_oggvolume_slider.generic.type = MTYPE_SLIDER;
-    s_options_oggvolume_slider.generic.x = 0;
-    s_options_oggvolume_slider.generic.y = (y += 10);
-    s_options_oggvolume_slider.generic.name = "OGG volume";
-    s_options_oggvolume_slider.cvar = "ogg_volume";
-    s_options_oggvolume_slider.minvalue = 0.0f;
-    s_options_oggvolume_slider.maxvalue = 1.0f;
+	s_options_oggvolume_slider.generic.type = MTYPE_SLIDER;
+	s_options_oggvolume_slider.generic.x = 0;
+	s_options_oggvolume_slider.generic.y = (y += 10);
+	s_options_oggvolume_slider.generic.name = "OGG volume";
+	s_options_oggvolume_slider.cvar = "ogg_volume";
+	s_options_oggvolume_slider.minvalue = 0.0f;
+	s_options_oggvolume_slider.maxvalue = 1.0f;
 
-    s_options_oggenable_box.generic.type = MTYPE_SPINCONTROL;
-    s_options_oggenable_box.generic.x = 0;
-    s_options_oggenable_box.generic.y = (y += 10);
-    s_options_oggenable_box.generic.name = "OGG music";
-    s_options_oggenable_box.generic.callback = EnableOGGMusic;
-    s_options_oggenable_box.itemnames = able_items;
+	if (use_large_height_menu)
+	{
+		s_options_oggenable_box.generic.type = MTYPE_SPINCONTROL;
+		s_options_oggenable_box.generic.x = 0;
+		s_options_oggenable_box.generic.y = (y += 10);
+		s_options_oggenable_box.generic.name = "OGG music";
+		s_options_oggenable_box.generic.callback = EnableOGGMusic;
+		s_options_oggenable_box.itemnames = able_items;
 
-    s_options_oggshuffle_box.generic.type = MTYPE_SPINCONTROL;
-    s_options_oggshuffle_box.generic.x = 0;
-    s_options_oggshuffle_box.generic.y = (y += 10);
-    s_options_oggshuffle_box.generic.name = "OGG shuffle";
-    s_options_oggshuffle_box.generic.callback = OGGShuffleFunc;
-    s_options_oggshuffle_box.itemnames = ogg_shuffle_items;
+		s_options_oggshuffle_box.generic.type = MTYPE_SPINCONTROL;
+		s_options_oggshuffle_box.generic.x = 0;
+		s_options_oggshuffle_box.generic.y = (y += 10);
+		s_options_oggshuffle_box.generic.name = "OGG shuffle";
+		s_options_oggshuffle_box.generic.callback = OGGShuffleFunc;
+		s_options_oggshuffle_box.itemnames = ogg_shuffle_items;
+	}
 
     s_options_quality_list.generic.type = MTYPE_SPINCONTROL;
     s_options_quality_list.generic.x = 0;
@@ -2458,14 +2504,17 @@ Options_MenuInit(void)
     s_options_crosshair_box.generic.callback = CrosshairFunc;
     s_options_crosshair_box.itemnames = crosshair_names;
 	
-    s_options_pauseonfocus_box.generic.type = MTYPE_SPINCONTROL;
-    s_options_pauseonfocus_box.generic.x = 0;
-    s_options_pauseonfocus_box.generic.y = (y += 10);
-    s_options_pauseonfocus_box.generic.name = "pause on minimized";
-    s_options_pauseonfocus_box.generic.callback = PauseFocusFunc;
-    s_options_pauseonfocus_box.itemnames = pause_names;
+	if (use_large_height_menu)
+	{
+		s_options_pauseonfocus_box.generic.type = MTYPE_SPINCONTROL;
+		s_options_pauseonfocus_box.generic.x = 0;
+		s_options_pauseonfocus_box.generic.y = (y += 10);
+		s_options_pauseonfocus_box.generic.name = "pause on minimized";
+		s_options_pauseonfocus_box.generic.callback = PauseFocusFunc;
+		s_options_pauseonfocus_box.itemnames = pause_names;
+	}
 
-    y += 10;
+    y += use_large_height_menu ? 10 : 5;
     if (show_gamepad)
     {
         s_options_customize_joy_action.generic.type = MTYPE_ACTION;
@@ -2497,9 +2546,12 @@ Options_MenuInit(void)
 
     Menu_AddItem(&s_options_menu, (void *)&s_options_sfxvolume_slider);
 
-    Menu_AddItem(&s_options_menu, (void *)&s_options_oggvolume_slider);
-    Menu_AddItem(&s_options_menu, (void *)&s_options_oggenable_box);
-    Menu_AddItem(&s_options_menu, (void *)&s_options_oggshuffle_box);
+	Menu_AddItem(&s_options_menu, (void *)&s_options_oggvolume_slider);
+    if (use_large_height_menu)
+    {
+        Menu_AddItem(&s_options_menu, (void *)&s_options_oggenable_box);
+        Menu_AddItem(&s_options_menu, (void *)&s_options_oggshuffle_box);
+    }
     Menu_AddItem(&s_options_menu, (void *)&s_options_quality_list);
     Menu_AddItem(&s_options_menu, (void *)&s_options_sensitivity_slider);
     Menu_AddItem(&s_options_menu, (void *)&s_options_alwaysrun_box);
@@ -2507,7 +2559,10 @@ Options_MenuInit(void)
     Menu_AddItem(&s_options_menu, (void *)&s_options_lookstrafe_box);
     Menu_AddItem(&s_options_menu, (void *)&s_options_freelook_box);
     Menu_AddItem(&s_options_menu, (void *)&s_options_crosshair_box);
-    Menu_AddItem(&s_options_menu, (void*)&s_options_pauseonfocus_box);
+    if (use_large_height_menu)
+    {
+        Menu_AddItem(&s_options_menu, (void*)&s_options_pauseonfocus_box);
+    }
 
     if (show_gamepad)
     {
@@ -6053,9 +6108,11 @@ static void
 M_Quit_Draw(void)
 {
     int w, h;
-	float scale = SCR_GetMenuScale();
-
     Draw_GetPicSize(&w, &h, "quit");
+
+    float scale = SCR_GetMenuScale();
+    scale = M_ReduceScaleToFitPicOnScreen(w, h, scale);
+
     Draw_PicScaled((viddef.width - w * scale) / 2, (viddef.height - h * scale) / 2, "quit", scale);
 }
 

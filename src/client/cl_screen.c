@@ -1695,13 +1695,13 @@ SCR_ClampScale(float scale)
 {
 	float f;
 
-	f = viddef.width / 320.0f;
+	f = (float)viddef.width * (1.0f / 320.0f);
 	if (scale > f)
 	{
 		scale = f;
 	}
 
-	f = viddef.height / 240.0f;
+	f = (float)viddef.height * (1.0f / 240.0f);
 	if (scale > f)
 	{
 		scale = f;
@@ -1718,19 +1718,27 @@ SCR_ClampScale(float scale)
 static float
 SCR_GetDefaultScale(void)
 {
-	int i = viddef.width / 640;
-	int j = viddef.height / 240;
+	// Base the scale on the video resolution.
+	const float sx = (float)viddef.width * (float)(1.0F / 320.0F);
+	const float sy = (float)viddef.height * (float)(1.0F / 240.0F);
+	const float scale = (sy < sx) ? sy : sx;
 
-	if (i > j)
-	{
-		i = j;
-	}
-	if (i < 1)
-	{
-		i = 1;
-	}
+	// Make the scale a multiple of 1.0.
+	return floorf(scale + 0.5F);
 
-	return i;
+	// Clamp the scale.
+	if (scale < 1.0F)
+	{
+		return 1.0F;
+	}
+	else if (scale > 2.0F)
+	{
+		return 2.0F;
+	}
+	else
+	{
+		return scale;
+	}
 }
 
 void
