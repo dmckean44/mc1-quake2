@@ -245,7 +245,7 @@ Mod_ForName (char *name, model_t *parent_model, qboolean crash)
 Mod_ClusterPVS
 ==============
 */
-const byte *
+const byte * MC1Q2_NO_SANITIZE("undefined")
 Mod_ClusterPVS (int cluster, const model_t *model)
 {
 	if (cluster == -1 || !model->vis)

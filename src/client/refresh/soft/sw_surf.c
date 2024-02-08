@@ -36,6 +36,7 @@ static int	sc_size;
 static surfcache_t	*sc_rover;
 surfcache_t	*sc_base;
 
+#ifdef ENABLE_SW_COLORLIGHT
 /*
  * Color light apply is not required
  */
@@ -50,11 +51,12 @@ R_GreyscaledLight(const light3_t light)
 
 	return LIGHTMASK;
 }
+#endif  // ENABLE_SW_COLORLIGHT
 
 /* This is the most performance hungry function in the entire renderer. */
-/* TODO(m): Vectorize this for MRISC32. */
+#ifdef ENABLE_SW_COLORLIGHT
 static void
-R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
+R_DrawSurfaceBlock_ColorLight (pixel_t *prowdest, pixel_t *psource, size_t size,
 						int level, light3_t lightleft, light3_t lightright)
 {
 	const pixel_t* _colormap = vid_colormap;
@@ -106,6 +108,115 @@ R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
 		}
 	}
 }
+#endif  // ENABLE_SW_COLORLIGHT
+
+#ifndef ENABLE_SW_COLORLIGHT
+static void
+R_DrawSurfaceBlock_LightGray (pixel_t *prowdest,
+                              const pixel_t *psource,
+                              const pixel_t* lighted_cmap,
+                              size_t size)
+{
+#if defined(__MRISC32_VECTOR_OPS__)
+    // This vectorized routine takes <4 clock-cycles per pixel.
+    __asm__ volatile(
+        "    bz      %[size], 2f\n"
+        "    getsr   vl, #0x10\n"
+        "1:\n"
+        "    min     vl, vl, %[size]\n"
+        "    sub     %[size], %[size], vl\n"
+        "    ldub    v1, [%[psource], #1]\n"
+        "    ldub    v1, [%[lighted_cmap], v1]\n"
+        "    stb     v1, [%[prowdest], #1]\n"
+        "    ldea    %[psource], [%[psource], vl]\n"
+        "    ldea    %[prowdest], [%[prowdest], vl]\n"
+        "    bnz     %[size], 1b\n"
+        "2:"
+        : [psource] "+r"(psource),
+          [prowdest] "+r"(prowdest),
+          [size] "+r"(size)
+        : [lighted_cmap] "r"(lighted_cmap)
+        : "vl", "v1", "v2"
+    );
+#else
+	for (size_t i = 0; i < size; ++i)
+	{
+		prowdest[i] = lighted_cmap[psource[i]];
+	}
+#endif
+}
+
+static void
+R_DrawSurfaceBlock_LightGrayGradient (pixel_t *prowdest,
+                                      const pixel_t *psource,
+                                      const pixel_t* colormap,
+                                      int light,
+                                      const int lightstep,
+                                      size_t size)
+{
+#if defined(__MRISC32_VECTOR_OPS__)
+    // This vectorized routine takes <7 clock-cycles per pixel.
+    unsigned lightstepN;
+    __asm__ volatile(
+        "    bz      %[size], 2f\n"
+        "    getsr   vl, #0x10\n"
+        "    mul     %[lightstepN], %[lightstep], vl\n"
+        "    ldea    v1, [%[light], %[lightstep]]\n"
+        "1:\n"
+        "    min     vl, vl, %[size]\n"
+        "    sub     %[size], %[size], vl\n"
+        "    ldub    v2, [%[psource], #1]\n"
+        "    shuf    v3, v1, #0b0100100001100\n"  // & 0xFF00
+        "    add     v3, v2, v3\n"
+        "    ldub    v2, [%[colormap], v3]\n"
+        "    stb     v2, [%[prowdest], #1]\n"
+        "    ldea    %[psource], [%[psource], vl]\n"
+        "    ldea    %[prowdest], [%[prowdest], vl]\n"
+        "    add     v1, v1, %[lightstepN]\n"
+        "    bnz     %[size], 1b\n"
+        "2:"
+        : [psource] "+r"(psource),
+          [prowdest] "+r"(prowdest),
+          [size] "+r"(size),
+          [lightstepN] "=&r"(lightstepN)
+        : [colormap] "r"(colormap),
+          [light] "r"(light),
+          [lightstep] "r"(lightstep)
+        : "vl", "v1", "v2", "v3"
+    );
+#else
+	for (size_t i = 0; i < size; ++i)
+	{
+		prowdest[i] = colormap[psource[i] + (light & LIGHTMASK)];
+		light += lightstep;
+	}
+#endif
+}
+
+static void
+R_DrawSurfaceBlock_Light (pixel_t *prowdest, pixel_t *psource, size_t size,
+						int level, int lightleft, int lightright)
+{
+	const pixel_t* _colormap = vid_colormap;
+
+	const int light_masked_left = lightleft & LIGHTMASK;
+	const int light_masked_right = lightright & LIGHTMASK;
+	if (light_masked_left == light_masked_right)
+	{
+		// Gray light, no gradient (fastest case).
+		const pixel_t *lighted_cmap = &_colormap[light_masked_left];
+		R_DrawSurfaceBlock_LightGray(prowdest, psource, lighted_cmap, size);
+	}
+	else
+	{
+		// Gray light, with gradient.
+		const int lightstep = (lightright - lightleft) >> level;
+		int light = lightleft;
+		R_DrawSurfaceBlock_LightGrayGradient(
+				prowdest, psource, _colormap, light, lightstep, size);
+	}
+}
+#endif  // !ENABLE_SW_COLORLIGHT
 
 
 /*
@@ -125,6 +236,7 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 
 	for (v=0 ; v<r_numvblocks ; v++)
 	{
+#ifdef ENABLE_SW_COLORLIGHT
 		light3_t	lightleft, lightright;
 		light3_t	lightleftstep, lightrightstep;
 
@@ -142,7 +254,7 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 		{
 			int j;
 
-			R_DrawSurfaceBlock_Light(prowdest, psource, size, level, lightleft, lightright);
+			R_DrawSurfaceBlock_ColorLight(prowdest, psource, size, level, lightleft, lightright);
 
 			for(j=0; j<3; j++)
 			{
@@ -153,6 +265,23 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 			psource += sourcetstep;
 			prowdest += surfrowbytes;
 		}
+#else
+		// FIXME: use delta rather than both right and left, like ASM?
+		int lightleft = r_lightptr[0];
+		int lightright = r_lightptr[3];
+		r_lightptr += r_lightwidth * 3;
+		int lightleftstep = (r_lightptr[0] - lightleft) >> level;
+		int lightrightstep = (r_lightptr[3] - lightright) >> level;
+		for (i=0 ; i<size ; i++)
+		{
+			R_DrawSurfaceBlock_Light(prowdest, psource, size, level, lightleft, lightright);
+			lightright += lightrightstep;
+			lightleft += lightleftstep;
+
+			psource += sourcetstep;
+			prowdest += surfrowbytes;
+		}
+#endif
 
 		if (psource >= r_sourcemax)
 			psource -= r_stepback;
@@ -256,11 +385,11 @@ R_InitCaches (void)
 	// calculate size to allocate
 	int pix;
 	// surface cache size at 320X240
-	size = 1024*768;
+	size = 4*1024*1024;
 
 	pix = vid_buffer_width*vid_buffer_height;
 	if (pix > 64000)
-		size += (pix-64000)*3;
+		size += (pix-64000)*8;
 
 	if (r_farsee->value > 0)
 		size *= 2;

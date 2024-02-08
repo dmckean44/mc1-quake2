@@ -452,7 +452,7 @@ Mod_LoadNodes(const char *name, cplane_t *planes, int numplanes, mleaf_t *leafs,
 Mod_LoadVisibility
 =================
 */
-void
+void MC1Q2_NO_SANITIZE("undefined")
 Mod_LoadVisibility (dvis_t **vis, const byte *mod_base, const lump_t *l)
 {
 	dvis_t	*out;

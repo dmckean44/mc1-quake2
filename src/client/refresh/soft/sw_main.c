@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
 #elif defined(MC1)
+#include <sys/time.h>
 #include <mc1/framebuffer.h>
 #endif
 
@@ -215,7 +216,7 @@ int	sadjust, tadjust, bbextents, bbextentt;
 pixel_t		*cacheblock;
 int		cachewidth;
 pixel_t		*d_viewbuffer;
-zvalue_t	*d_pzbuffer;
+zbufvalue_t	*d_pzbuffer;
 
 static void RE_BeginFrame( float camera_separation );
 static void Draw_BuildGammaTable(void);
@@ -240,6 +241,30 @@ int VID_GetTicks(void)
 		s_t0 = t;
 	}
 	return t - s_t0;
+#elif defined(MC1)
+	static struct timeval s_t0;
+	static int s_initialized;
+	struct timeval t;
+
+	// Get current time of day.
+	if (gettimeofday(&t, NULL) == -1) {
+		Sys_Error("gettimeofday failed");
+	}
+	if (!s_initialized) {
+		s_t0 = t;
+		s_initialized = 1;
+	}
+
+	// Calculate delta to start of application.
+	time_t secs = t.tv_sec - s_t0.tv_sec;
+	int usecs = (int)(t.tv_usec - s_t0.tv_usec);
+	if (usecs < 0) {
+		usecs += 1000000;
+		secs -= 1L;
+	}
+
+	// Convert to milliseconds.
+	return (1000LL * (long long)(secs)) + (long long)(usecs / 1000);
 #else
 	/* Dummy time tick - this does not do much good, except for
 	   providing a continous time increment */
@@ -1481,7 +1506,7 @@ R_InitGraphics( int width, int height )
 		sc_base = NULL;
 	}
 
-	d_pzbuffer = malloc(width * height * sizeof(zvalue_t));
+	d_pzbuffer = malloc(width * height * sizeof(zbufvalue_t));
 
 	R_InitCaches();
 

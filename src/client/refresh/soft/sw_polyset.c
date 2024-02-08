@@ -433,7 +433,7 @@ R_PolysetDrawSpans8_33(const entity_t *currententity, spanpackage_t *pspanpackag
 	int		lsfrac, ltfrac;
 	light3_t	llight;
 	zvalue_t	lzi;
-	zvalue_t	*lpz;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -467,7 +467,7 @@ R_PolysetDrawSpans8_33(const entity_t *currententity, spanpackage_t *pspanpackag
 			{
 				int i;
 
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					int temp = R_ApplyLight(*lptex, llight);
 
@@ -499,8 +499,8 @@ void
 R_PolysetDrawSpansConstant8_33(const entity_t *currententity, spanpackage_t *pspanpackage)
 {
 	pixel_t		*lpdest;
-	int		lzi;
-	zvalue_t	*lpz;
+	zvalue_t	lzi;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -528,7 +528,7 @@ R_PolysetDrawSpansConstant8_33(const entity_t *currententity, spanpackage_t *psp
 
 			do
 			{
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					*lpdest = vid_alphamap[r_aliasblendcolor + *lpdest*256];
 				}
@@ -550,7 +550,7 @@ R_PolysetDrawSpans8_66(const entity_t *currententity, spanpackage_t *pspanpackag
 	int		lsfrac, ltfrac;
 	light3_t	llight;
 	zvalue_t	lzi;
-	zvalue_t	*lpz;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -585,7 +585,7 @@ R_PolysetDrawSpans8_66(const entity_t *currententity, spanpackage_t *pspanpackag
 			{
 				int i;
 
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					int temp = R_ApplyLight(*lptex, llight);
 
@@ -629,7 +629,7 @@ R_PolysetDrawSpansConstant8_66(const entity_t *currententity, spanpackage_t *psp
 {
 	pixel_t		*lpdest;
 	zvalue_t	lzi;
-	zvalue_t	*lpz;
+	zbufvalue_t	*lpz;
 
 	do
 	{
@@ -658,7 +658,7 @@ R_PolysetDrawSpansConstant8_66(const entity_t *currententity, spanpackage_t *psp
 
 			do
 			{
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
 					*lpdest = vid_alphamap[r_aliasblendcolor*256 + *lpdest];
 					zdamaged = true;
@@ -705,11 +705,23 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			int		lsfrac, ltfrac;
 			pixel_t		*lpdest;
 			pixel_t		*lptex;
+#ifdef ENABLE_SW_COLORLIGHT
 			light3_t	llight;
+#else
+			int		llight;
+#endif
 			zvalue_t	lzi;
-			zvalue_t	*lpz;
+			zbufvalue_t	*lpz;
 			int		pos_shift = (pspanpackage->v * vid_buffer_width) + pspanpackage->u;
 			qboolean	zdamaged = false;
+
+			const pixel_t	*_colormap = vid_colormap;
+			const zvalue_t	_r_zistepx = r_zistepx;
+			const int	_a_ststepxwhole = a_ststepxwhole;
+			const int	_a_sstepxfrac = a_sstepxfrac;
+			const int	_a_tstepxfrac = a_tstepxfrac;
+			const int	_skinwidth = r_affinetridesc.skinwidth;
+			const qboolean	ir_visible = (r_newrefdef.rdflags & RDF_IRGOGGLES) && (currententity->flags & RF_IR_VISIBLE);
 
 			lpdest = d_viewbuffer + pos_shift;
 			lpz = d_pzbuffer + pos_shift;
@@ -717,36 +729,46 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 			lptex = pspanpackage->ptex;
 			lsfrac = pspanpackage->sfrac;
 			ltfrac = pspanpackage->tfrac;
+#ifdef ENABLE_SW_COLORLIGHT
 			memcpy(llight, pspanpackage->light, sizeof(light3_t));
+#else
+			llight = pspanpackage->light[0];
+#endif
 			lzi = pspanpackage->zi;
 
 			do
 			{
-				int i;
-
-				if ((lzi >> SHIFT16XYZ) >= *lpz)
+				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
 				{
-					if(r_newrefdef.rdflags & RDF_IRGOGGLES && currententity->flags & RF_IR_VISIBLE)
-						*lpdest = vid_colormap[irtable[*lptex]];
+					if(ir_visible)
+						*lpdest = _colormap[irtable[*lptex]];
 					else
+#ifdef ENABLE_SW_COLORLIGHT
 						*lpdest = R_ApplyLight(*lptex, llight);
+#else
+						*lpdest = _colormap[*lptex + (llight & LIGHTMASK)];
+#endif
 
 					*lpz = lzi >> SHIFT16XYZ;
 					zdamaged = true;
 				}
 				lpdest++;
-				lzi += r_zistepx;
+				lzi += _r_zistepx;
 				lpz++;
-				for(i=0; i<3; i++)
+#ifdef ENABLE_SW_COLORLIGHT
+				for(int i=0; i<3; i++)
 					llight[i] += r_lstepx[i];
-				lptex += a_ststepxwhole;
-				lsfrac += a_sstepxfrac;
+#else
+				llight += r_lstepx[0];
+#endif
+				lptex += _a_ststepxwhole;
+				lsfrac += _a_sstepxfrac;
 				lptex += lsfrac >> SHIFT16XYZ;
 				lsfrac &= 0xFFFF;
-				ltfrac += a_tstepxfrac;
+				ltfrac += _a_tstepxfrac;
 				if (ltfrac & 0x10000)
 				{
-					lptex += r_affinetridesc.skinwidth;
+					lptex += _skinwidth;
 					ltfrac &= 0xFFFF;
 				}
 			} while (--lcount);

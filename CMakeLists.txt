@@ -63,12 +63,14 @@ endif()
 if(MC1)
 	set(CURL_SUPPORT OFF)
 	set(OPENAL_SUPPORT OFF)
+	set(SW_COLORLIGHT_SUPPORT OFF)
 endif()
 
 # Compilation time options.
 option(CURL_SUPPORT "cURL support" ON)
 option(OPENAL_SUPPORT "OpenAL support" ON)
 option(SYSTEMWIDE_SUPPORT "Enable systemwide installation of game assets" OFF)
+option(SW_COLORLIGHT_SUPPORT "Support color light in the software renderer" ON)
 option(BUILD_Q2DED "Build Quake 2 dedicated server" OFF)
 option(STATIC_BUILD "Build Quake 2 with static linking" ON)
 set(STATIC_REF_LIBRARY "ref_soft" CACHE STRING "Renderer to link statically")
@@ -187,6 +189,11 @@ if(${SYSTEMWIDE_SUPPORT})
     endif()
 endif()
 
+# Compile-time configuration of the code.
+if(${SW_COLORLIGHT_SUPPORT})
+    add_definitions(-DENABLE_SW_COLORLIGHT)
+endif()
+
 # We need to pass some options to minizip / unzip.
 add_definitions(-DNOUNCRYPT)
 
@@ -264,6 +271,13 @@ if(${OPENAL_SUPPORT})
 			add_definitions(-DUSE_OPENAL -DDEFAULT_OPENAL_DRIVER="libopenal.so.1")
 		endif()
 	endif()
+endif()
+
+# Enable sanitizers when building with Clang for native hosts.
+if((NOT ${CMAKE_CROSSCOMPILING}) AND (${CMAKE_C_COMPILER_ID} MATCHES "Clang"))
+	set(SANITIZERS -fsanitize=undefined)
+	add_compile_options(-g ${SANITIZERS})
+	list(APPEND mc1quake2ClientLinkerFlags ${SANITIZERS})
 endif()
 
 # General linker flags.
@@ -763,7 +777,7 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_soft"))
 		${REF_SRC_DIR}/soft/header/model.h
 		)
 
-		add_library(ref_soft ${MODULE_LIBRARY_TYPE} ${SOFT-Source} ${SOFT-Header} ${REF-Platform-Specific-Source})
+	add_library(ref_soft ${MODULE_LIBRARY_TYPE} ${SOFT-Source} ${SOFT-Header} ${REF-Platform-Specific-Source})
 	if(NOT STATIC_BUILD)
 		set_target_properties(ref_soft PROPERTIES
 				PREFIX ""

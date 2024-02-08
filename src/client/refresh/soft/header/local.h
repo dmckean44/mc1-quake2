@@ -75,7 +75,8 @@ typedef struct image_s
 
 typedef unsigned char pixel_t;
 typedef int	shift20_t;
-typedef int	zvalue_t;
+typedef int	zvalue_t; // 16.16 bit fixed point (used for interpolation etc)
+typedef short	zbufvalue_t; // 16-bit (used for the Z buffer)
 typedef unsigned int	light_t;
 typedef int	light3_t[3];
 
@@ -373,7 +374,7 @@ extern int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 extern int	d_pix_min, d_pix_max, d_pix_mul;
 
 extern pixel_t	*d_viewbuffer;
-extern zvalue_t	*d_pzbuffer;
+extern zbufvalue_t	*d_pzbuffer;
 
 extern int	d_minmip;
 extern float	d_scalemip[NUM_MIPS-1];
@@ -621,14 +622,14 @@ INLINED FUNCTIONS (for improved performance)
 
 /*
  * Apply color light to texture pixel
- *
- * TODO: Once used, this is a performance killer. Can we replace
- * some look-ups with multiplication, for instance?
  */
 
 static inline pixel_t
 R_ApplyLight(pixel_t pix, const light3_t light)
 {
+#ifdef ENABLE_SW_COLORLIGHT
+	// TODO: Once used, this is a performance killer. Can we replace
+	// some look-ups with multiplication, for instance?
 	const pixel_t* colormap_for_pix = &vid_colormap[pix];
 
 	const int light_masked0 = light[0] & LIGHTMASK;
@@ -657,6 +658,9 @@ R_ApplyLight(pixel_t pix, const light3_t light)
 
 	/* Convert back to indexed color */
 	return d_16to8table[rgb565];
+#else
+	return vid_colormap[pix + (light[0] & LIGHTMASK)];
+#endif
 }
 
 /*

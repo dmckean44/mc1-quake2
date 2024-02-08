@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct
 {
 	pixel_t		*pbase, *pdest;
-	zvalue_t	*pz;
+	zbufvalue_t	*pz;
 	int		s, t;
 	int		sstep, tstep;
 	int		izi, izistep, izistep_times_2;
@@ -68,9 +68,9 @@ R_DrawSpanletOpaque(const int *r_turb_turb)
 		btemp = *(s_spanletvars.pbase + (ts) + (tt) * cachewidth);
 		if (btemp != TRANSPARENT_COLOR)
 		{
-			if (*s_spanletvars.pz <= (s_spanletvars.izi >> SHIFT16XYZ))
+			if (((zvalue_t)*s_spanletvars.pz) <= (s_spanletvars.izi >> SHIFT16XYZ))
 			{
-				*s_spanletvars.pz    = s_spanletvars.izi >> SHIFT16XYZ;
+				*s_spanletvars.pz    = (zbufvalue_t)(s_spanletvars.izi >> SHIFT16XYZ);
 				*s_spanletvars.pdest = btemp;
 			}
 		}
@@ -90,7 +90,7 @@ static void
 R_DrawSpanletTurbulentStipple33(const int *r_turb_turb)
 {
 	pixel_t		*pdest = s_spanletvars.pdest;
-	zvalue_t	*pz    = s_spanletvars.pz;
+	zbufvalue_t	*pz    = s_spanletvars.pz;
 	zvalue_t	izi   = s_spanletvars.izi;
 
 	if ( s_spanletvars.v & 1 )
@@ -127,7 +127,7 @@ R_DrawSpanletTurbulentStipple33(const int *r_turb_turb)
 
 			btemp = *( s_spanletvars.pbase + ( sturb ) + ( tturb << 6 ) );
 
-			if ( *pz <= ( izi >> SHIFT16XYZ ) )
+			if ( ((zvalue_t)*pz) <= ( izi >> SHIFT16XYZ ) )
 				*pdest = btemp;
 
 			izi               += s_spanletvars.izistep_times_2;
@@ -151,7 +151,7 @@ R_DrawSpanletTurbulentStipple66(const int *r_turb_turb)
 	unsigned	btemp;
 	int		sturb, tturb;
 	pixel_t		*pdest = s_spanletvars.pdest;
-	zvalue_t	*pz    = s_spanletvars.pz;
+	zbufvalue_t	*pz    = s_spanletvars.pz;
 	zvalue_t	izi   = s_spanletvars.izi;
 
 	if ( !( s_spanletvars.v & 1 ) )
@@ -185,7 +185,7 @@ R_DrawSpanletTurbulentStipple66(const int *r_turb_turb)
 
 			btemp = *( s_spanletvars.pbase + ( sturb ) + ( tturb << 6 ) );
 
-			if ( *pz <= ( izi >> SHIFT16XYZ ) )
+			if ( ((zvalue_t)*pz) <= ( izi >> SHIFT16XYZ ) )
 				*pdest = btemp;
 
 			izi               += s_spanletvars.izistep_times_2;
@@ -215,7 +215,7 @@ R_DrawSpanletTurbulentStipple66(const int *r_turb_turb)
 
 			btemp = *( s_spanletvars.pbase + ( sturb ) + ( tturb << 6 ) );
 
-			if ( *pz <= ( izi >> SHIFT16XYZ ) )
+			if ( ((zvalue_t)*pz) <= ( izi >> SHIFT16XYZ ) )
 				*pdest = btemp;
 
 			izi               += s_spanletvars.izistep;
@@ -246,7 +246,7 @@ R_DrawSpanletTurbulentBlended66(const int *r_turb_turb)
 
 		btemp = *( s_spanletvars.pbase + ( sturb ) + ( tturb << 6 ) );
 
-		if ( *s_spanletvars.pz <= ( s_spanletvars.izi >> SHIFT16XYZ ) )
+		if ( ((zvalue_t)*s_spanletvars.pz) <= ( s_spanletvars.izi >> SHIFT16XYZ ) )
 			*s_spanletvars.pdest = vid_alphamap[btemp*256+*s_spanletvars.pdest];
 
 		s_spanletvars.izi += s_spanletvars.izistep;
@@ -271,7 +271,7 @@ R_DrawSpanletTurbulentBlended33(const int *r_turb_turb)
 
 		btemp = *( s_spanletvars.pbase + ( sturb ) + ( tturb << 6 ) );
 
-		if ( *s_spanletvars.pz <= ( s_spanletvars.izi >> SHIFT16XYZ ) )
+		if ( ((zvalue_t)*s_spanletvars.pz) <= ( s_spanletvars.izi >> SHIFT16XYZ ) )
 			*s_spanletvars.pdest = vid_alphamap[btemp+*s_spanletvars.pdest*256];
 
 		s_spanletvars.izi += s_spanletvars.izistep;
@@ -301,7 +301,7 @@ R_DrawSpanlet33(const int *r_turb_turb)
 
 		if ( btemp != TRANSPARENT_COLOR )
 		{
-			if (*s_spanletvars.pz <= (s_spanletvars.izi >> SHIFT16XYZ))
+			if (((zvalue_t)*s_spanletvars.pz) <= (s_spanletvars.izi >> SHIFT16XYZ))
 			{
 				*s_spanletvars.pdest = vid_alphamap[btemp+*s_spanletvars.pdest*256];
 			}
@@ -320,7 +320,7 @@ R_DrawSpanletConstant33(const int *r_turb_turb)
 {
 	do
 	{
-		if (*s_spanletvars.pz <= (s_spanletvars.izi >> SHIFT16XYZ))
+		if (((zvalue_t)*s_spanletvars.pz) <= (s_spanletvars.izi >> SHIFT16XYZ))
 		{
 			*s_spanletvars.pdest = vid_alphamap[r_polyblendcolor+*s_spanletvars.pdest*256];
 		}
@@ -349,7 +349,7 @@ R_DrawSpanlet66(const int *r_turb_turb)
 
 		if ( btemp != TRANSPARENT_COLOR )
 		{
-			if (*s_spanletvars.pz <= (s_spanletvars.izi >> SHIFT16XYZ))
+			if (((zvalue_t)*s_spanletvars.pz) <= (s_spanletvars.izi >> SHIFT16XYZ))
 			{
 				*s_spanletvars.pdest = vid_alphamap[btemp*256+*s_spanletvars.pdest];
 			}
@@ -370,7 +370,7 @@ static void
 R_DrawSpanlet33Stipple(const int *r_turb_turb)
 {
 	pixel_t		*pdest	= s_spanletvars.pdest;
-	zvalue_t	*pz	= s_spanletvars.pz;
+	zbufvalue_t	*pz	= s_spanletvars.pz;
 	zvalue_t	izi	= s_spanletvars.izi;
 
 	if ( r_polydesc.stipple_parity ^ ( s_spanletvars.v & 1 ) )
@@ -407,7 +407,7 @@ R_DrawSpanlet33Stipple(const int *r_turb_turb)
 
 			if ( btemp != TRANSPARENT_COLOR )
 			{
-				if ( *pz <= ( izi >> SHIFT16XYZ ) )
+				if ( ((zvalue_t)*pz) <= ( izi >> SHIFT16XYZ ) )
 					*pdest = btemp;
 			}
 
@@ -431,7 +431,7 @@ R_DrawSpanlet66Stipple(const int *r_turb_turb)
 {
 	unsigned	btemp;
 	pixel_t		*pdest = s_spanletvars.pdest;
-	zvalue_t	*pz = s_spanletvars.pz;
+	zbufvalue_t	*pz = s_spanletvars.pz;
 	zvalue_t	izi = s_spanletvars.izi;
 
 	s_spanletvars.pdest += s_spanletvars.spancount;
@@ -467,7 +467,7 @@ R_DrawSpanlet66Stipple(const int *r_turb_turb)
 
 			if ( btemp != TRANSPARENT_COLOR )
 			{
-				if ( *pz <= ( izi >> SHIFT16XYZ ) )
+				if ( ((zvalue_t)*pz) <= ( izi >> SHIFT16XYZ ) )
 					*pdest = btemp;
 			}
 
@@ -492,7 +492,7 @@ R_DrawSpanlet66Stipple(const int *r_turb_turb)
 
 			if ( btemp != TRANSPARENT_COLOR )
 			{
-				if ( *pz <= ( izi >> SHIFT16XYZ ) )
+				if ( ((zvalue_t)*pz) <= ( izi >> SHIFT16XYZ ) )
 					*pdest = btemp;
 			}
 

@@ -45,10 +45,9 @@ R_DrawParticle(particle_t *pparticle, int level)
 	vec3_t		local, transformed;
 	float		zi;
 	byte		*pdest;
-	zvalue_t	*pz;
+	zbufvalue_t	*pz;
 	int		color = pparticle->color;
 	int		i, pix, count, u, v;
-	zvalue_t	izi;
 	int 		custom_particle = (int)sw_custom_particles->value;
 
 	/*
@@ -85,7 +84,7 @@ R_DrawParticle(particle_t *pparticle, int level)
 	*/
 	pz = d_pzbuffer + (vid_buffer_width * v) + u;
 	pdest = d_viewbuffer + vid_buffer_width * v + u;
-	izi = (int)(zi * 0x8000);
+	const zbufvalue_t izi = (zbufvalue_t)(zi * 0x8000);
 
 	/*
 	** determine the screen area covered by the particle,
