@@ -136,7 +136,7 @@ R_DrawSurfaceBlock_LightGray (pixel_t *prowdest,
           [prowdest] "+r"(prowdest),
           [size] "+r"(size)
         : [lighted_cmap] "r"(lighted_cmap)
-        : "vl", "v1", "v2"
+        : "vl", "v1"
     );
 #else
 	for (size_t i = 0; i < size; ++i)
@@ -156,33 +156,30 @@ R_DrawSurfaceBlock_LightGrayGradient (pixel_t *prowdest,
 {
 #if defined(__MRISC32_VECTOR_OPS__)
     // This vectorized routine takes <7 clock-cycles per pixel.
-    unsigned lightstepN;
     __asm__ volatile(
         "    bz      %[size], 2f\n"
         "    getsr   vl, #0x10\n"
-        "    mul     %[lightstepN], %[lightstep], vl\n"
-        "    ldea    v1, [%[light], %[lightstep]]\n"
         "1:\n"
         "    min     vl, vl, %[size]\n"
         "    sub     %[size], %[size], vl\n"
-        "    ldub    v2, [%[psource], #1]\n"
-        "    shuf    v3, v1, #0b0100100001100\n"  // & 0xFF00
-        "    add     v3, v2, v3\n"
-        "    ldub    v2, [%[colormap], v3]\n"
-        "    stb     v2, [%[prowdest], #1]\n"
+        "    ldub    v1, [%[psource], #1]\n"
+        "    ldea    v2, [%[light], %[lightstep]]\n"
+        "    shuf    v2, v2, #0b0100100001100\n"  // & 0xFF00
+        "    add     v1, v1, v2\n"
+        "    ldub    v1, [%[colormap], v1]\n"
+        "    stb     v1, [%[prowdest], #1]\n"
         "    ldea    %[psource], [%[psource], vl]\n"
         "    ldea    %[prowdest], [%[prowdest], vl]\n"
-        "    add     v1, v1, %[lightstepN]\n"
+        "    madd    %[light], %[lightstep], vl\n"
         "    bnz     %[size], 1b\n"
         "2:"
         : [psource] "+r"(psource),
           [prowdest] "+r"(prowdest),
-          [size] "+r"(size),
-          [lightstepN] "=&r"(lightstepN)
+          [light] "+r"(light),
+          [size] "+r"(size)
         : [colormap] "r"(colormap),
-          [light] "r"(light),
           [lightstep] "r"(lightstep)
-        : "vl", "v1", "v2", "v3"
+        : "vl", "v1", "v2"
     );
 #else
 	for (size_t i = 0; i < size; ++i)
