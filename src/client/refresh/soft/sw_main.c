@@ -47,7 +47,7 @@ pixel_t		*vid_colormap = NULL;
 pixel_t		*vid_alphamap = NULL;
 light_t		vid_lightthreshold = 0;
 static int	vid_minu, vid_minv, vid_maxu, vid_maxv;
-static int	vid_zminu, vid_zminv, vid_zmaxu, vid_zmaxv;
+int	vid_zminu, vid_zminv, vid_zmaxu, vid_zmaxv;
 static qboolean IsHighDPIaware;
 
 // last position  on map
@@ -274,37 +274,6 @@ int VID_GetTicks(void)
 #endif
 }
 
-/*
-================
-VID_DamageZBuffer
-
-Mark VID Z buffer as damaged and need to be recalculated
-================
-*/
-void
-VID_DamageZBuffer(int u, int v)
-{
-	// update U
-	if (vid_zminu > u)
-	{
-		vid_zminu = u;
-	}
-	if (vid_zmaxu < u)
-	{
-		vid_zmaxu = u;
-	}
-
-	// update V
-	if (vid_zminv > v)
-	{
-		vid_zminv = v;
-	}
-	if (vid_zmaxv < v)
-	{
-		vid_zmaxv = v;
-	}
-}
-
 // clean z damage state
 static void
 VID_NoDamageZBuffer(void)
@@ -313,29 +282,6 @@ VID_NoDamageZBuffer(void)
 	vid_zmaxu = 0;
 	vid_zminv = vid_buffer_height;
 	vid_zmaxv = 0;
-}
-
-qboolean
-VID_CheckDamageZBuffer(int u, int v, int ucount, int vcount)
-{
-	if (vid_zminv > (v + vcount) || vid_zmaxv < v)
-	{
-		// can be used previous zbuffer
-		return false;
-	}
-
-	if (vid_zminu > u && vid_zminu > (u + ucount))
-	{
-		// can be used previous zbuffer
-		return false;
-	}
-
-	if (vid_zmaxu < u && vid_zmaxu < (u + ucount))
-	{
-		// can be used previous zbuffer
-		return false;
-	}
-	return true;
 }
 
 // Need to recalculate whole z buffer
