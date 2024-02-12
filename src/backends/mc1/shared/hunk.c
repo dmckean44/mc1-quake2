@@ -43,7 +43,7 @@ Hunk_Begin(int maxsize)
 	maxhunksize = maxsize + sizeof(size_t) + CACHE_LINE_SIZE;
 	curhunksize = 0;
 
-	membase = malloc(maxhunksize);
+	membase = calloc(maxhunksize, 1);
 	if (membase == NULL)
 	{
 		Sys_Error("unable to virtual allocate %d bytes", maxsize);
