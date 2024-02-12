@@ -675,7 +675,7 @@ R_ReallocateMapBuffers (void)
 		if (r_numallocatedverts < MAXALIASVERTS)
 			r_numallocatedverts = MAXALIASVERTS;
 
-		finalverts = malloc(r_numallocatedverts * sizeof(finalvert_t));
+		finalverts = Q_malloc(r_numallocatedverts * sizeof(finalvert_t));
 		if (!finalverts)
 		{
 			R_Printf(PRINT_ALL, "%s: Couldn't malloc %d bytes\n",
@@ -703,7 +703,7 @@ R_ReallocateMapBuffers (void)
 		if (r_numallocatedtriangles < vid.height)
 			r_numallocatedtriangles = vid.height;
 
-		triangle_spans  = malloc(r_numallocatedtriangles * sizeof(spanpackage_t));
+		triangle_spans  = Q_malloc(r_numallocatedtriangles * sizeof(spanpackage_t));
 		if (!triangle_spans)
 		{
 			R_Printf(PRINT_ALL, "%s: Couldn't malloc %d bytes\n",
@@ -732,7 +732,7 @@ R_ReallocateMapBuffers (void)
 		if (r_numallocatededgebasespans < vid_buffer_width * 8)
 			r_numallocatededgebasespans = vid_buffer_width * 8;
 
-		edge_basespans  = malloc(r_numallocatededgebasespans * sizeof(espan_t));
+		edge_basespans  = Q_malloc(r_numallocatededgebasespans * sizeof(espan_t));
 		if (!edge_basespans)
 		{
 			R_Printf(PRINT_ALL, "%s: Couldn't malloc %d bytes\n",
@@ -1452,7 +1452,7 @@ R_InitGraphics( int width, int height )
 		sc_base = NULL;
 	}
 
-	d_pzbuffer = malloc(width * height * sizeof(zbufvalue_t));
+	d_pzbuffer = Q_malloc(width * height * sizeof(zbufvalue_t));
 
 	R_InitCaches();
 
@@ -2486,7 +2486,7 @@ static void
 SWimp_CreateRender(int width, int height)
 {
 	swap_current = 0;
-	swap_buffers = malloc(height * width * sizeof(pixel_t) * 2);
+	swap_buffers = Q_malloc(height * width * sizeof(pixel_t) * 2);
 	if (!swap_buffers)
 	{
 		ri.Sys_Error(ERR_FATAL, "%s: Can't allocate swapbuffer.", __func__);
@@ -2499,15 +2499,15 @@ SWimp_CreateRender(int width, int height)
 	// Need to rewrite whole frame
 	VID_WholeDamageBuffer();
 
-	sintable = malloc((width+CYCLE) * sizeof(int));
-	intsintable = malloc((width+CYCLE) * sizeof(int));
-	blanktable = malloc((width+CYCLE) * sizeof(int));
+	sintable = Q_malloc((width+CYCLE) * sizeof(int));
+	intsintable = Q_malloc((width+CYCLE) * sizeof(int));
+	blanktable = Q_malloc((width+CYCLE) * sizeof(int));
 
-	newedges = malloc(width * sizeof(edge_t *));
-	removeedges = malloc(width * sizeof(edge_t *));
+	newedges = Q_malloc(width * sizeof(edge_t *));
+	removeedges = Q_malloc(width * sizeof(edge_t *));
 
-	warp_rowptr = malloc((width+AMP2*2) * sizeof(byte*));
-	warp_column = malloc((width+AMP2*2) * sizeof(int));
+	warp_rowptr = Q_malloc((width+AMP2*2) * sizeof(byte*));
+	warp_column = Q_malloc((width+AMP2*2) * sizeof(int));
 
 	// count of "out of items"
 	r_outofsurfaces = false;
@@ -2533,7 +2533,7 @@ SWimp_CreateRender(int width, int height)
 
 	R_ReallocateMapBuffers();
 
-	r_warpbuffer = malloc(height * width * sizeof(pixel_t));
+	r_warpbuffer = Q_malloc(height * width * sizeof(pixel_t));
 
 	// 2k+ resolution and 32 == shift20_t
 	if ((width >= 2048) && (sizeof(shift20_t) == 4))
@@ -2547,7 +2547,7 @@ SWimp_CreateRender(int width, int height)
 
 	R_InitTurb (width);
 
-	vid_polygon_spans = malloc(sizeof(espan_t) * (height + 1));
+	vid_polygon_spans = Q_malloc(sizeof(espan_t) * (height + 1));
 
 	memset(sw_state.currentpalette, 0, sizeof(sw_state.currentpalette));
 
@@ -2596,7 +2596,7 @@ static void
 R_ScreenShot_f(void)
 {
 	int x, y;
-	byte *buffer = malloc(vid_buffer_width * vid_buffer_height * 3);
+	byte *buffer = Q_malloc(vid_buffer_width * vid_buffer_height * 3);
 	const unsigned char *palette = sw_state.currentpalette;
 
 	if (!buffer)

@@ -41,7 +41,7 @@ static unsigned char*
 compress_for_stbiw(unsigned char *data, int data_len, int *out_len, int quality)
 {
 	uLongf bufSize = compressBound(data_len);
-	unsigned char* buf = malloc(bufSize);
+	unsigned char* buf = Q_malloc(bufSize);
 
 	if (buf == NULL)
 	{

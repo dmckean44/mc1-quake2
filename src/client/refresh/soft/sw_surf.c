@@ -379,7 +379,7 @@ R_InitCaches (void)
 	R_Printf(PRINT_ALL,"%ik surface cache.\n", size/1024);
 
 	sc_size = size;
-	sc_base = (surfcache_t *)malloc(size);
+	sc_base = (surfcache_t *)Q_malloc(size);
 	if (!sc_base)
 	{
 		ri.Sys_Error(ERR_FATAL, "%s: Can't allocate cache.", __func__);

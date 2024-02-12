@@ -270,7 +270,7 @@ R_LoadPic8 (char *name, byte *pic, int width, int realwidth, int height, int rea
 	image->type = type;
 
 	full_size = R_GetImageMipsSize(size);
-	image->pixels[0] = malloc(full_size);
+	image->pixels[0] = Q_malloc(full_size);
 	if (!image->pixels[0])
 	{
 		ri.Sys_Error(ERR_FATAL, "%s: Can't allocate image.", __func__);
@@ -334,7 +334,7 @@ R_LoadPic (char *name, byte *pic, int width, int realwidth, int height, int real
 		image_t	*image = NULL;
 		byte	*pic8;
 
-		pic8 = malloc(data_size);
+		pic8 = Q_malloc(data_size);
 		if (!pic8)
 		{
 			ri.Sys_Error(ERR_FATAL, "%s: Can't allocate image.", __func__);
@@ -375,7 +375,7 @@ R_LoadPic (char *name, byte *pic, int width, int realwidth, int height, int real
 			}
 
 			// resize image
-			pic32 = malloc(uploadwidth * uploadheight * 4);
+			pic32 = Q_malloc(uploadwidth * uploadheight * 4);
 			if (ResizeSTB(pic, width, height, pic32, uploadwidth, uploadheight))
 			{
 				R_Convert32To8bit(pic32, pic8, uploadwidth * uploadheight, type != it_wall);
@@ -414,7 +414,7 @@ R_LoadPic (char *name, byte *pic, int width, int realwidth, int height, int real
 			byte *scaled = NULL;
 			image_t	*image;
 
-			scaled = malloc(width * height * 4);
+			scaled = Q_malloc(width * height * 4);
 			if (!scaled)
 				return NULL;
 
@@ -660,7 +660,7 @@ R_InitImages (void)
 		return;
 	}
 
-	d_16to8table = malloc(0x10000);
+	d_16to8table = Q_malloc(0x10000);
 	if ( !d_16to8table )
 	{
 		ri.Sys_Error(ERR_FATAL, "%s: Couldn't allocate memory for d_16to8table", __func__);

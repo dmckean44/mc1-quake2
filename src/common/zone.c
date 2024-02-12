@@ -81,7 +81,7 @@ Z_TagMalloc(int size, int tag)
 	zhead_t *z;
 
 	size = size + sizeof(zhead_t);
-	z = malloc(size);
+	z = Q_malloc(size);
 
 	if (!z)
 	{
