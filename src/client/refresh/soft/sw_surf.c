@@ -21,20 +21,40 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "header/local.h"
 
-static int		sourcetstep;
-static void		*prowdestbase;
-static unsigned char	*pbasesource;
-static int		r_stepback;
-static int		r_lightwidth;
-static int		r_numvblocks;
-static unsigned char	*r_source, *r_sourcemax;
-static unsigned		*r_lightptr;
+#ifdef MC1
+#define USE_PER_MIP_DRAWSURFACEBLOCK8
+#endif
+
+#ifdef USE_PER_MIP_DRAWSURFACEBLOCK8
+void R_DrawSurfaceBlock8_mip0 (int);
+void R_DrawSurfaceBlock8_mip1 (int);
+void R_DrawSurfaceBlock8_mip2 (int);
+void R_DrawSurfaceBlock8_mip3 (int);
+
+static const void (*surfmiptable[4])(int) = {
+	R_DrawSurfaceBlock8_mip0,
+	R_DrawSurfaceBlock8_mip1,
+	R_DrawSurfaceBlock8_mip2,
+	R_DrawSurfaceBlock8_mip3
+};
+#endif
+
+int		sourcetstep;
+void		*prowdestbase;
+unsigned char	*pbasesource;
+int		r_stepback;
+int		r_lightwidth;
+int		r_numvblocks;
+unsigned char	*r_sourcemax;
+unsigned		*r_lightptr;
 
 void R_BuildLightMap (drawsurf_t *drawsurf);
 
 static int	sc_size;
 static surfcache_t	*sc_rover;
 surfcache_t	*sc_base;
+
+#ifndef USE_PER_MIP_DRAWSURFACEBLOCK8
 
 #ifdef ENABLE_SW_COLORLIGHT
 /*
@@ -117,33 +137,10 @@ R_DrawSurfaceBlock_LightGray (pixel_t *prowdest,
                               const pixel_t* lighted_cmap,
                               size_t size)
 {
-#if defined(__MRISC32_VECTOR_OPS__)
-    // This vectorized routine takes <4 clock-cycles per pixel.
-    __asm__ volatile(
-        "    bz      %[size], 2f\n"
-        "    getsr   vl, #0x10\n"
-        "1:\n"
-        "    min     vl, vl, %[size]\n"
-        "    sub     %[size], %[size], vl\n"
-        "    ldub    v1, [%[psource], #1]\n"
-        "    ldub    v1, [%[lighted_cmap], v1]\n"
-        "    stb     v1, [%[prowdest], #1]\n"
-        "    ldea    %[psource], [%[psource], vl]\n"
-        "    ldea    %[prowdest], [%[prowdest], vl]\n"
-        "    bnz     %[size], 1b\n"
-        "2:"
-        : [psource] "+r"(psource),
-          [prowdest] "+r"(prowdest),
-          [size] "+r"(size)
-        : [lighted_cmap] "r"(lighted_cmap)
-        : "vl", "v1"
-    );
-#else
 	for (size_t i = 0; i < size; ++i)
 	{
 		prowdest[i] = lighted_cmap[psource[i]];
 	}
-#endif
 }
 
 static void
@@ -154,40 +151,11 @@ R_DrawSurfaceBlock_LightGrayGradient (pixel_t *prowdest,
                                       const int lightstep,
                                       size_t size)
 {
-#if defined(__MRISC32_VECTOR_OPS__)
-    // This vectorized routine takes <7 clock-cycles per pixel.
-    __asm__ volatile(
-        "    bz      %[size], 2f\n"
-        "    getsr   vl, #0x10\n"
-        "1:\n"
-        "    min     vl, vl, %[size]\n"
-        "    sub     %[size], %[size], vl\n"
-        "    ldub    v1, [%[psource], #1]\n"
-        "    ldea    v2, [%[light], %[lightstep]]\n"
-        "    shuf    v2, v2, #0b0100100001100\n"  // & 0xFF00
-        "    add     v1, v1, v2\n"
-        "    ldub    v1, [%[colormap], v1]\n"
-        "    stb     v1, [%[prowdest], #1]\n"
-        "    ldea    %[psource], [%[psource], vl]\n"
-        "    ldea    %[prowdest], [%[prowdest], vl]\n"
-        "    madd    %[light], %[lightstep], vl\n"
-        "    bnz     %[size], 1b\n"
-        "2:"
-        : [psource] "+r"(psource),
-          [prowdest] "+r"(prowdest),
-          [light] "+r"(light),
-          [size] "+r"(size)
-        : [colormap] "r"(colormap),
-          [lightstep] "r"(lightstep)
-        : "vl", "v1", "v2"
-    );
-#else
 	for (size_t i = 0; i < size; ++i)
 	{
 		prowdest[i] = colormap[psource[i] + (light & LIGHTMASK)];
 		light += lightstep;
 	}
-#endif
 }
 
 static void
@@ -285,6 +253,7 @@ R_DrawSurfaceBlock8_anymip (int level, int surfrowbytes)
 	}
 }
 
+#endif  // USE_PER_MIP_DRAWSURFACEBLOCK8
 
 /*
 ===============
@@ -303,6 +272,7 @@ R_DrawSurface (drawsurf_t *drawsurf)
 	image_t		*mt;
 	int		blockdivshift;
 	int		r_numhblocks;
+	unsigned char	*r_source;
 
 	mt = drawsurf->image;
 
@@ -340,6 +310,9 @@ R_DrawSurface (drawsurf_t *drawsurf)
 		+ (tmax << SHIFT16XYZ)) % tmax) * twidth)];
 
 	pcolumndest = drawsurf->surfdat;
+#ifdef USE_PER_MIP_DRAWSURFACEBLOCK8
+	void (*drawmipfun)(int) = surfmiptable[drawsurf->surfmip];
+#endif
 
 	for (u=0 ; u<r_numhblocks; u++)
 	{
@@ -355,7 +328,11 @@ R_DrawSurface (drawsurf_t *drawsurf)
 
 		pbasesource = basetptr + soffset;
 
+#ifdef USE_PER_MIP_DRAWSURFACEBLOCK8
+		drawmipfun(drawsurf->rowbytes);
+#else
 		R_DrawSurfaceBlock8_anymip(NUM_MIPS - drawsurf->surfmip, drawsurf->rowbytes);
+#endif
 
 		soffset = soffset + blocksize;
 		if (soffset >= smax)
