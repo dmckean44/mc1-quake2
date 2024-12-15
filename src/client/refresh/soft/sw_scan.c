@@ -509,6 +509,40 @@ D_DrawSpan
 static pixel_t *
 D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int tstep, int spancount)
 {
+#if defined(__MRISC32_VECTOR_OPS__)
+	const int _cachewidth = cachewidth;
+	int sstepN, tstepN;
+	__asm__ volatile(
+		"    getsr   vl, #0x10\n"
+		"    mul     %[sstepN], %[sstep], vl\n"
+		"    mul     %[tstepN], %[tstep], vl\n"
+		"    ldea    v1, [%[s], %[sstep]]\n"
+		"    ldea    v2, [%[t], %[tstep]]\n"
+		"1:\n"
+		"    min     vl, vl, %[count]\n"
+		"    sub     %[count], %[count], vl\n"
+		"    asr     v3, v1, #16\n"
+		"    asr     v4, v2, #16\n"
+		"    madd    v3, v4, %[_cachewidth]\n"
+		"    ldub    v3, [%[pbase], v3]\n"
+		"    add     v1, v1, %[sstepN]\n"
+		"    add     v2, v2, %[tstepN]\n"
+		"    stb     v3, [%[pdest], #1]\n"
+		"    ldea    %[pdest], [%[pdest], vl]\n"
+		"    bnz     %[count], 1b\n"
+		: [pdest] "+r"(pdest),
+		  [s] "+r"(s),
+		  [t] "+r"(t),
+		  [sstepN] "=&r"(sstepN),
+		  [tstepN] "=&r"(tstepN)
+		: [pbase] "r"(pbase),
+		  [count] "r"(spancount),
+		  [sstep] "r"(sstep),
+		  [tstep] "r"(tstep),
+		  [_cachewidth] "r"(_cachewidth)
+		: "vl", "v1", "v2", "v3", "v4"
+	);
+#else
 	const pixel_t *tdest_max = pdest + spancount;
 	const int _cachewidth = cachewidth;
 
@@ -546,6 +580,7 @@ D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int ts
 			t += tstep;
 		} while (pdest < tdest_max);
 	}
+#endif
 
 	return pdest;
 }
