@@ -174,7 +174,7 @@ LoadPCX(const char *origname, byte **pic, byte **palette, int *width, int *heigh
 	}
 
 	full_size = (pcx_height + 1) * (pcx_width + 1);
-	out = malloc(full_size);
+	out = Q_malloc(full_size);
 	if (!out)
 	{
 		R_Printf(PRINT_ALL, "Can't allocate\n");
@@ -188,7 +188,7 @@ LoadPCX(const char *origname, byte **pic, byte **palette, int *width, int *heigh
 
 	if (palette)
 	{
-		*palette = malloc(768);
+		*palette = Q_malloc(768);
 		if (!(*palette))
 		{
 			R_Printf(PRINT_ALL, "Can't allocate\n");

@@ -109,97 +109,115 @@ qboolean show_gamepad = false, show_haptic = false, show_gyro = false;
 
 /* ------------------------------------------------------------------ */
 
-static int
+typedef struct {
+	int key;
+	qboolean special;
+} translated_t;
+
+static translated_t
 IN_TranslateScancode(const uint32_t scancode)
 {
 	switch (scancode)
 	{
-		case KB_A: return K_SC_A;
-		case KB_B: return K_SC_B;
-		case KB_C: return K_SC_C;
-		case KB_D: return K_SC_D;
-		case KB_E: return K_SC_E;
-		case KB_F: return K_SC_F;
-		case KB_G: return K_SC_G;
-		case KB_H: return K_SC_H;
-		case KB_I: return K_SC_I;
-		case KB_J: return K_SC_J;
-		case KB_K: return K_SC_K;
-		case KB_L: return K_SC_L;
-		case KB_M: return K_SC_M;
-		case KB_N: return K_SC_N;
-		case KB_O: return K_SC_O;
-		case KB_P: return K_SC_P;
-		case KB_Q: return K_SC_Q;
-		case KB_R: return K_SC_R;
-		case KB_S: return K_SC_S;
-		case KB_T: return K_SC_T;
-		case KB_U: return K_SC_U;
-		case KB_V: return K_SC_V;
-		case KB_W: return K_SC_W;
-		case KB_X: return K_SC_X;
-		case KB_Y: return K_SC_Y;
-		case KB_Z: return K_SC_Z;
+		case KB_A: return (translated_t){ 'a', false };
+		case KB_B: return (translated_t){ 'b', false };
+		case KB_C: return (translated_t){ 'c', false };
+		case KB_D: return (translated_t){ 'd', false };
+		case KB_E: return (translated_t){ 'e', false };
+		case KB_F: return (translated_t){ 'f', false };
+		case KB_G: return (translated_t){ 'g', false };
+		case KB_H: return (translated_t){ 'h', false };
+		case KB_I: return (translated_t){ 'i', false };
+		case KB_J: return (translated_t){ 'j', false };
+		case KB_K: return (translated_t){ 'k', false };
+		case KB_L: return (translated_t){ 'l', false };
+		case KB_M: return (translated_t){ 'm', false };
+		case KB_N: return (translated_t){ 'n', false };
+		case KB_O: return (translated_t){ 'o', false };
+		case KB_P: return (translated_t){ 'p', false };
+		case KB_Q: return (translated_t){ 'q', false };
+		case KB_R: return (translated_t){ 'r', false };
+		case KB_S: return (translated_t){ 's', false };
+		case KB_T: return (translated_t){ 't', false };
+		case KB_U: return (translated_t){ 'u', false };
+		case KB_V: return (translated_t){ 'v', false };
+		case KB_W: return (translated_t){ 'w', false };
+		case KB_X: return (translated_t){ 'x', false };
+		case KB_Y: return (translated_t){ 'y', false };
+		case KB_Z: return (translated_t){ 'z', false };
 
-		case KB_TAB: return K_TAB;
-		case KB_ENTER: return K_ENTER;
-		case KB_ESC: return K_ESCAPE;
-		case KB_BACKSPACE: return K_BACKSPACE;
+		case KB_0: return (translated_t){ '0', false };
+		case KB_1: return (translated_t){ '1', false };
+		case KB_2: return (translated_t){ '2', false };
+		case KB_3: return (translated_t){ '3', false };
+		case KB_4: return (translated_t){ '4', false };
+		case KB_5: return (translated_t){ '5', false };
+		case KB_6: return (translated_t){ '6', false };
+		case KB_7: return (translated_t){ '7', false };
+		case KB_8: return (translated_t){ '8', false };
+		case KB_9: return (translated_t){ '9', false };
+
+		case KB_SPACE: return (translated_t){ ' ', false };
+
+		case KB_TAB: return (translated_t){ K_TAB, true };
+		case KB_ENTER: return (translated_t){ K_ENTER, true };
+		case KB_ESC: return (translated_t){ K_ESCAPE, true };
+		case KB_BACKSPACE: return (translated_t){ K_BACKSPACE, true };
 		case KB_LMETA:
-		case KB_RMETA: return K_COMMAND; // Win key
-		case KB_ACPI_POWER: return K_POWER;
-		case KB_MM_PLAY_PAUSE: return K_PAUSE;
+		case KB_RMETA: return (translated_t){ K_COMMAND, true }; // Win key
+		case KB_ACPI_POWER: return (translated_t){ K_POWER, true };
+		case KB_MM_PLAY_PAUSE: return (translated_t){ K_PAUSE, true };
 
-		case KB_UP: return K_UPARROW;
-		case KB_DOWN: return K_DOWNARROW;
-		case KB_LEFT: return K_LEFTARROW;
-		case KB_RIGHT: return K_RIGHTARROW;
+		case KB_UP: return (translated_t){ K_UPARROW, true };
+		case KB_DOWN: return (translated_t){ K_DOWNARROW, true };
+		case KB_LEFT: return (translated_t){ K_LEFTARROW, true };
+		case KB_RIGHT: return (translated_t){ K_RIGHTARROW, true };
 
 		case KB_RALT:
-		case KB_LALT: return K_ALT;
+		case KB_LALT: return (translated_t){ K_ALT, true };
 		case KB_LCTRL:
-		case KB_RCTRL: return K_CTRL;
+		case KB_RCTRL: return (translated_t){ K_CTRL, true };
 		case KB_LSHIFT:
-		case KB_RSHIFT: return K_SHIFT;
-		case KB_INSERT: return K_INS;
-		case KB_DEL: return K_DEL;
-		case KB_PGDN: return K_PGDN;
-		case KB_PGUP: return K_PGUP;
-		case KB_HOME: return K_HOME;
-		case KB_END: return K_END;
+		case KB_RSHIFT: return (translated_t){ K_SHIFT, true };
+		case KB_INSERT: return (translated_t){ K_INS, true };
+		case KB_DEL: return (translated_t){ K_DEL, true };
+		case KB_PGDN: return (translated_t){ K_PGDN, true };
+		case KB_PGUP: return (translated_t){ K_PGUP, true };
+		case KB_HOME: return (translated_t){ K_HOME, true };
+		case KB_END: return (translated_t){ K_END, true };
 
-		case KB_F1: return K_F1;
-		case KB_F2: return K_F2;
-		case KB_F3: return K_F3;
-		case KB_F4: return K_F4;
-		case KB_F5: return K_F5;
-		case KB_F6: return K_F6;
-		case KB_F7: return K_F7;
-		case KB_F8: return K_F8;
-		case KB_F9: return K_F9;
-		case KB_F10: return K_F10;
-		case KB_F11: return K_F11;
-		case KB_F12: return K_F12;
+		case KB_F1: return (translated_t){ K_F1, true };
+		case KB_F2: return (translated_t){ K_F2, true };
+		case KB_F3: return (translated_t){ K_F3, true };
+		case KB_F4: return (translated_t){ K_F4, true };
+		case KB_F5: return (translated_t){ K_F5, true };
+		case KB_F6: return (translated_t){ K_F6, true };
+		case KB_F7: return (translated_t){ K_F7, true };
+		case KB_F8: return (translated_t){ K_F8, true };
+		case KB_F9: return (translated_t){ K_F9, true };
+		case KB_F10: return (translated_t){ K_F10, true };
+		case KB_F11: return (translated_t){ K_F11, true };
+		case KB_F12: return (translated_t){ K_F12, true };
 
-		case KB_KP_7: return K_KP_HOME;
-		case KB_KP_8: return K_KP_UPARROW;
-		case KB_KP_9: return K_KP_PGUP;
-		case KB_KP_4: return K_KP_LEFTARROW;
-		case KB_KP_5: return K_KP_5;
-		case KB_KP_6: return K_KP_RIGHTARROW;
-		case KB_KP_1: return K_KP_END;
-		case KB_KP_2: return K_KP_DOWNARROW;
-		case KB_KP_3: return K_KP_PGDN;
-		case KB_KP_ENTER: return K_KP_ENTER;
-		case KB_KP_0: return K_KP_INS;
-		case KB_KP_PERIOD: return K_KP_DEL;
-		case KB_KP_DIV: return K_KP_SLASH;
-		case KB_KP_MINUS: return K_KP_MINUS;
-		case KB_KP_PLUS: return K_KP_PLUS;
-		case KB_KP_MUL: return K_KP_STAR;
+		case KB_KP_7: return (translated_t){ K_KP_HOME, true };
+		case KB_KP_8: return (translated_t){ K_KP_UPARROW, true };
+		case KB_KP_9: return (translated_t){ K_KP_PGUP, true };
+		case KB_KP_4: return (translated_t){ K_KP_LEFTARROW, true };
+		case KB_KP_5: return (translated_t){ K_KP_5, true };
+		case KB_KP_6: return (translated_t){ K_KP_RIGHTARROW, true };
+		case KB_KP_1: return (translated_t){ K_KP_END, true };
+		case KB_KP_2: return (translated_t){ K_KP_DOWNARROW, true };
+		case KB_KP_3: return (translated_t){ K_KP_PGDN, true };
+		case KB_KP_ENTER: return (translated_t){ K_KP_ENTER, true };
+		case KB_KP_0: return (translated_t){ K_KP_INS, true };
+		case KB_KP_PERIOD: return (translated_t){ K_KP_DEL, true };
+		case KB_KP_DIV: return (translated_t){ K_KP_SLASH, true };
+		case KB_KP_MINUS: return (translated_t){ K_KP_MINUS, true };
+		case KB_KP_PLUS: return (translated_t){ K_KP_PLUS, true };
+		case KB_KP_MUL: return (translated_t){ K_KP_STAR, true };
 
 		default:
-			return 0;
+			return (translated_t){ 0, true };
 	}
 }
 
@@ -211,21 +229,22 @@ IN_HandleKeyboardEvents(void)
 	while ((event = kb_get_next_event()) != 0U)
 	{
 		const uint32_t sc = kb_event_scancode(event);
-		const uint32_t key = IN_TranslateScancode(sc);
 		const uint32_t c = kb_event_to_char(event);
 		const qboolean press = kb_event_is_press(event);
+		const translated_t tk = IN_TranslateScancode(sc);
 
 		if (c != 0U && press)
 		{
 			Char_Event((int)c);
 		}
 
-		if (key != 0)
+		if (tk.key != 0)
 		{
-			/* Most non-printable characters are considered special */
-			const qboolean special = (c == 0U) || !(c >= 32 && c <= 126);
-
-			Key_Event(key, press, special);
+			Key_Event(tk.key, press, tk.special);
+		}
+		else if (c >= 32 && c <= 126)
+		{
+			Key_Event(c, press, false);
 		}
 	}
 }
@@ -263,8 +282,8 @@ IN_HandleMouseMovementEvents(void)
 		static uint16_t old_x;
 		static uint16_t old_y;
 		uint32_t mouse_pos = MMIO(MOUSEPOS);
-		uint16_t x = (uint16_t)(mouse_pos >> 16);
-		uint16_t y = (uint16_t)(mouse_pos & 0xffffU);
+		uint16_t x = (uint16_t)(mouse_pos & 0xffffU);
+		uint16_t y = (uint16_t)(mouse_pos >> 16);
 		mouse_dx = (int)(int16_t)(x - old_x);
 		mouse_dy = (int)(int16_t)(y - old_y);
 		old_x = x;

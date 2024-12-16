@@ -42,6 +42,13 @@
 #include <mr32intrin.h>
 #endif
 
+static inline void*
+Q_malloc(size_t size)
+{
+  /* Make sure that allocated memory is zero-initialized */
+  return calloc(size, 1);
+}
+
 #ifdef true
  #undef true
 #endif

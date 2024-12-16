@@ -95,7 +95,7 @@ static size_t CL_HTTP_Recv(void *ptr, size_t size, size_t nmemb, void *stream)
 		}
 
 		dl->fileSize = ceil(length) + 1;
-		dl->tempBuffer = malloc(dl->fileSize);
+		dl->tempBuffer = Q_malloc(dl->fileSize);
 	}
 	else if (dl->position + bytes >= dl->fileSize)
 	{
@@ -1095,9 +1095,9 @@ qboolean CL_QueueHTTPDownload(const char *quakePath, qboolean gamedirForFilelist
 		}
 	}
 
-	q->next = malloc(sizeof(*q));
+	q->next = Q_malloc(sizeof(*q));
 
-	MC1Q2_COM_CHECK_OOM(q->next, "malloc(sizeof(*q))", sizeof(*q))
+	MC1Q2_COM_CHECK_OOM(q->next, "Q_malloc(sizeof(*q))", sizeof(*q))
 
 	q = q->next;
 	q->next = NULL;

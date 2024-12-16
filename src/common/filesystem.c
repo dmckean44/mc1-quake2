@@ -844,7 +844,7 @@ FS_LoadPAK(const char *packPath)
 				__func__, packPath, numFiles, MAX_FILES_IN_PACK);
 	}
 
-	info = malloc(header.dirlen);
+	info = Q_malloc(header.dirlen);
 	if (!info)
 	{
 		Com_Error(ERR_FATAL, "%s: '%s' is to big for read %d",
@@ -1235,8 +1235,8 @@ FS_ListFiles2(char *findname, int *numfiles,
 	char path[MAX_OSPATH]; /* Temporary path. */
 
 	nfiles = 0;
-	list = malloc(sizeof(char *));
-	MC1Q2_COM_CHECK_OOM(list, "malloc()", sizeof(char*))
+	list = Q_malloc(sizeof(char *));
+	MC1Q2_COM_CHECK_OOM(list, "Q_malloc()", sizeof(char*))
 
 	for (search = fs_searchPaths; search != NULL; search = search->next)
 	{
@@ -1324,8 +1324,8 @@ FS_ListFiles2(char *findname, int *numfiles,
 	if (tmpnfiles > 0)
 	{
 		nfiles -= tmpnfiles;
-		tmplist = malloc(nfiles * sizeof(char *));
-		MC1Q2_COM_CHECK_OOM(tmplist, "malloc()", (size_t)nfiles*sizeof(char*))
+		tmplist = Q_malloc(nfiles * sizeof(char *));
+		MC1Q2_COM_CHECK_OOM(tmplist, "Q_malloc()", (size_t)nfiles*sizeof(char*))
 
 		for (i = 0, j = 0; i < nfiles + tmpnfiles; i++)
 		{
@@ -1414,7 +1414,7 @@ FS_ListMods(int *nummods)
 	char findnamepattern[MAX_OSPATH], modname[MAX_QPATH], searchpath[MAX_OSPATH];
 	char **dirchildren, **packsinchilddir, **modnames;
 
-	modnames = malloc((MAX_QPATH + 1) * (MAX_MODS + 1));
+	modnames = Q_malloc((MAX_QPATH + 1) * (MAX_MODS + 1));
 	memset(modnames, 0, (MAX_QPATH + 1) * (MAX_MODS + 1));
 
 	// iterate over all Raw paths
@@ -1481,7 +1481,7 @@ FS_ListMods(int *nummods)
 
 						if (!matchfound)
 						{
-							modnames[nmods] = malloc(strlen(modname) + 1);
+							modnames[nmods] = Q_malloc(strlen(modname) + 1);
 							strcpy(modnames[nmods], modname);
 
 							nmods++;

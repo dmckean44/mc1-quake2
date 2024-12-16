@@ -8,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # CMake project configuration.
-project(mc1-quake2 C)
+project(mc1-quake2 C ASM)
 
 # Cmake module search path.
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/stuff/cmake/modules ${CMAKE_MODULE_PATH})
@@ -768,6 +768,12 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_soft"))
 		${REF_SRC_DIR}/files/wal.c
 		${REF_SRC_DIR}/files/pvs.c
 		)
+
+	if(MC1)
+		list(APPEND SOFT-Source
+			${REF_SRC_DIR}/soft/sw_surf_mr32.s
+			)
+	endif()
 
 	set(SOFT-Header
 		${REF_SRC_DIR}/ref_shared.h

@@ -134,7 +134,7 @@ GL3_ScreenShot(void)
 #else // Desktop GL
 	static const int comps = 3;
 #endif
-	byte *buffer = malloc(w*h*comps);
+	byte *buffer = Q_malloc(w*h*comps);
 
 	if (!buffer)
 	{

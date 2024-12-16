@@ -300,31 +300,21 @@ FIXME: GET RID OF THIS! (FloorDivMod)
 ====================
 */
 static void
-FloorDivMod (float numer, float denom, int *quotient,
+FloorDivMod (int numer, int denom, int *quotient,
 		int *rem)
 {
-	int		q, r;
-	float	x;
+	int n = (numer >= 0) ? numer : -numer;
+	int q = n / denom;
+	int r = n - q * denom;
 
-	if (numer >= 0.0F)
+	// For the negative case, fix mod to make floor-based
+	if (numer < 0)
 	{
-
-		x = floorf(numer / denom);
-		q = (int)x;
-		r = (int)floorf(numer - (x * denom));
-	}
-	else
-	{
-		//
-		// perform operations with positive values, and fix mod to make floor-based
-		//
-		x = floorf(-numer / denom);
-		q = -(int)x;
-		r = (int)floorf(-numer - (x * denom));
+		q = -q;
 		if (r != 0)
 		{
 			q--;
-			r = (int)denom - r;
+			r = denom - r;
 		}
 	}
 
@@ -342,7 +332,7 @@ static void
 R_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 		fixed8_t endvertu, fixed8_t endvertv)
 {
-	float		tm, tn;
+	fixed8_t		tm, tn;
 
 	errorterm = -1;
 

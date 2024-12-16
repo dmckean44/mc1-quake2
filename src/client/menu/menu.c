@@ -3203,7 +3203,7 @@ Mods_MenuInit(void)
     Mods_NamesInit();
 
     // create array of bracketed display names from folder names - TG626
-    char **displaynames=malloc(sizeof(*displaynames) * (nummods+1));
+    char **displaynames=Q_malloc(sizeof(*displaynames) * (nummods+1));
 
     for (int i=0; i < nummods; i++)
     {
@@ -3223,7 +3223,7 @@ Mods_MenuInit(void)
         }
         strcat(modname, "]");
 
-        displaynames[i] = malloc(strlen(modname) + 1);
+        displaynames[i] = Q_malloc(strlen(modname) + 1);
         strcpy(displaynames[i], modname);
     }
     displaynames[nummods] = NULL;
@@ -4361,9 +4361,9 @@ StartServer_MenuInit(void)
         }
 
         nummapslen = sizeof(char *) * (nummaps + 1);
-        mapnames = malloc(nummapslen);
+        mapnames = Q_malloc(nummapslen);
 
-        MC1Q2_COM_CHECK_OOM(mapnames, "malloc(sizeof(char *) * (nummaps + 1))", nummapslen)
+        MC1Q2_COM_CHECK_OOM(mapnames, "Q_malloc(sizeof(char *) * (nummaps + 1))", nummapslen)
 
         memset(mapnames, 0, nummapslen);
 
@@ -5576,10 +5576,10 @@ PlayerDirectoryList(void)
 
         ReplaceCharacters(list[i], '\\', '/');
 
-        char* s = (char*)malloc(MAX_QPATH);
+        char* s = (char*)Q_malloc(MAX_QPATH);
         char* t = list[i];
 
-        MC1Q2_COM_CHECK_OOM(s, "malloc()", MAX_QPATH * sizeof(char))
+        MC1Q2_COM_CHECK_OOM(s, "Q_malloc()", MAX_QPATH * sizeof(char))
         
         Q_strlcpy(s, t, MAX_QPATH);
         data[i] = s;
@@ -5669,8 +5669,8 @@ PlayerModelList(void)
         }
 
         // malloc skinnames
-        data = (char**)malloc((s_skinnames[mdl].num + 1) * sizeof(char*));
-        MC1Q2_COM_CHECK_OOM(data, "malloc()", (s_skinnames[mdl].num + 1) * sizeof(char*))
+        data = (char**)Q_malloc((s_skinnames[mdl].num + 1) * sizeof(char*));
+        MC1Q2_COM_CHECK_OOM(data, "Q_malloc()", (s_skinnames[mdl].num + 1) * sizeof(char*))
         memset(data, 0, (s_skinnames[mdl].num + 1) * sizeof(char*));
         
         s_skinnames[mdl].data = data;
@@ -5691,10 +5691,10 @@ PlayerModelList(void)
                 {
                     ReplaceCharacters(list[k], '\\', '/');
 
-                    s = (char*)malloc(MAX_DISPLAYNAME);
+                    s = (char*)Q_malloc(MAX_DISPLAYNAME);
                     t = strrchr(list[k], '/');
 
-                    MC1Q2_COM_CHECK_OOM(s, "malloc()", MAX_DISPLAYNAME * sizeof(char))
+                    MC1Q2_COM_CHECK_OOM(s, "Q_malloc()", MAX_DISPLAYNAME * sizeof(char))
 
                     StripExtension(t);
                     Q_strlcpy(s, t + 1, MAX_DISPLAYNAME);
@@ -5708,10 +5708,10 @@ PlayerModelList(void)
         qsort(s_skinnames[mdl].data, s_skinnames[mdl].num, sizeof(char**), Q_sort_strcomp);
 
         // at this point we have a valid player model
-        s = (char*)malloc(MAX_DISPLAYNAME);
+        s = (char*)Q_malloc(MAX_DISPLAYNAME);
         t = strrchr(s_directory.data[i], '/');
 
-        MC1Q2_COM_CHECK_OOM(s, "malloc()", MAX_DISPLAYNAME * sizeof(char))
+        MC1Q2_COM_CHECK_OOM(s, "Q_malloc()", MAX_DISPLAYNAME * sizeof(char))
 
         Q_strlcpy(s, t + 1, MAX_DISPLAYNAME);
 

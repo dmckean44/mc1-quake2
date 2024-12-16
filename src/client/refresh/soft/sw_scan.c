@@ -132,6 +132,7 @@ D_DrawSpanGetStep(float d_zistepu, float d_zistepv)
 	return spanzshift;
 }
 
+#if !defined(__MRISC32_VECTOR_OPS__)
 /*
 =============
 D_DrawZSpanGetStepValue
@@ -153,6 +154,7 @@ D_DrawZSpanGetStepValue(zvalue_t izistep)
 
 	return count;
 }
+#endif  // !__MRISC32_VECTOR_OPS__
 
 /*
 =============
@@ -507,6 +509,40 @@ D_DrawSpan
 static pixel_t *
 D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int tstep, int spancount)
 {
+#if defined(__MRISC32_VECTOR_OPS__)
+	const int _cachewidth = cachewidth;
+	int sstepN, tstepN;
+	__asm__ volatile(
+		"    getsr   vl, #0x10\n"
+		"    mul     %[sstepN], %[sstep], vl\n"
+		"    mul     %[tstepN], %[tstep], vl\n"
+		"    ldea    v1, [%[s], %[sstep]]\n"
+		"    ldea    v2, [%[t], %[tstep]]\n"
+		"1:\n"
+		"    min     vl, vl, %[count]\n"
+		"    sub     %[count], %[count], vl\n"
+		"    asr     v3, v1, #16\n"
+		"    asr     v4, v2, #16\n"
+		"    madd    v3, v4, %[_cachewidth]\n"
+		"    ldub    v3, [%[pbase], v3]\n"
+		"    add     v1, v1, %[sstepN]\n"
+		"    add     v2, v2, %[tstepN]\n"
+		"    stb     v3, [%[pdest], #1]\n"
+		"    ldea    %[pdest], [%[pdest], vl]\n"
+		"    bnz     %[count], 1b\n"
+		: [pdest] "+r"(pdest),
+		  [s] "+r"(s),
+		  [t] "+r"(t),
+		  [sstepN] "=&r"(sstepN),
+		  [tstepN] "=&r"(tstepN)
+		: [pbase] "r"(pbase),
+		  [count] "r"(spancount),
+		  [sstep] "r"(sstep),
+		  [tstep] "r"(tstep),
+		  [_cachewidth] "r"(_cachewidth)
+		: "vl", "v1", "v2", "v3", "v4"
+	);
+#else
 	const pixel_t *tdest_max = pdest + spancount;
 	const int _cachewidth = cachewidth;
 
@@ -544,6 +580,7 @@ D_DrawSpan(pixel_t *pdest, const pixel_t *pbase, int s, int t, int sstep, int ts
 			t += tstep;
 		} while (pdest < tdest_max);
 	}
+#endif
 
 	return pdest;
 }
@@ -748,12 +785,13 @@ void
 D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv)
 {
 	zvalue_t	izistep;
-	int		safe_step;
 
 	// FIXME: check for clamping/range problems
 	// we count on FP exceptions being turned off to avoid range problems
 	izistep = (int)(d_zistepu * 0x8000 * (float)SHIFT16XYZ_MULT);
-	safe_step = D_DrawZSpanGetStepValue(izistep);
+#if !defined(__MRISC32_VECTOR_OPS__)
+	int safe_step = D_DrawZSpanGetStepValue(izistep);
+#endif
 
 	do
 	{
@@ -781,6 +819,62 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 		dv = (float)pspan->v;
 
 		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
+
+#if defined(__MRISC32_VECTOR_OPS__)
+		// This vectorized routine takes <3 clock-cycles per pixel.
+		uint32_t	count2;
+		int32_t	izistep2;
+		int32_t	tmp;
+		__asm__ volatile(
+			// izi = (int)(zi * 0x8000 * (float)SHIFT16XYZ_MULT);
+			"    ldi     %[tmp], #15+16\n"
+			"    ftoi    %[izi], %[zi], %[tmp]\n"
+
+			// Align to a multiple of two Z samples if necessary.
+			"    and     %[tmp], %[pdest], #2\n"
+			"    bz      %[tmp], 1f\n"
+			"    bz      %[count], 4f\n"
+			"    asr     %[tmp], %[izi], #16\n"
+			"    sth     %[tmp], [%[pdest], #0]\n"
+			"    add     %[izi], %[izi], %[izistep]\n"
+			"    ldea    %[pdest], [%[pdest], #2]\n"
+			"    add     %[count], %[count], #-1\n"
+			"1:\n"
+
+			// Main vectorized case.
+			"    lsr     %[count2], %[count], #1\n"
+			"    bz      %[count2], 3f\n"
+			"    getsr   vl, #0x10\n"
+			"    lsl     %[izistep2], %[izistep], #1\n"
+			"2:\n"
+			"    min     vl, vl, %[count2]\n"
+			"    sub     %[count2], %[count2], vl\n"
+			"    ldea    v1, [%[izi], %[izistep]*2]\n"
+			"    add     v2, v1, %[izistep]\n"
+			"    packhi  v2, v2, v1\n"
+			"    stw     v2, [%[pdest], #4]\n"
+			"    madd    %[izi], %[izistep2], vl\n"
+			"    ldea    %[pdest], [%[pdest], vl*4]\n"
+			"    bnz     %[count2], 2b\n"
+			"3:\n"
+
+			// Handle tail if necessary.
+			"    and     %[tmp], %[count], #1\n"
+			"    bz      %[tmp], 4f\n"
+			"    asr     %[tmp], %[izi], #16\n"
+			"    sth     %[tmp], [%[pdest], #0]\n"
+			"4:"
+		: [pdest] "+r"(pdest),
+		  [count] "+r"(count),
+		  [izi] "=&r"(izi),
+		  [count2] "=&r"(count2),
+		  [izistep2] "=&r"(izistep2),
+		  [tmp] "=&r"(tmp)
+		: [zi] "r"(zi),
+		  [izistep] "r"(izistep)
+		: "vl", "v1", "v2"
+		);
+#else
 		// we count on FP exceptions being turned off to avoid range problems
 		izi = (int)(zi * 0x8000 * (float)SHIFT16XYZ_MULT);
 
@@ -802,7 +896,7 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 		else
 		{
 			/* Align to a multiple of two Z samples if necessary */
-			if ((((uintptr_t)pdest) & 2U) != 0U)
+			if ((((uintptr_t)pdest) & 2U) != 0U && count > 0)
 			{
 				*pdest++ = (zbufvalue_t)(izi >> SHIFT16XYZ);
 				izi += izistep;
@@ -833,5 +927,6 @@ D_DrawZSpans (espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv
 				*pdest++ = (zbufvalue_t)(izi >> SHIFT16XYZ);
 			}
 		}
+#endif
 	} while ((pspan = pspan->pnext) != NULL);
 }

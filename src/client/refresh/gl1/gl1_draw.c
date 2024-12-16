@@ -411,7 +411,7 @@ RDraw_StretchRaw(int x, int y, int w, int h, int cols, int rows, const byte *dat
 			{
 				/* in case there is a bigger video after all,
 				 * malloc enough space to hold the frame */
-				img = (unsigned*)malloc(cols*rows*4);
+				img = (unsigned*)Q_malloc(cols*rows*4);
 			}
 
 			for(i=0; i<rows; ++i)

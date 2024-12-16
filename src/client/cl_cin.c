@@ -34,7 +34,7 @@
 #define STBI_NO_LINEAR
 #define STBI_NO_HDR
 // make sure STB_image uses standard malloc(), as we'll use standard free() to deallocate
-#define STBI_MALLOC(sz)    malloc(sz)
+#define STBI_MALLOC(sz)    Q_malloc(sz)
 #define STBI_REALLOC(p,sz) realloc(p,sz)
 #define STBI_FREE(p)       free(p)
 // Switch of the thread local stuff. Breaks mingw under Windows.

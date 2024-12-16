@@ -241,7 +241,7 @@ qboolean
 GL3_Upload8(byte *data, int width, int height, qboolean mipmap, qboolean is_sky)
 {
 	int s = width * height;
-	unsigned *trans = malloc(s * sizeof(unsigned));
+	unsigned *trans = Q_malloc(s * sizeof(unsigned));
 
 	for (int i = 0; i < s; i++)
 	{
@@ -455,7 +455,7 @@ GL3_LoadPic(char *name, byte *pic, int width, int realwidth,
 			if (!nolerp && (vid.height >= 240 * 3))
 				scale = 3;
 
-			image_converted = malloc(width * height * scale * scale);
+			image_converted = Q_malloc(width * height * scale * scale);
 			if (!image_converted)
 				return NULL;
 
