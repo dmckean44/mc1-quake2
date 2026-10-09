@@ -18,6 +18,9 @@ Memory timing is given per region (rom, vram, xram, mmio):
 * `--write` cycles the memory port is busy per store
 * `--wq` store queue depth
 
+* `--low xram` time addresses below 0x40000000 as SDRAM (for programs built
+  for the simulator without the MC1 SDK, which run from low memory)
+
 Defaults approximate today's MC1 (16-bit SDRAM, one row cycle per 32-bit
 access). `--fill 8,8,24,4 --write 1,1,2,4 --wq 8` approximates the planned
 MiSTer memory path with a write-back cache in front of SDRAM.
