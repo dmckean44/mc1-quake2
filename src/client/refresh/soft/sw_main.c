@@ -137,6 +137,7 @@ image_t  	*r_notexture_mip;
 float	da_time1, da_time2, dp_time1, dp_time2, db_time1, db_time2, rw_time1, rw_time2;
 float	se_time1, se_time2, de_time1, de_time2;
 
+cvar_t	*sw_lodsize;
 cvar_t	*r_lefthand;
 cvar_t	*r_gunfov;
 cvar_t	*r_farsee;
@@ -374,6 +375,7 @@ R_RegisterVariables (void)
 	sw_draworder = ri.Cvar_Get ("sw_draworder", "0", 0);
 	sw_mipcap = ri.Cvar_Get ("sw_mipcap", "0", 0);
 	sw_mipscale = ri.Cvar_Get ("sw_mipscale", "1", 0);
+	sw_lodsize = ri.Cvar_Get ("sw_lodsize", "48", CVAR_ARCHIVE);
 	sw_stipplealpha = ri.Cvar_Get( "sw_stipplealpha", "0", CVAR_ARCHIVE );
 	sw_surfcacheoverride = ri.Cvar_Get ("sw_surfcacheoverride", "0", 0);
 	sw_waterwarp = ri.Cvar_Get ("sw_waterwarp", "1", 0);

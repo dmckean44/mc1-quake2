@@ -425,6 +425,7 @@ extern cvar_t	*sw_drawflat;
 extern cvar_t	*sw_draworder;
 extern cvar_t	*sw_mipcap;
 extern cvar_t	*sw_mipscale;
+extern cvar_t	*sw_lodsize;
 extern cvar_t	*sw_stipplealpha;
 extern cvar_t	*sw_surfcacheoverride;
 extern cvar_t	*sw_waterwarp;

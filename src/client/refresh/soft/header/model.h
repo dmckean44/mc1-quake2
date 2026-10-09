@@ -142,6 +142,7 @@ typedef struct model_s
 	image_t		*skins[MAX_MD2SKINS];
 	void		*extradata;
 	int		extradatasize;
+	void		*lodextradata;	// simplified alias model used at a distance
 
 	// submodules
 	vec3_t		origin;	// for sounds or lights

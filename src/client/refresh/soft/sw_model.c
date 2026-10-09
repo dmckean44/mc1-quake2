@@ -117,6 +117,53 @@ Mod_Init (void)
 
 /*
 ==================
+Mod_LoadAliasLod
+
+Loads "foo_lod.md2" next to "foo.md2" if the game data has one
+==================
+*/
+static void *
+Mod_LoadAliasLod(const model_t *mod)
+{
+	char name[MAX_QPATH];
+	vec3_t mins, maxs;
+	struct image_s *skins[MAX_MD2SKINS];
+	modtype_t type;
+	void *buf, *lod;
+	size_t base = strlen(mod->name);
+	int len;
+
+	if (base < 4 || base + 4 >= sizeof(name) || Q_stricmp(mod->name + base - 4, ".md2"))
+	{
+		return NULL;
+	}
+	base -= 4;
+	memcpy(name, mod->name, base);
+	strcpy(name + base, "_lod.md2");
+
+	len = ri.FS_LoadFile(name, &buf);
+	if (!buf)
+	{
+		return NULL;
+	}
+	lod = Mod_LoadMD2(name, buf, len, mins, maxs, skins, (findimage_t)R_FindImage, &type);
+	ri.FS_FreeFile(buf);
+	if (!lod)
+	{
+		return NULL;
+	}
+	Hunk_End();
+
+	if (((dmdl_t *)lod)->num_frames != ((dmdl_t *)mod->extradata)->num_frames)
+	{
+		Hunk_Free(lod);
+		return NULL;
+	}
+	return lod;
+}
+
+/*
+==================
 Mod_ForName
 
 Loads in a model for the given name
@@ -236,6 +283,11 @@ Mod_ForName (char *name, model_t *parent_model, qboolean crash)
 	mod->extradatasize = Hunk_End();
 
 	ri.FS_FreeFile(buf);
+
+	if (mod->type == mod_alias)
+	{
+		mod->lodextradata = Mod_LoadAliasLod(mod);
+	}
 
 	return mod;
 }
@@ -794,6 +846,10 @@ Mod_Free
 void
 Mod_Free (model_t *mod)
 {
+	if (mod->lodextradata)
+	{
+		Hunk_Free (mod->lodextradata);
+	}
 	Hunk_Free (mod->extradata);
 	memset (mod, 0, sizeof(*mod));
 }

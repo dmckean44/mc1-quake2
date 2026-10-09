@@ -721,10 +721,27 @@ void R_PolysetDrawSpansConstant8_66(const entity_t *currententity, spanpackage_t
 R_AliasDrawModel
 ================
 */
+static dmdl_t *
+R_AliasSelectLod(const entity_t *currententity, const model_t *currentmodel)
+{
+	vec3_t delta;
+
+	if (currentmodel->lodextradata && sw_lodsize->value > 0 &&
+		!(currententity->flags & RF_WEAPONMODEL))
+	{
+		VectorSubtract(currententity->origin, r_origin, delta);
+		if (DotProduct(delta, vpn) * sw_lodsize->value > 64.0f * xscale)
+		{
+			return (dmdl_t *)currentmodel->lodextradata;
+		}
+	}
+	return (dmdl_t *)currentmodel->extradata;
+}
+
 void
 R_AliasDrawModel(entity_t *currententity, const model_t *currentmodel)
 {
-	s_pmdl = (dmdl_t *)currentmodel->extradata;
+	s_pmdl = R_AliasSelectLod(currententity, currentmodel);
 
 	if ( r_lerpmodels->value == 0 )
 		currententity->backlerp = 0;
