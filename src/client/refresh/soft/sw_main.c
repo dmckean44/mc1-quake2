@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #elif defined(MC1)
 #include <sys/time.h>
 #include <mc1/framebuffer.h>
+#include <mc1/memory.h>
 #endif
 
 #include "header/local.h"
@@ -41,6 +42,12 @@ viddef_t	vid;
 pixel_t		*vid_buffer = NULL;
 static pixel_t	*swap_buffers = NULL;
 static pixel_t	*swap_frames[2] = {NULL, NULL};
+#if defined(MC1)
+static fb_t* s_fb;
+static fb_t* s_flipfb[2];
+static int s_backfb;
+static zbufvalue_t* s_vramzbuffer;
+#endif
 static int	swap_current = 0;
 espan_t		*vid_polygon_spans = NULL;
 pixel_t		*vid_colormap = NULL;
@@ -500,14 +507,22 @@ RE_Shutdown
 ===============
 */
 static void
-RE_Shutdown (void)
+R_FreeZBuffer(void)
 {
-	// free z buffer
-	if (d_pzbuffer)
+#if defined(MC1)
+	if (d_pzbuffer == s_vramzbuffer)
 	{
-		free (d_pzbuffer);
 		d_pzbuffer = NULL;
 	}
+#endif
+	free(d_pzbuffer);
+	d_pzbuffer = NULL;
+}
+
+static void
+RE_Shutdown (void)
+{
+	R_FreeZBuffer();
 	// free surface cache
 	if (sc_base)
 	{
@@ -1439,12 +1454,7 @@ RE_RenderFrame (refdef_t *fd)
 static void
 R_InitGraphics( int width, int height )
 {
-	// free z buffer
-	if ( d_pzbuffer )
-	{
-		free(d_pzbuffer);
-		d_pzbuffer = NULL;
-	}
+	R_FreeZBuffer();
 
 	// free surface cache
 	if ( sc_base )
@@ -1454,7 +1464,16 @@ R_InitGraphics( int width, int height )
 		sc_base = NULL;
 	}
 
-	d_pzbuffer = Q_malloc(width * height * sizeof(zbufvalue_t));
+#if defined(MC1)
+	if (s_vramzbuffer)
+	{
+		d_pzbuffer = s_vramzbuffer;
+	}
+	else
+#endif
+	{
+		d_pzbuffer = Q_malloc(width * height * sizeof(zbufvalue_t));
+	}
 
 	R_InitCaches();
 
@@ -1913,11 +1932,6 @@ static SDL_Texture	*texture = NULL;
 static SDL_Renderer	*renderer = NULL;
 #endif
 
-#if defined(MC1)
-static fb_t* s_fb;
-static fb_t* s_flipfb[2];
-static int s_backfb;
-#endif
 
 int vid_buffer_height = 0;
 int vid_buffer_width = 0;
@@ -1947,7 +1961,12 @@ RE_InitContext(void *win)
 		s_flipfb[1] = fb_create(s_fb->width, s_fb->height, s_fb->mode);
 	}
 	s_backfb = 1;
-	R_Printf(PRINT_ALL, "Page flipping: %s\n", s_flipfb[1] ? "on" : "off");
+	if (s_flipfb[1])
+	{
+		s_vramzbuffer = vmem_alloc(s_fb->width * s_fb->height * sizeof(zbufvalue_t));
+	}
+	R_Printf(PRINT_ALL, "Page flipping: %s, Z buffer in VRAM: %s\n",
+		s_flipfb[1] ? "on" : "off", s_vramzbuffer ? "yes" : "no");
 #endif
 
 #if defined(USE_SDL)
@@ -2024,6 +2043,15 @@ static void
 RE_ShutdownContext(void)
 {
 #if defined(MC1)
+	if (s_vramzbuffer)
+	{
+		if (d_pzbuffer == s_vramzbuffer)
+		{
+			d_pzbuffer = NULL;
+		}
+		vmem_free(s_vramzbuffer);
+		s_vramzbuffer = NULL;
+	}
 	if (s_flipfb[1])
 	{
 		fb_destroy(s_flipfb[1]);

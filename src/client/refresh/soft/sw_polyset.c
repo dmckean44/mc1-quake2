@@ -672,6 +672,77 @@ R_PolysetDrawSpansConstant8_66(const entity_t *currententity, spanpackage_t *psp
 	} while ((pspanpackage < triangles_max) && (pspanpackage->count != INT_MIN));
 }
 
+#if defined(__MRISC32_VECTOR_OPS__) && !defined(ENABLE_SW_COLORLIGHT)
+/*
+ * Element k of a span reads texel ((s + k*sstep) >> 16) + ((t + k*tstep) >> 16) * skinwidth,
+ * which is what the scalar loop's whole/fraction stepping adds up to.
+ */
+static void
+R_PolysetDrawSpanVec(pixel_t *pdest, zbufvalue_t *pz, const pixel_t *ptex, int count,
+	int s, int t, int light, int zi)
+{
+	const int lightmask = LIGHTMASK;
+	int sstepN, tstepN, lstepN, zstepN;
+
+	__asm__ volatile(
+		"    getsr   vl, #0x10\n"
+		"    mul     %[sstepN], %[sstep], vl\n"
+		"    mul     %[tstepN], %[tstep], vl\n"
+		"    mul     %[lstepN], %[lstep], vl\n"
+		"    mul     %[zstepN], %[zstep], vl\n"
+		"1:\n"
+		"    min     vl, vl, %[count]\n"
+		"    sub     %[count], %[count], vl\n"
+		"    ldea    v1, [%[s], %[sstep]]\n"
+		"    ldea    v2, [%[t], %[tstep]]\n"
+		"    asr     v1, v1, #16\n"
+		"    asr     v2, v2, #16\n"
+		"    madd    v1, v2, %[skinwidth]\n"
+		"    ldub    v1, [%[ptex], v1]\n"
+		"    ldea    v2, [%[light], %[lstep]]\n"
+		"    and     v2, v2, %[lightmask]\n"
+		"    add     v1, v1, v2\n"
+		"    ldub    v1, [%[colormap], v1]\n"
+		"    ldea    v2, [%[zi], %[zstep]]\n"
+		"    asr     v2, v2, #16\n"
+		"    ldh     v3, [%[pz], #2]\n"
+		"    sle     v4, v3, v2\n"
+		"    max     v3, v3, v2\n"
+		"    sth     v3, [%[pz], #2]\n"
+		"    ldub    v2, [%[pdest], #1]\n"
+		"    sel     v4, v1, v2\n"
+		"    stb     v4, [%[pdest], #1]\n"
+		"    add     %[s], %[s], %[sstepN]\n"
+		"    add     %[t], %[t], %[tstepN]\n"
+		"    add     %[light], %[light], %[lstepN]\n"
+		"    add     %[zi], %[zi], %[zstepN]\n"
+		"    ldea    %[pz], [%[pz], vl*2]\n"
+		"    ldea    %[pdest], [%[pdest], vl]\n"
+		"    bnz     %[count], 1b\n"
+		: [pdest] "+r"(pdest),
+		  [pz] "+r"(pz),
+		  [count] "+r"(count),
+		  [s] "+r"(s),
+		  [t] "+r"(t),
+		  [light] "+r"(light),
+		  [zi] "+r"(zi),
+		  [sstepN] "=&r"(sstepN),
+		  [tstepN] "=&r"(tstepN),
+		  [lstepN] "=&r"(lstepN),
+		  [zstepN] "=&r"(zstepN)
+		: [ptex] "r"(ptex),
+		  [colormap] "r"(vid_colormap),
+		  [skinwidth] "r"(r_affinetridesc.skinwidth),
+		  [lightmask] "r"(lightmask),
+		  [sstep] "r"(r_sstepx),
+		  [tstep] "r"(r_tstepx),
+		  [lstep] "r"(r_lstepx[0]),
+		  [zstep] "r"(r_zistepx)
+		: "vl", "v1", "v2", "v3", "v4", "memory"
+	);
+}
+#endif
+
 void
 R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanpackage)
 {
@@ -726,6 +797,14 @@ R_PolysetDrawSpans8_Opaque (const entity_t *currententity, spanpackage_t *pspanp
 #endif
 			lzi = pspanpackage->zi;
 
+#if defined(__MRISC32_VECTOR_OPS__) && !defined(ENABLE_SW_COLORLIGHT)
+			if (!ir_visible)
+			{
+				R_PolysetDrawSpanVec(lpdest, lpz, lptex, lcount, lsfrac, ltfrac, llight, lzi);
+				zdamaged = true;
+			}
+			else
+#endif
 			do
 			{
 				if ((lzi >> SHIFT16XYZ) >= (zvalue_t)*lpz)
