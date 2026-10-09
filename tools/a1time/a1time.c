@@ -44,7 +44,8 @@ static struct {
     uint32_t div_stall, fdiv_stall, mispredict, vc_penalty;
     uint64_t start, end;
     int top;
-} cfg = {65536, 32768, 32, 32, 4, {8, 8, 75, 4}, {1, 1, 9, 4}, 15, 12, 3, 2, 0, UINT64_MAX, 40};
+    int low_region;
+} cfg = {65536, 32768, 32, 32, 4, {8, 8, 75, 4}, {1, 1, 9, 4}, 15, 12, 3, 2, 0, UINT64_MAX, 40, R_ROM};
 
 static pcinfo_t *info;
 static uint32_t info_base, info_count, num_funcs;
@@ -86,7 +87,7 @@ static int region_of(uint32_t addr)
 {
     switch (addr >> 30)
     {
-        case 0: return R_ROM;
+        case 0: return cfg.low_region;
         case 1: return R_VRAM;
         case 2: return R_XRAM;
         default: return R_MMIO;
@@ -179,7 +180,8 @@ static uint32_t mem_address(const pcinfo_t *pi, const rec_t *r, int element)
     {
         case 0: return r->a + (uint32_t)pi->imm * k;
         case 1: return r->a + r->b * pi->scale * k;
-        default: return r->a + r->b * pi->scale;
+        case 2: return r->a + r->b * pi->scale;
+        default: return r->pc + (uint32_t)pi->imm;
     }
 }
 
@@ -524,6 +526,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--wq")) cfg.wq_depth = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--vc")) cfg.vc_entries = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--top")) cfg.top = atoi(v);
+        else if (!strcmp(k, "--low")) cfg.low_region = !strcmp(v, "xram") ? R_XRAM : R_ROM;
         else if (!strcmp(k, "--fill")) parse_region_list(v, cfg.fill);
         else if (!strcmp(k, "--write")) parse_region_list(v, cfg.write);
         else

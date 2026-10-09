@@ -24,6 +24,8 @@ F4 = set("fadd fsub fmul".split())
 DIV = set("div divu rem remu".split())
 LOAD = {"ldw": 4, "ldub": 1, "ldb": 1, "ldh": 2, "lduh": 2}
 STORE = {"stw": 4, "stb": 1, "sth": 2}
+LOAD.update({k + "pc": v for k, v in list(LOAD.items())})
+STORE.update({k + "pc": v for k, v in list(STORE.items())})
 BRANCH = set("bz bnz bs bns blt bge ble bgt bltz bgez blez bgtz".split())
 SRC_IS_DST = set("madd ibf sel sel.132".split())
 
@@ -64,7 +66,7 @@ def classify(mn):
         return "jump"
     if base == "j":
         return "jump"
-    if base == "jl":
+    if base in ("jl", "bl"):
         return "call"
     if base == "ret":
         return "ret"
@@ -136,10 +138,21 @@ def main():
         if cls in ("load", "store"):
             size = (LOAD if cls == "load" else STORE)[mn]
             data = reg(ops[0])
-            mem = ops[1].strip("[]")
-            parts = [p.strip() for p in mem.split(",")]
-            base = reg(parts[0])
-            srcs.append(base)
+            if mn.endswith("pc"):
+                m = re.search(r"#\((0x[0-9a-f]+)", ops[1])
+                imm = int(m.group(1), 16) - pc if m else 0
+                mode = 3
+                if cls == "load":
+                    dst, dst_vec = data[0], int(data[1])
+                else:
+                    srcs.append(data)
+                mem = None
+            else:
+                mem = ops[1].strip("[]")
+            parts = [p.strip() for p in mem.split(",")] if mem else []
+            if parts:
+                base = reg(parts[0])
+                srcs.append(base)
             if len(parts) > 1:
                 idx = parts[1]
                 if idx.startswith("#"):
@@ -152,15 +165,17 @@ def main():
                     r = reg(idx)
                     srcs.append(r)
                     mode = 2 if r[1] else 1
-            if cls == "load":
-                dst, dst_vec = data[0], int(data[1])
-            else:
-                srcs.append(data)
+            if mem is not None:
+                if cls == "load":
+                    dst, dst_vec = data[0], int(data[1])
+                else:
+                    srcs.append(data)
         elif cls == "branch":
             srcs.append(reg(ops[0]))
         elif cls in ("jump", "call"):
-            if mn == "b":
-                pass
+            if mn in ("b", "bl"):
+                if mn == "bl":
+                    dst = 30
             else:
                 srcs.append(reg(ops[0]))
                 if cls == "call":
