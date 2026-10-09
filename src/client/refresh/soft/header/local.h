@@ -61,6 +61,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct image_s
 {
 	char		name[MAX_QPATH];	// game path, including extension
+	unsigned	hash;
 	imagetype_t	type;
 	int		width, height;
 	int		asset_width, asset_height;	// asset texture size

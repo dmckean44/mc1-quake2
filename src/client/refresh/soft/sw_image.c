@@ -238,6 +238,18 @@ R_Convert32To8bit(const unsigned char* pic_in, pixel_t* pic_out, size_t size,
 	}
 }
 
+static unsigned
+R_ImageNameHash(const char *name)
+{
+	unsigned hash = 2166136261u;
+
+	while (*name)
+	{
+		hash = (hash ^ (unsigned char)*name++) * 16777619u;
+	}
+	return hash;
+}
+
 /*
 ================
 R_LoadPic
@@ -261,6 +273,7 @@ R_LoadPic8 (char *name, byte *pic, int width, int realwidth, int height, int rea
 	if (strlen(name) >= sizeof(image->name))
 		ri.Sys_Error(ERR_DROP, "%s: '%s' is too long", __func__, name);
 	strcpy (image->name, name);
+	image->hash = R_ImageNameHash(name);
 	image->registration_sequence = registration_sequence;
 
 	image->width = width;
@@ -452,6 +465,7 @@ R_FindImage(const char *name, imagetype_t type)
 {
 	image_t	*image;
 	int	i, len;
+	unsigned hash;
 	char *ptr;
 	char namewe[256];
 	const char* ext;
@@ -475,11 +489,6 @@ R_FindImage(const char *name, imagetype_t type)
 	}
 
 	len = strlen(name);
-
-	/* Remove the extension */
-	memset(namewe, 0, 256);
-	memcpy(namewe, name, len - (strlen(ext) + 1));
-
 	if (len < 5)
 	{
 		return NULL;
@@ -491,15 +500,19 @@ R_FindImage(const char *name, imagetype_t type)
 		*ptr = '/';
 	}
 
-	// look for it
+	hash = R_ImageNameHash(name);
 	for (i=0, image=r_images ; i<numr_images ; i++,image++)
 	{
-		if (!strcmp(name, image->name))
+		if (image->hash == hash && !strcmp(name, image->name))
 		{
 			image->registration_sequence = registration_sequence;
 			return image;
 		}
 	}
+
+	/* Remove the extension */
+	memset(namewe, 0, 256);
+	memcpy(namewe, name, len - (strlen(ext) + 1));
 
 	//
 	// load the pic from disk
