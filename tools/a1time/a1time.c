@@ -77,10 +77,10 @@ static struct {
     uint64_t dmiss[NUM_REGIONS], dmiss_cycles[NUM_REGIONS], vc_hits, loads, stores;
     uint64_t store_stall;
     uint64_t *func_cycles, *func_records;
-    uint64_t *func_mem, *func_store, *func_fetch;
+    uint64_t *func_mem, *func_store, *func_fetch, *func_div, *func_branch;
 } st;
 
-static uint64_t cur_mem, cur_store, cur_fetch;
+static uint64_t cur_mem, cur_store, cur_fetch, cur_div, cur_branch;
 
 static int region_of(uint32_t addr)
 {
@@ -330,6 +330,7 @@ static void process(const rec_t *r, const rec_t *next, int element)
     {
         uint32_t d = pi->cls == C_DIV ? cfg.div_stall : cfg.fdiv_stall;
         t += d;
+        cur_div += d;
         if (count)
         {
             st.div_stall += d;
@@ -358,6 +359,7 @@ static void process(const rec_t *r, const rec_t *next, int element)
         if (pred != taken || (taken && target != next->pc))
         {
             t += cfg.mispredict;
+            cur_branch += cfg.mispredict;
             if (count)
             {
                 st.mispredicts++;
@@ -375,8 +377,10 @@ static void process(const rec_t *r, const rec_t *next, int element)
         st.func_mem[pi->func] += cur_mem;
         st.func_store[pi->func] += cur_store;
         st.func_fetch[pi->func] += cur_fetch;
+        st.func_div[pi->func] += cur_div;
+        st.func_branch[pi->func] += cur_branch;
     }
-    cur_mem = cur_store = cur_fetch = 0;
+    cur_mem = cur_store = cur_fetch = cur_div = cur_branch = 0;
 }
 
 static void load_info(const char *path)
@@ -467,8 +471,8 @@ static void report(void)
         order[i] = i;
     }
     qsort(order, num_funcs, sizeof(uint32_t), cmp_func);
-    printf("\n%-40s %12s %7s %12s %6s %6s %6s %6s\n", "function", "cycles", "share", "ideal", "x",
-           "dmiss", "store", "fetch");
+    printf("\n%-40s %12s %7s %12s %6s %6s %6s %6s %6s %6s\n", "function", "cycles", "share", "ideal",
+           "x", "dmiss", "store", "fetch", "div", "branch");
     for (int i = 0; i < cfg.top && i < (int)num_funcs; i++)
     {
         uint32_t f = order[i];
@@ -476,13 +480,15 @@ static void report(void)
         {
             break;
         }
-        printf("%-40s %12llu %6.2f%% %12llu %6.2f %5.1f%% %5.1f%% %5.1f%%\n", func_names[f],
+        printf("%-40s %12llu %6.2f%% %12llu %6.2f %5.1f%% %5.1f%% %5.1f%% %5.1f%% %5.1f%%\n", func_names[f],
                (unsigned long long)st.func_cycles[f], 100.0 * st.func_cycles[f] / st.cycles,
                (unsigned long long)st.func_records[f],
                (double)st.func_cycles[f] / st.func_records[f],
                100.0 * st.func_mem[f] / st.func_cycles[f],
                100.0 * st.func_store[f] / st.func_cycles[f],
-               100.0 * st.func_fetch[f] / st.func_cycles[f]);
+               100.0 * st.func_fetch[f] / st.func_cycles[f],
+               100.0 * st.func_div[f] / st.func_cycles[f],
+               100.0 * st.func_branch[f] / st.func_cycles[f]);
     }
 }
 
@@ -536,6 +542,8 @@ int main(int argc, char **argv)
     st.func_mem = calloc(num_funcs, 8);
     st.func_store = calloc(num_funcs, 8);
     st.func_fetch = calloc(num_funcs, 8);
+    st.func_div = calloc(num_funcs, 8);
+    st.func_branch = calloc(num_funcs, 8);
 
     while ((n = fread(buf, sizeof(rec_t), sizeof(buf) / sizeof(buf[0]), stdin)) > 0)
     {

@@ -312,7 +312,16 @@ IN_Update(void)
 {
 	// We need to save the frame time so other subsystems
 	// know the exact time of the last input events.
-	sys_frame_time = Sys_Milliseconds();
+	extern cvar_t *fixedtime;
+
+	if (fixedtime && fixedtime->value)
+	{
+		sys_frame_time += (int)fixedtime->value / 1000;
+	}
+	else
+	{
+		sys_frame_time = Sys_Milliseconds();
+	}
 
 	/* Process input events */
 	IN_HandleKeyboardEvents();

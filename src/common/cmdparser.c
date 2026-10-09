@@ -177,6 +177,15 @@ Cbuf_Execute(void)
 
 	if(cmd_wait > 0)
 	{
+		extern cvar_t *fixedtime;
+
+		// with a fixed frame time, a wait lasts exactly one frame
+		if (fixedtime && fixedtime->value)
+		{
+			cmd_wait = 0;
+			return;
+		}
+
 		// make sure that "wait" in scripts waits for ~16.66ms (1 frame at 60fps)
 		// regardless of framerate
 		if (Sys_Milliseconds() - cmd_wait <= 16)
