@@ -1487,8 +1487,11 @@ RE_BeginFrame( float camera_separation )
 		// we need redraw everything
 		VID_WholeDamageBuffer();
 		// and backbuffer should be zeroed
-		memset(swap_buffers + ((swap_current + 1)&1), 0,
-			vid_buffer_height * vid_buffer_width * sizeof(pixel_t));
+		if (swap_buffers)
+		{
+			memset(swap_frames[(swap_current + 1)&1], 0,
+				vid_buffer_height * vid_buffer_width * sizeof(pixel_t));
+		}
 
 		vid_gamma->modified = false;
 		sw_overbrightbits->modified = false;
@@ -1910,6 +1913,8 @@ static SDL_Renderer	*renderer = NULL;
 
 #if defined(MC1)
 static fb_t* s_fb;
+static fb_t* s_flipfb[2];
+static int s_backfb;
 #endif
 
 int vid_buffer_height = 0;
@@ -1933,6 +1938,14 @@ RE_InitContext(void *win)
 
 #if defined(MC1)
 	s_fb = (fb_t*)win;
+	s_flipfb[0] = s_fb;
+	s_flipfb[1] = NULL;
+	if (s_fb->stride == (size_t)s_fb->width)
+	{
+		s_flipfb[1] = fb_create(s_fb->width, s_fb->height, s_fb->mode);
+	}
+	s_backfb = 1;
+	R_Printf(PRINT_ALL, "Page flipping: %s\n", s_flipfb[1] ? "on" : "off");
 #endif
 
 #if defined(USE_SDL)
@@ -2008,6 +2021,13 @@ void RE_GetDrawableSize(int* width, int* height)
 static void
 RE_ShutdownContext(void)
 {
+#if defined(MC1)
+	if (s_flipfb[1])
+	{
+		fb_destroy(s_flipfb[1]);
+		s_flipfb[1] = NULL;
+	}
+#endif
 	if (swap_buffers)
 	{
 		free(swap_buffers);
@@ -2351,12 +2371,34 @@ RE_DumpFrame(void)
 	fclose(f);
 }
 
+#if defined(MC1)
+static void
+RE_FlipFrame(void)
+{
+	fb_t *fb = s_flipfb[s_backfb];
+
+	memcpy(fb->palette, sw_state.currentpalette, 1024);
+	fb_show(fb, LAYER_1);
+	s_backfb ^= 1;
+	vid_buffer = (pixel_t *)s_flipfb[s_backfb]->pixels;
+	VID_NoDamageBuffer();
+}
+#endif
+
 static void
 RE_EndFrame (void)
 {
 	int vmin, vmax;
 
 	RE_DumpFrame();
+
+#if defined(MC1)
+	if (s_flipfb[1])
+	{
+		RE_FlipFrame();
+		return;
+	}
+#endif
 
 	// fix possible issue with min/max
 	if (vid_minu < 0)
@@ -2513,16 +2555,25 @@ static void
 SWimp_CreateRender(int width, int height)
 {
 	swap_current = 0;
-	swap_buffers = Q_malloc(height * width * sizeof(pixel_t) * 2);
-	if (!swap_buffers)
+#if defined(MC1)
+	if (s_flipfb[1])
 	{
-		ri.Sys_Error(ERR_FATAL, "%s: Can't allocate swapbuffer.", __func__);
-		// code never returns after ERR_FATAL
-		return;
+		vid_buffer = (pixel_t *)s_flipfb[s_backfb]->pixels;
 	}
-	swap_frames[0] = swap_buffers;
-	swap_frames[1] = swap_buffers + height * width * sizeof(pixel_t);
-	vid_buffer = swap_frames[swap_current&1];
+	else
+#endif
+	{
+		swap_buffers = Q_malloc(height * width * sizeof(pixel_t) * 2);
+		if (!swap_buffers)
+		{
+			ri.Sys_Error(ERR_FATAL, "%s: Can't allocate swapbuffer.", __func__);
+			// code never returns after ERR_FATAL
+			return;
+		}
+		swap_frames[0] = swap_buffers;
+		swap_frames[1] = swap_buffers + height * width * sizeof(pixel_t);
+		vid_buffer = swap_frames[swap_current&1];
+	}
 	// Need to rewrite whole frame
 	VID_WholeDamageBuffer();
 
