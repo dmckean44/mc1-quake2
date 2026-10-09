@@ -2327,9 +2327,36 @@ RE_FlushFrame(int vmin, int vmax)
 ** front buffer.
 */
 static void
+RE_DumpFrame(void)
+{
+	static cvar_t *dump;
+	static int frameno;
+	char name[32];
+	FILE *f;
+
+	if (!dump)
+		dump = ri.Cvar_Get("sw_dumpframes", "0", 0);
+	frameno++;
+	if (dump->value <= 0 || frameno % (int)dump->value)
+		return;
+
+	snprintf(name, sizeof(name), "frame_%05d.raw", frameno);
+	f = fopen(name, "wb");
+	if (!f)
+		return;
+	fwrite(&vid_buffer_width, 4, 1, f);
+	fwrite(&vid_buffer_height, 4, 1, f);
+	fwrite(sw_state.currentpalette, 1, 1024, f);
+	fwrite(vid_buffer, 1, vid_buffer_width * vid_buffer_height, f);
+	fclose(f);
+}
+
+static void
 RE_EndFrame (void)
 {
 	int vmin, vmax;
+
+	RE_DumpFrame();
 
 	// fix possible issue with min/max
 	if (vid_minu < 0)

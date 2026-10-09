@@ -505,14 +505,14 @@ VectorNormalize(vec3_t v)
 	float length, ilength;
 
 	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	length = length;
 
 	if (length)
 	{
-		ilength = 1.0F / sqrtf(length);
+		ilength = Q_rsqrt(length);
 		v[0] *= ilength;
 		v[1] *= ilength;
 		v[2] *= ilength;
+		length *= ilength;
 	}
 
 	return length;

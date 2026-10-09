@@ -374,10 +374,10 @@ R_PolysetCalcGradients (int skinwidth)
 	{
 		t0 = r_p0.l[i] - r_p2.l[i];
 		t1 = r_p1.l[i] - r_p2.l[i];
-		r_lstepx[i] = (int)
-				ceilf((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
-		r_lstepy[i] = (int)
-				ceilf((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
+		r_lstepx[i] =
+				Q_ceil((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
+		r_lstepy[i] =
+				Q_ceil((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
 	}
 
 	t0 = r_p0.s - r_p2.s;

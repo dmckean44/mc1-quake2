@@ -41,6 +41,29 @@
 #ifdef __MRISC32__
 #include <mr32intrin.h>
 #endif
+#ifdef MC1
+#include <tgmath.h>
+#endif
+
+static inline int
+Q_ceil(float x)
+{
+	int i = (int)x;
+	return i + (x > (float)i);
+}
+
+static inline float
+Q_rsqrt(float x)
+{
+#ifdef __MRISC32__
+	float y, half = 0.5f * x;
+	__asm__("frsqrta\t%0, %1" : "=r"(y) : "r"(x));
+	y = y * (1.5f - half * y * y);
+	return y * (1.5f - half * y * y);
+#else
+	return 1.0f / sqrtf(x);
+#endif
+}
 
 static inline void*
 Q_malloc(size_t size)

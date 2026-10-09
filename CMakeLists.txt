@@ -203,6 +203,7 @@ endif()
 
 if(MC1)
 	add_definitions(-DMC1)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsingle-precision-constant")
 	list(APPEND mc1quake2LinkerFlags -lmc1)
 	if(MR32SIM)
 		add_definitions(-msim -DMR32SIM)
@@ -350,6 +351,7 @@ set(Backends-Unix-Source
 	)
 
 set(Backends-MC1-Source
+	${BACKENDS_SRC_DIR}/mc1/fastmath.c
 	${BACKENDS_SRC_DIR}/mc1/main.c
 	${BACKENDS_SRC_DIR}/mc1/network.c
 	${BACKENDS_SRC_DIR}/mc1/signalhandler.c
