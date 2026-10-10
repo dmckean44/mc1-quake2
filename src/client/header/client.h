@@ -550,4 +550,9 @@ void CL_DrawInventory (void);
 void CL_PredictMovement (void);
 trace_t CL_PMTrace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end);
 
+#ifdef MC1
+/* Prints the MC1 cycle counter, for benchmarking in the simulator */
+void Q2Prof_Mark(const char *tag);
+#endif
+
 #endif

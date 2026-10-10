@@ -308,6 +308,13 @@ CL_Disconnect(void)
 					cl.timedemo_frames, time / 1000.0,
 					cl.timedemo_frames * 1000.0 / time);
 		}
+#ifdef MC1
+		Q2Prof_Mark("TIMEDEMO_END");
+		if (Cvar_VariableValue("timedemo_quit"))
+		{
+			Com_Quit();
+		}
+#endif
 	}
 
 	VectorClear(cl.refdef.blend);
@@ -773,3 +780,20 @@ CL_ReadPackets(void)
 	}
 }
 
+#ifdef MC1
+#include <mc1/mmio.h>
+
+void
+Q2Prof_Mark(const char *tag)
+{
+	uint32_t hi1, lo, hi2;
+
+	do
+	{
+		hi1 = MMIO(CLKCNTHI);
+		lo = MMIO(CLKCNTLO);
+		hi2 = MMIO(CLKCNTHI);
+	} while (hi1 != hi2);
+	Com_Printf("%s cycles=%llu frames=%i\n", tag, ((unsigned long long)hi1 << 32) | lo, cl.timedemo_frames);
+}
+#endif

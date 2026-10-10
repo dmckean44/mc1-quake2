@@ -453,11 +453,39 @@ V_RenderView(float stereo_separation)
 		return;			// still loading
 	}
 
+#ifdef MC1
+	{
+		static cvar_t *prof_frames;
+		static int prof_count;
+
+		if (!prof_frames)
+		{
+			prof_frames = Cvar_Get("prof_frames", "0", 0);
+		}
+		if (prof_frames->value > 0)
+		{
+			if (prof_count == 60)
+			{
+				Q2Prof_Mark("PROF_START");
+			}
+			if (prof_count == 60 + (int)prof_frames->value)
+			{
+				Q2Prof_Mark("PROF_END");
+				Com_Quit();
+			}
+			prof_count++;
+		}
+	}
+#endif
+
 	if (cl_timedemo->value)
 	{
 		if (!cl.timedemo_start)
 		{
 			cl.timedemo_start = Sys_Milliseconds();
+#ifdef MC1
+			Q2Prof_Mark("TIMEDEMO_START");
+#endif
 		}
 
 		cl.timedemo_frames++;
