@@ -337,6 +337,7 @@ static void process(const rec_t *r, const rec_t *next, int element)
         {
             st.div_stall += d;
         }
+        issue = t - 1;
     }
 
     if (pi->dst != 255)
