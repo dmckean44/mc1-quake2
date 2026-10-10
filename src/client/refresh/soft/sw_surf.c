@@ -343,6 +343,53 @@ R_DrawSurface (drawsurf_t *drawsurf)
 }
 
 
+static qboolean
+R_LightsFit (const msurface_t *surf)
+{
+	const int smax = (surf->extents[0] >> 4) + 1;
+	const int tmax = (surf->extents[1] >> 4) + 1;
+
+	return blocklights + smax * tmax * 3 < blocklight_max;
+}
+
+static void
+R_DrawSurfaceEngine (const drawsurf_t *drawsurf)
+{
+	const image_t *mt = drawsurf->image;
+	const int mip = drawsurf->surfmip;
+	const pixel_t *source = mt->pixels[mip];
+	const int texwidth = mt->width >> mip;
+	const int tmax = mt->height >> mip;
+	const int level = NUM_MIPS - mip;
+	const int numh = drawsurf->surfwidth >> level;
+	const int numv = drawsurf->surfheight >> level;
+	const int lightwidth = (drawsurf->surf->extents[0] >> 4) + 1;
+	const int soffset = ((drawsurf->surf->texturemins[0] >> mip) + (texwidth << SHIFT16XYZ)) % texwidth;
+	const int toffset = ((drawsurf->surf->texturemins[1] >> mip) + (tmax << SHIFT16XYZ)) % tmax;
+	int u, v;
+
+	PE_Begin(PE_SURFACE, 10 + (numh + 1) * (numv + 1));
+	PE_Ptr(source);
+	PE_Word(texwidth);
+	PE_Word(tmax);
+	PE_Word(soffset);
+	PE_Ptr(source + toffset * texwidth);
+	PE_Word(numh);
+	PE_Word(numv);
+	PE_Word(level);
+	PE_Ptr(drawsurf->surfdat);
+	PE_Word(drawsurf->rowbytes);
+	for (v = 0; v <= numv; v++)
+	{
+		const light_t *light = blocklights + v * lightwidth * 3;
+
+		for (u = 0; u <= numh; u++)
+		{
+			PE_Word(light[u * 3]);
+		}
+	}
+}
+
 //=============================================================================
 
 /*
@@ -407,6 +454,7 @@ D_FlushCaches (void)
 	if (!sc_base)
 		return;
 
+	PE_Finish();
 	for (c = sc_base ; c ; c = c->next)
 	{
 		if (c->owner)
@@ -457,6 +505,7 @@ D_SCAlloc (int width, int size)
 	new = sc_rover;
 	if (sc_rover->owner)
 		*sc_rover->owner = NULL;
+	PE_WaitFor(new->pe_fence);
 
 	while (new->size < size)
 	{
@@ -468,6 +517,7 @@ D_SCAlloc (int width, int size)
 		}
 		if (sc_rover->owner)
 			*sc_rover->owner = NULL;
+		PE_WaitFor(sc_rover->pe_fence);
 
 		new->size += sc_rover->size;
 		new->next = sc_rover->next;
@@ -481,6 +531,7 @@ D_SCAlloc (int width, int size)
 		sc_rover->next = new->next;
 		sc_rover->width = 0;
 		sc_rover->owner = NULL;
+		sc_rover->pe_fence = 0;
 		new->next = sc_rover;
 		new->size = size;
 	}
@@ -589,7 +640,16 @@ D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel
 	R_BuildLightMap (&r_drawsurf);
 
 	// rasterize the surface into the cache
-	R_DrawSurface (&r_drawsurf);
+	if (pe_active && R_LightsFit(surface))
+	{
+		R_DrawSurfaceEngine (&r_drawsurf);
+		cache->pe_fence = pe_submitted;
+	}
+	else
+	{
+		PE_WaitFor(cache->pe_fence);
+		R_DrawSurface (&r_drawsurf);
+	}
 
 	return cache;
 }

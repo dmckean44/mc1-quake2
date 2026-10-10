@@ -267,6 +267,7 @@ typedef struct surfcache_s
 	unsigned		height; // DEBUG only needed for debug
 	float			mipscale;
 	image_t			*image;
+	unsigned		pe_fence;
 	byte			data[4]; // width*height elements
 } surfcache_t;
 
@@ -726,5 +727,7 @@ IMPORTED FUNCTIONS
 ====================================================================
 */
 extern refimport_t	ri;
+
+#include "pe.h"
 
 #endif

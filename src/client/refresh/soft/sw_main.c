@@ -464,6 +464,7 @@ static qboolean
 RE_Init(void)
 {
 	R_RegisterVariables ();
+	PE_Init ();
 	R_InitImages ();
 	Mod_Init ();
 	Draw_InitLocal ();
@@ -522,6 +523,7 @@ R_FreeZBuffer(void)
 static void
 RE_Shutdown (void)
 {
+	PE_Finish();
 	R_FreeZBuffer();
 	// free surface cache
 	if (sc_base)
@@ -736,6 +738,7 @@ R_ReallocateMapBuffers (void)
 	{
 		if (edge_basespans)
 		{
+			PE_Finish();
 			free(edge_basespans);
 		}
 
@@ -746,8 +749,8 @@ R_ReallocateMapBuffers (void)
 		}
 
 		// used up to 8 * width spans for render, allocate once  before use
-		if (r_numallocatededgebasespans < vid_buffer_width * 8)
-			r_numallocatededgebasespans = vid_buffer_width * 8;
+		if (r_numallocatededgebasespans < vid_buffer_width * (pe_present ? 64 : 8))
+			r_numallocatededgebasespans = vid_buffer_width * (pe_present ? 64 : 8);
 
 		edge_basespans  = Q_malloc(r_numallocatededgebasespans * sizeof(espan_t));
 		if (!edge_basespans)
@@ -1366,6 +1369,7 @@ RE_RenderFrame (refdef_t *fd)
 		r_time1 = VID_GetTicks();
 
 	R_SetupFrame ();
+	PE_BeginFrame ();
 
 	R_SetFrustum(vup, vpn, vright, r_origin, r_newrefdef.fov_x, r_newrefdef.fov_y,
 		frustum);
@@ -1454,6 +1458,7 @@ RE_RenderFrame (refdef_t *fd)
 static void
 R_InitGraphics( int width, int height )
 {
+	PE_Finish();
 	R_FreeZBuffer();
 
 	// free surface cache
@@ -2420,6 +2425,7 @@ RE_EndFrame (void)
 {
 	int vmin, vmax;
 
+	PE_Finish();
 	RE_DumpFrame();
 
 #if defined(MC1)
@@ -2703,6 +2709,7 @@ R_ScreenShot_f
 static void
 R_ScreenShot_f(void)
 {
+	PE_Finish();
 	int x, y;
 	byte *buffer = Q_malloc(vid_buffer_width * vid_buffer_height * 3);
 	const unsigned char *palette = sw_state.currentpalette;

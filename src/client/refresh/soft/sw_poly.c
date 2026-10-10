@@ -1170,6 +1170,8 @@ R_DrawPoly(int iswater, espan_t *spans)
 	emitpoint_t	*pverts;
 	float	d_ziorigin, d_zistepu, d_zistepv;
 
+	PE_Finish();
+
 	// find the top and bottom vertices, and make sure there's at least one scan to
 	// draw
 	ymin = (float)INT_MAX; // Set maximum values for world range

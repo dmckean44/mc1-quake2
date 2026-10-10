@@ -757,6 +757,7 @@ if((NOT STATIC_BUILD) OR (${STATIC_REF_LIBRARY} STREQUAL "ref_soft"))
 		${REF_SRC_DIR}/soft/sw_misc.c
 		${REF_SRC_DIR}/soft/sw_model.c
 		${REF_SRC_DIR}/soft/sw_part.c
+		${REF_SRC_DIR}/soft/sw_pe.c
 		${REF_SRC_DIR}/soft/sw_poly.c
 		${REF_SRC_DIR}/soft/sw_polyset.c
 		${REF_SRC_DIR}/soft/sw_rast.c

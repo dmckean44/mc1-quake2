@@ -754,6 +754,7 @@ RE_BeginRegistration (char *model)
 	char	fullname[MAX_QPATH];
 	cvar_t	*flushmap;
 
+	PE_Finish();
 	registration_sequence++;
 	r_oldviewcluster = -1;		// force markleafs
 	Com_sprintf (fullname, sizeof(fullname), "maps/%s.bsp", model);

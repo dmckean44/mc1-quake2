@@ -99,6 +99,19 @@ R_DrawParticle(particle_t *pparticle, int level)
 	/*
 	** render the appropriate pixels
 	*/
+	if (pe_active && custom_particle == 0)
+	{
+		PE_Begin(PE_PARTICLE, 6);
+		PE_Word(u);
+		PE_Word(v);
+		PE_Word(izi);
+		PE_Word(pix);
+		PE_Word(color);
+		PE_Word(level == PARTICLE_OPAQUE ? PE_PARTICLE_OPAQUE :
+			level == PARTICLE_66 ? PE_PARTICLE_66 : PE_PARTICLE_33);
+		return;
+	}
+
 	count = pix;
 	if ((pz[(vid_buffer_width * count / 2) + (count / 2)]) > izi)
 	{
@@ -232,6 +245,9 @@ R_DrawParticles (void)
 {
 	particle_t *p;
 	int         i;
+
+	if (sw_custom_particles->value)
+		PE_Finish();
 
 	VectorScale( vright, xscaleshrink, r_pright );
 	VectorScale( vup, yscaleshrink, r_pup );

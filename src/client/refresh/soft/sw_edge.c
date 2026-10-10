@@ -609,6 +609,7 @@ R_ScanEdges (entity_t *currententity, surf_t *surface)
 		s->spans = NULL;
 	}
 
+	PE_WaitFor(pe_spans_fence);
 	span_p = edge_basespans;
 	if (span_p + r_refdef.vrect.width >= max_span_p)
 	{
@@ -678,6 +679,7 @@ R_ScanEdges (entity_t *currententity, surf_t *surface)
 			for (s = &surfaces[1] ; s<surface ; s++)
 				s->spans = NULL;
 
+			PE_WaitFor(pe_spans_fence);
 			span_p = edge_basespans;
 
 			// Need to more space
@@ -840,6 +842,15 @@ The grey background filler seen when there is a hole in the map
 static void
 D_BackgroundSurf (surf_t *s)
 {
+	if (pe_active)
+	{
+		int color = (int)sw_clearcolor->value & 0xFF;
+
+		PE_DrawSpans(s->spans, PE_SPAN_FLAT | PE_SPAN_Z | (color << 8), NULL,
+			0, 0, 0, -0.9F, 0, 0);
+		return;
+	}
+
 	D_FlatFillSurface (s, (int)sw_clearcolor->value & 0xFF);
 	// set up a gradient for the background surface that places it
 	// effectively at infinity distance from the viewpoint
@@ -877,15 +888,29 @@ D_TurbulentSurf(surf_t *s)
 
 	D_CalcGradients (pface, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 
-	//============
-	// textures that aren't warping are just flowing. Use NonTurbulentPow2 instead
-	if(!(pface->texinfo->flags & SURF_WARP))
-		NonTurbulentPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
-	else
-		TurbulentPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
-	//============
+	if (pe_active)
+	{
+		const int *turb = blanktable;
 
-	D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		if (pface->texinfo->flags & SURF_WARP)
+			turb = sintable + ((int)(r_newrefdef.time*SPEED)&(CYCLE-1));
+
+		PE_DrawSpans(s->spans, PE_SPAN_TEX | PE_SPAN_TURB | PE_SPAN_Z, turb,
+			s->d_ziorigin, s->d_zistepu, s->d_zistepv,
+			s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+	}
+	else
+	{
+		//============
+		// textures that aren't warping are just flowing. Use NonTurbulentPow2 instead
+		if(!(pface->texinfo->flags & SURF_WARP))
+			NonTurbulentPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		else
+			TurbulentPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		//============
+
+		D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+	}
 
 	if (s->insubmodel)
 	{
@@ -919,6 +944,13 @@ D_SkySurf (surf_t *s)
 	cachewidth = 256;
 
 	D_CalcGradients (pface, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+
+	if (pe_active)
+	{
+		PE_DrawSpans(s->spans, PE_SPAN_TEX | PE_SPAN_Z, NULL,
+			s->d_ziorigin, s->d_zistepu, s->d_zistepv, -0.9F, 0, 0);
+		return;
+	}
 
 	D_DrawSpansPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 
@@ -972,9 +1004,19 @@ D_SolidSurf (entity_t *currententity, surf_t *s)
 
 	D_CalcGradients (pface, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 
-	D_DrawSpansPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+	if (pe_active)
+	{
+		PE_DrawSpans(s->spans, PE_SPAN_TEX | PE_SPAN_Z, NULL,
+			s->d_ziorigin, s->d_zistepu, s->d_zistepv,
+			s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		pcurrentcache->pe_fence = pe_submitted;
+	}
+	else
+	{
+		D_DrawSpansPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 
-	D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+	}
 
 	if (s->insubmodel)
 	{
@@ -1012,8 +1054,16 @@ D_DrawflatSurfaces (const surf_t *surface)
 
 		// make a stable color for each surface by taking the low
 		// bits of the msurface pointer
-		D_FlatFillSurface (s, color & 0xFF);
-		D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		if (pe_active)
+		{
+			PE_DrawSpans(s->spans, PE_SPAN_FLAT | PE_SPAN_Z | ((color & 0xFF) << 8), NULL,
+				0, 0, 0, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		}
+		else
+		{
+			D_FlatFillSurface (s, color & 0xFF);
+			D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		}
 
 		color ++;
 	}

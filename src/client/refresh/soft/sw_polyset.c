@@ -155,6 +155,17 @@ R_PolysetUpdateTables (void)
 	}
 }
 
+static void
+PE_Vertex(const compactvert_t *v)
+{
+	PE_Word(v->u);
+	PE_Word(v->v);
+	PE_Word(v->s);
+	PE_Word(v->t);
+	PE_Word(v->l[0]);
+	PE_Word(v->zi);
+}
+
 /*
 ================
 R_DrawTriangle
@@ -187,6 +198,15 @@ R_DrawTriangle(const entity_t *currententity, const finalvert_t *a, const finalv
 
 	if ( d_xdenom < 0 )
 	{
+		if (pe_alias)
+		{
+			PE_Begin(PE_TRIANGLE, 18);
+			PE_Vertex(&a->cv);
+			PE_Vertex(&b->cv);
+			PE_Vertex(&c->cv);
+			return;
+		}
+
 		memcpy(&r_p0, &a->cv, sizeof(compactvert_t));
 		memcpy(&r_p1, &b->cv, sizeof(compactvert_t));
 		memcpy(&r_p2, &c->cv, sizeof(compactvert_t));

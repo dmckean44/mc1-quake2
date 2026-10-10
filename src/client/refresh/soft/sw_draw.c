@@ -67,6 +67,7 @@ smoothly scrolled off.
 void
 RE_Draw_CharScaled(int x, int y, int c, float scale)
 {
+	PE_Finish();
 	pixel_t	*dest;
 	byte	*source, *pic_pixels;
 	int	drawline;
@@ -166,6 +167,7 @@ RE_Draw_StretchPicImplementation
 static void
 RE_Draw_StretchPicImplementation (int x, int y, int w, int h, const image_t *pic)
 {
+	PE_Finish();
 	pixel_t	*dest;
 	byte	*source;
 	int		height;
@@ -408,6 +410,7 @@ refresh window.
 void
 RE_Draw_TileClear (int x, int y, int w, int h, char *name)
 {
+	PE_Finish();
 	int			i, j;
 	byte		*psrc;
 	pixel_t		*pdest;
@@ -461,6 +464,7 @@ Fills a box of pixels with a single color
 void
 RE_Draw_Fill (int x, int y, int w, int h, int c)
 {
+	PE_Finish();
 	pixel_t	*dest;
 	int	v;
 
@@ -501,6 +505,7 @@ RE_Draw_FadeScreen
 void
 RE_Draw_FadeScreen (void)
 {
+	PE_Finish();
 	int x,y;
 
 	VID_DamageBuffer(0, 0);

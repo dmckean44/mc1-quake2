@@ -851,6 +851,13 @@ R_AliasDrawModel(entity_t *currententity, const model_t *currentmodel)
 		d_pdrawspans = R_PolysetDrawSpans8_Opaque;
 	}
 
+	pe_alias = pe_active && d_pdrawspans == R_PolysetDrawSpans8_Opaque &&
+		!((r_newrefdef.rdflags & RDF_IRGOGGLES) && (currententity->flags & RF_IR_VISIBLE));
+	if (pe_alias)
+		PE_SetSkin(r_affinetridesc.pskin, r_affinetridesc.skinwidth);
+	else
+		PE_Finish();
+
 	/*
 	** compute this_frame and old_frame addresses
 	*/

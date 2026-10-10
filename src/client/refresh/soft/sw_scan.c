@@ -48,6 +48,8 @@ D_WarpScreen (void)
 
 	static int	cached_width, cached_height;
 
+	PE_Finish();
+
 	//
 	// these are constant over resolutions, and can be saved
 	//
