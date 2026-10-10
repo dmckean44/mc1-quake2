@@ -41,11 +41,11 @@ static const char *region_names[NUM_REGIONS] = {"rom", "vram", "xram", "mmio"};
 static struct {
     uint32_t dsize, isize, line, vc_entries, wq_depth;
     uint32_t fill[NUM_REGIONS], write[NUM_REGIONS];
-    uint32_t div_stall, fdiv_stall, mispredict, vc_penalty;
+    uint32_t div_stall, fdiv_stall, mispredict, vc_penalty, fill_gap;
     uint64_t start, end;
     int top;
     int low_region;
-} cfg = {65536, 32768, 32, 32, 4, {8, 8, 75, 4}, {1, 1, 9, 4}, 15, 12, 3, 2, 0, UINT64_MAX, 40, R_ROM};
+} cfg = {65536, 32768, 32, 32, 4, {8, 8, 75, 4}, {1, 1, 9, 4}, 15, 12, 3, 2, 3, 0, UINT64_MAX, 40, R_ROM};
 
 static pcinfo_t *info;
 static uint32_t info_base, info_count, num_funcs;
@@ -53,6 +53,7 @@ static char **func_names;
 
 static uint64_t t;
 static uint64_t sready[32], vready[32][16];
+static uint64_t vl_ready;
 static uint8_t sprod[32], vprod[32][16];
 
 static uint32_t *dtag, *itag;
@@ -61,6 +62,7 @@ static uint32_t vc_next;
 static uint64_t *wq;
 static uint32_t wq_head;
 static uint64_t mem_busy_until;
+static uint64_t fill_free;
 
 typedef struct {
     uint32_t tag, target;
@@ -73,7 +75,7 @@ static uint32_t ras_top;
 static struct {
     uint64_t records, cycles;
     uint64_t hazard[NUM_CLASSES];
-    uint64_t div_stall, mispredicts, mispredict_cycles;
+    uint64_t div_stall, vl_stall, fill_wait, mispredicts, mispredict_cycles;
     uint64_t imiss, imiss_cycles;
     uint64_t dmiss[NUM_REGIONS], dmiss_cycles[NUM_REGIONS], vc_hits, loads, stores;
     uint64_t store_stall;
@@ -127,6 +129,15 @@ static uint32_t dcache_load(uint32_t addr, uint64_t when)
     {
         return (uint32_t)(drain_writes(when) - when) + cfg.fill[R_MMIO];
     }
+    if (fill_free > when)
+    {
+        uint32_t wait = (uint32_t)(fill_free - when);
+        if (counting())
+        {
+            st.fill_wait += wait;
+        }
+        return wait + dcache_load(addr, fill_free);
+    }
     if (dtag[idx] == line + 1)
     {
         return 0;
@@ -150,8 +161,14 @@ static uint32_t dcache_load(uint32_t addr, uint64_t when)
         vc_next = (vc_next + 1) % cfg.vc_entries;
     }
     dtag[idx] = line + 1;
-    ready = drain_writes(when) + cfg.fill[region];
+    ready = drain_writes(when);
+    if (fill_free > ready)
+    {
+        ready = fill_free;
+    }
+    ready += cfg.fill[region];
     mem_busy_until = ready;
+    fill_free = ready + 1 + cfg.fill_gap;
     if (counting())
     {
         st.dmiss[region]++;
@@ -165,6 +182,11 @@ static uint32_t store(uint32_t addr, uint64_t when)
     int region = region_of(addr);
     uint64_t oldest = wq[wq_head];
     uint32_t stall = oldest > when ? (uint32_t)(oldest - when) : 0;
+
+    if (region != R_MMIO && fill_free > when + stall)
+    {
+        stall = (uint32_t)(fill_free - when);
+    }
     uint64_t start = drain_writes(when + stall);
 
     mem_busy_until = start + cfg.write[region];
@@ -293,6 +315,15 @@ static void process(const rec_t *r, const rec_t *next, int element)
             hazard_cls = prod;
         }
     }
+    if (pi->is_vec && element == 0 && vl_ready > ready)
+    {
+        if (count)
+        {
+            st.vl_stall += vl_ready - (ready > t ? ready : t);
+        }
+        ready = vl_ready;
+        hazard_cls = -1;
+    }
     if (ready > t)
     {
         if (count && hazard_cls >= 0)
@@ -351,6 +382,10 @@ static void process(const rec_t *r, const rec_t *next, int element)
         {
             sready[pi->dst] = issue + latency[pi->cls];
             sprod[pi->dst] = pi->cls;
+            if (pi->dst == 31)
+            {
+                vl_ready = issue + 3;
+            }
         }
     }
 
@@ -449,6 +484,8 @@ static void report(void)
     }
     printf("divider stalls:         %llu  %5.1f%%\n", (unsigned long long)st.div_stall,
            100.0 * st.div_stall / st.cycles);
+    printf("VL stalls:              %llu  %5.1f%%\n", (unsigned long long)st.vl_stall,
+           100.0 * st.vl_stall / st.cycles);
     printf("branch mispredicts:     %llu  (%llu cycles, %5.1f%%)\n",
            (unsigned long long)st.mispredicts, (unsigned long long)st.mispredict_cycles,
            100.0 * st.mispredict_cycles / st.cycles);
@@ -465,6 +502,8 @@ static void report(void)
                    100.0 * st.dmiss_cycles[r] / st.cycles);
         }
     }
+    printf("loads after D$ fills:   %llu  %5.1f%%\n", (unsigned long long)st.fill_wait,
+           100.0 * st.fill_wait / st.cycles);
     printf("store stalls:           %llu  %5.1f%%\n", (unsigned long long)st.store_stall,
            100.0 * st.store_stall / st.cycles);
 
@@ -510,7 +549,7 @@ int main(int argc, char **argv)
     if (argc < 2)
     {
         fprintf(stderr, "usage: %s pcinfo.bin [--start N] [--end N] [--dsize B] [--isize B]\n"
-                        "  [--fill rom,vram,xram,mmio] [--write rom,vram,xram,mmio] [--wq N]\n"
+                        "  [--fill rom,vram,xram,mmio] [--write rom,vram,xram,mmio] [--wq N] [--fill-gap N]\n"
                         "  [--vc N] [--top N] < trace\n", argv[0]);
         return 1;
     }
@@ -526,6 +565,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--isize")) cfg.isize = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--wq")) cfg.wq_depth = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--vc")) cfg.vc_entries = strtoul(v, NULL, 0);
+        else if (!strcmp(k, "--fill-gap")) cfg.fill_gap = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--top")) cfg.top = atoi(v);
         else if (!strcmp(k, "--low")) cfg.low_region = !strcmp(v, "xram") ? R_XRAM : R_ROM;
         else if (!strcmp(k, "--fill")) parse_region_list(v, cfg.fill);
