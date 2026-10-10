@@ -797,7 +797,7 @@ Q2Prof_Mark(const char *tag)
 	} while (hi1 != hi2);
 	Com_Printf("%s cycles=%llu frames=%i\n", tag, ((unsigned long long)hi1 << 32) | lo, cl.timedemo_frames);
 
-	if (pe[0] == 0x50450001)
+	if ((pe[0] >> 16) == 0x5045)
 	{
 		Com_Printf("%s pe_busy=%u pe_stall=%u\n", tag, (unsigned)pe[6], (unsigned)pe[8]);
 	}

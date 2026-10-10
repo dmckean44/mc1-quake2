@@ -1198,6 +1198,8 @@ Render the map
 static void
 R_EdgeDrawing (entity_t *currententity)
 {
+	surf_t *world_end;
+
 	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
@@ -1215,6 +1217,7 @@ R_EdgeDrawing (entity_t *currententity)
 	// Build the Global Edget Table
 	// Also populate the surface stack and count # surfaces to render (surf_max is the max)
 	R_RenderWorld (currententity);
+	world_end = surface_p;
 
 	if (r_dspeeds->value)
 	{
@@ -1232,7 +1235,10 @@ R_EdgeDrawing (entity_t *currententity)
 
 	// Use the Global Edge Table to maintin the Active Edge Table: Draw the world as scanlines
 	// Write the Z-Buffer (but no read)
-	R_ScanEdges (currententity, surface_p);
+	if (pe_world)
+		PE_DrawWorld (currententity, world_end, surface_p);
+	else
+		R_ScanEdges (currententity, surface_p);
 }
 
 //=======================================================================

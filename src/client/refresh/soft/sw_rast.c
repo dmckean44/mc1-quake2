@@ -359,6 +359,14 @@ R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1, medge_t *r_pedge, qboolean r_nearzio
 		edge->u = r_refdef.vrectright_adj_shift20;
 	}
 
+	if (pe_world)
+	{
+		edge->v_first = v;
+		edge->v_last = v2;
+		PE_AddEdge(edge, side);
+		return;
+	}
+
 	//
 	// sort the edge in normally
 	//
@@ -504,9 +512,17 @@ R_EmitCachedEdge (medge_t *r_pedge)
 	pedge_t = (edge_t *)((uintptr_t)r_edges + r_pedge->cachededgeoffset);
 
 	if (!pedge_t->surfs[0])
+	{
 		pedge_t->surfs[0] = surface_p - surfaces;
+		if (pe_world)
+			PE_AddEdge(pedge_t, false);
+	}
 	else
+	{
 		pedge_t->surfs[1] = surface_p - surfaces;
+		if (pe_world)
+			PE_AddEdge(pedge_t, true);
+	}
 
 	if (pedge_t->nearzi > r_nearzi)	// for mipmap finding
 		r_nearzi = pedge_t->nearzi;
@@ -565,6 +581,7 @@ R_RenderFace (entity_t *currententity, const model_t *currentmodel, msurface_t *
 		return;
 	}
 
+	surface_p->pe_first = pe_numsurfedges;
 	c_faceclip++;
 
 	// set up clip planes
@@ -712,10 +729,14 @@ R_RenderFace (entity_t *currententity, const model_t *currentmodel, msurface_t *
 
 	// if no edges made it out, return without posting the surface
 	if (!r_emitted)
+	{
+		pe_numsurfedges = surface_p->pe_first;
 		return;
+	}
 
 	r_polycount++;
 
+	surface_p->pe_count = pe_numsurfedges - surface_p->pe_first;
 	surface_p->msurf = fa;
 	surface_p->nearzi = r_nearzi;
 	surface_p->flags = fa->flags;
@@ -781,6 +802,7 @@ R_RenderBmodelFace(entity_t *currententity, bedge_t *pedges, msurface_t *psurf, 
 		return;
 	}
 
+	surface_p->pe_first = pe_numsurfedges;
 	c_faceclip++;
 
 	// set up clip planes
@@ -835,10 +857,14 @@ R_RenderBmodelFace(entity_t *currententity, bedge_t *pedges, msurface_t *psurf, 
 
 	// if no edges made it out, return without posting the surface
 	if (!r_emitted)
+	{
+		pe_numsurfedges = surface_p->pe_first;
 		return;
+	}
 
 	r_polycount++;
 
+	surface_p->pe_count = pe_numsurfedges - surface_p->pe_first;
 	surface_p->msurf = psurf;
 	surface_p->nearzi = r_nearzi;
 	surface_p->flags = psurf->flags;

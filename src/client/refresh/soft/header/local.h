@@ -313,6 +313,7 @@ typedef struct surf_s
 	float		nearzi; // nearest 1/z on surface, for mipmapping
 	qboolean	insubmodel;
 	float		d_ziorigin, d_zistepu, d_zistepv;
+	int		pe_first, pe_count;
 } surf_t;
 
 typedef unsigned short	surfindex_t;
@@ -329,6 +330,7 @@ typedef struct edge_s
 	struct edge_s	*nextremove;
 	float		nearzi;
 	medge_t		*owner;
+	int		v_first, v_last;
 } edge_t;
 
 
@@ -370,6 +372,7 @@ void TurbulentPow2(espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zi
 void NonTurbulentPow2(espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv);
 
 surfcache_t *D_CacheSurface(const entity_t *currententity, msurface_t *surface, int miplevel);
+void PE_DrawWorld(entity_t *currententity, surf_t *world_end, surf_t *surface);
 
 extern int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 

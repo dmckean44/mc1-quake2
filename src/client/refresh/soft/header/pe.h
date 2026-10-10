@@ -7,7 +7,7 @@
 #ifndef SW_PE_H
 #define SW_PE_H
 
-#define PE_ID_VALUE	0x50450001
+#define PE_ID_MAGIC	0x5045
 
 enum {
 	PE_ID = 0x00,
@@ -27,7 +27,10 @@ enum {
 	PE_TRIANGLE = 3,
 	PE_PARTICLE = 4,
 	PE_TARGET = 5,
-	PE_SKIN = 6
+	PE_SKIN = 6,
+	PE_COVER = 7,
+	PE_POLY = 8,
+	PE_FILL = 9
 };
 
 enum {
@@ -51,11 +54,34 @@ extern volatile unsigned pe_noreg;
 #endif
 
 extern qboolean pe_present;
+extern int pe_version;
 extern qboolean pe_active;
 extern qboolean pe_alias;
 extern unsigned pe_submitted;
 extern unsigned pe_synced;
 extern unsigned pe_spans_fence;
+extern qboolean pe_world;
+
+typedef struct
+{
+	edge_t		*edge;
+	qboolean	left;
+} pe_surfedge_t;
+
+extern pe_surfedge_t *pe_surfedges;
+extern int pe_numsurfedges;
+extern int pe_maxsurfedges;
+
+static inline void
+PE_AddEdge(edge_t *edge, qboolean left)
+{
+	if (pe_numsurfedges < pe_maxsurfedges)
+	{
+		pe_surfedges[pe_numsurfedges].edge = edge;
+		pe_surfedges[pe_numsurfedges].left = left;
+		pe_numsurfedges++;
+	}
+}
 
 static inline unsigned
 PE_Begin(unsigned op, unsigned words)
@@ -105,8 +131,9 @@ PE_Finish(void)
 void PE_Init(void);
 void PE_BeginFrame(void);
 void PE_SetSkin(const pixel_t *pskin, int skinwidth);
-void PE_DrawSpans(const espan_t *pspan, int flags, const int *turb,
+void PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 	float d_ziorigin, float d_zistepu, float d_zistepv,
 	float zorigin, float zstepu, float zstepv);
+void PE_CoverBegin(void);
 
 #endif

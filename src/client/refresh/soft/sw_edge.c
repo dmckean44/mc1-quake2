@@ -846,7 +846,7 @@ D_BackgroundSurf (surf_t *s)
 	{
 		int color = (int)sw_clearcolor->value & 0xFF;
 
-		PE_DrawSpans(s->spans, PE_SPAN_FLAT | PE_SPAN_Z | (color << 8), NULL,
+		PE_DrawSurf(s, PE_SPAN_FLAT | PE_SPAN_Z | (color << 8), NULL,
 			0, 0, 0, -0.9F, 0, 0);
 		return;
 	}
@@ -895,7 +895,7 @@ D_TurbulentSurf(surf_t *s)
 		if (pface->texinfo->flags & SURF_WARP)
 			turb = sintable + ((int)(r_newrefdef.time*SPEED)&(CYCLE-1));
 
-		PE_DrawSpans(s->spans, PE_SPAN_TEX | PE_SPAN_TURB | PE_SPAN_Z, turb,
+		PE_DrawSurf(s, PE_SPAN_TEX | PE_SPAN_TURB | PE_SPAN_Z, turb,
 			s->d_ziorigin, s->d_zistepu, s->d_zistepv,
 			s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 	}
@@ -947,7 +947,7 @@ D_SkySurf (surf_t *s)
 
 	if (pe_active)
 	{
-		PE_DrawSpans(s->spans, PE_SPAN_TEX | PE_SPAN_Z, NULL,
+		PE_DrawSurf(s, PE_SPAN_TEX | PE_SPAN_Z, NULL,
 			s->d_ziorigin, s->d_zistepu, s->d_zistepv, -0.9F, 0, 0);
 		return;
 	}
@@ -1006,7 +1006,7 @@ D_SolidSurf (entity_t *currententity, surf_t *s)
 
 	if (pe_active)
 	{
-		PE_DrawSpans(s->spans, PE_SPAN_TEX | PE_SPAN_Z, NULL,
+		PE_DrawSurf(s, PE_SPAN_TEX | PE_SPAN_Z, NULL,
 			s->d_ziorigin, s->d_zistepu, s->d_zistepv,
 			s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 		pcurrentcache->pe_fence = pe_submitted;
@@ -1056,7 +1056,7 @@ D_DrawflatSurfaces (const surf_t *surface)
 		// bits of the msurface pointer
 		if (pe_active)
 		{
-			PE_DrawSpans(s->spans, PE_SPAN_FLAT | PE_SPAN_Z | ((color & 0xFF) << 8), NULL,
+			PE_DrawSurf(s, PE_SPAN_FLAT | PE_SPAN_Z | ((color & 0xFF) << 8), NULL,
 				0, 0, 0, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 		}
 		else
@@ -1067,6 +1067,21 @@ D_DrawflatSurfaces (const surf_t *surface)
 
 		color ++;
 	}
+}
+
+static void
+D_DrawSurface (entity_t *currententity, surf_t *s)
+{
+	r_drawnpolycount++;
+
+	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWBACKGROUND|SURF_DRAWTURB) ) )
+		D_SolidSurf (currententity, s);
+	else if (s->flags & SURF_DRAWSKY)
+		D_SkySurf (s);
+	else if (s->flags & SURF_DRAWBACKGROUND)
+		D_BackgroundSurf (s);
+	else if (s->flags & SURF_DRAWTURB)
+		D_TurbulentSurf (s);
 }
 
 /*
@@ -1090,23 +1105,77 @@ D_DrawSurfaces (entity_t *currententity, surf_t *surface)
 
 		for (s = &surfaces[1] ; s<surface ; s++)
 		{
-			if (!s->spans)
-				continue;
-
-			r_drawnpolycount++;
-
-			if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWBACKGROUND|SURF_DRAWTURB) ) )
-				D_SolidSurf (currententity, s);
-			else if (s->flags & SURF_DRAWSKY)
-				D_SkySurf (s);
-			else if (s->flags & SURF_DRAWBACKGROUND)
-				D_BackgroundSurf (s);
-			else if (s->flags & SURF_DRAWTURB)
-				D_TurbulentSurf (s);
+			if (s->spans)
+				D_DrawSurface (currententity, s);
 		}
 	}
 	else
 		D_DrawflatSurfaces (surface);
+
+	VectorSubtract (r_origin, vec3_origin, modelorg);
+	R_TransformFrustum ();
+}
+
+/*
+==============
+PE_DrawWorld
+
+The pixel engine fills each surface where no earlier one has drawn, so the
+surfaces go out front to back: world surfaces are already in BSP key order,
+brush models go in at the key of their leaf, the sky box and the background
+fill what is left.
+==============
+*/
+void
+PE_DrawWorld (entity_t *currententity, surf_t *world_end, surf_t *surface)
+{
+	static surf_t **bmodels;
+	static int maxbmodels;
+	int i, j, numbmodels = surface - world_end;
+	surf_t *s;
+
+	if (numbmodels > maxbmodels)
+	{
+		free(bmodels);
+		maxbmodels = numbmodels * 2;
+		bmodels = malloc(maxbmodels * sizeof(*bmodels));
+	}
+	for (i = 0; i < numbmodels; i++)
+	{
+		s = world_end + i;
+		for (j = i; j > 0 && (bmodels[j - 1]->key > s->key ||
+			(bmodels[j - 1]->key == s->key && bmodels[j - 1]->nearzi < s->nearzi)); j--)
+		{
+			bmodels[j] = bmodels[j - 1];
+		}
+		bmodels[j] = s;
+	}
+
+	VectorSubtract (r_origin, vec3_origin, modelorg);
+	TransformVector (modelorg, transformed_modelorg);
+	VectorCopy (transformed_modelorg, world_transformed_modelorg);
+
+	PE_CoverBegin();
+
+	i = 0;
+	for (s = &surfaces[2]; s < world_end; s++)
+	{
+		if (s->flags & SURF_DRAWSKY)
+			continue;
+		for (; i < numbmodels && bmodels[i]->key < s->key; i++)
+			D_DrawSurface (currententity, bmodels[i]);
+		D_DrawSurface (currententity, s);
+	}
+	for (; i < numbmodels; i++)
+		D_DrawSurface (currententity, bmodels[i]);
+
+	for (s = &surfaces[2]; s < world_end; s++)
+	{
+		if (s->flags & SURF_DRAWSKY)
+			D_DrawSurface (currententity, s);
+	}
+
+	D_DrawSurface (currententity, &surfaces[1]);
 
 	VectorSubtract (r_origin, vec3_origin, modelorg);
 	R_TransformFrustum ();
