@@ -40,12 +40,12 @@ static const char *region_names[NUM_REGIONS] = {"rom", "vram", "xram", "mmio"};
 
 static struct {
     uint32_t dsize, isize, line, vc_entries, wq_depth;
-    uint32_t fill[NUM_REGIONS], write[NUM_REGIONS];
-    uint32_t div_stall, fdiv_stall, mispredict, vc_penalty, fill_gap;
+    uint32_t fill[NUM_REGIONS], write[NUM_REGIONS], fill_gap[NUM_REGIONS];
+    uint32_t div_stall, fdiv_stall, mispredict, vc_penalty;
     uint64_t start, end;
     int top;
     int low_region;
-} cfg = {65536, 32768, 32, 32, 4, {8, 8, 75, 4}, {1, 1, 9, 4}, 15, 12, 3, 2, 3, 0, UINT64_MAX, 40, R_ROM};
+} cfg = {65536, 32768, 32, 32, 8, {8, 8, 11, 4}, {1, 1, 9, 4}, {3, 3, 24, 3}, 15, 12, 3, 2, 0, UINT64_MAX, 40, R_ROM};
 
 static pcinfo_t *info;
 static uint32_t info_base, info_count, num_funcs;
@@ -63,6 +63,8 @@ static uint64_t *wq;
 static uint32_t wq_head;
 static uint64_t mem_busy_until;
 static uint64_t fill_free;
+static uint32_t last_store_word = UINT32_MAX;
+static uint64_t last_store_start;
 
 typedef struct {
     uint32_t tag, target;
@@ -78,7 +80,7 @@ static struct {
     uint64_t div_stall, vl_stall, fill_wait, mispredicts, mispredict_cycles;
     uint64_t imiss, imiss_cycles;
     uint64_t dmiss[NUM_REGIONS], dmiss_cycles[NUM_REGIONS], vc_hits, loads, stores;
-    uint64_t store_stall;
+    uint64_t store_stall, merged_stores;
     uint64_t *func_cycles, *func_records;
     uint64_t *func_mem, *func_store, *func_fetch, *func_div, *func_branch;
 } st;
@@ -168,7 +170,7 @@ static uint32_t dcache_load(uint32_t addr, uint64_t when)
     }
     ready += cfg.fill[region];
     mem_busy_until = ready;
-    fill_free = ready + 1 + cfg.fill_gap;
+    fill_free = ready + 1 + cfg.fill_gap[region];
     if (counting())
     {
         st.dmiss[region]++;
@@ -180,6 +182,15 @@ static uint32_t dcache_load(uint32_t addr, uint64_t when)
 static uint32_t store(uint32_t addr, uint64_t when)
 {
     int region = region_of(addr);
+    if (region != R_MMIO && addr / 8 == last_store_word && last_store_start > when)
+    {
+        if (counting())
+        {
+            st.merged_stores++;
+        }
+        return 0;
+    }
+
     uint64_t oldest = wq[wq_head];
     uint32_t stall = oldest > when ? (uint32_t)(oldest - when) : 0;
 
@@ -189,6 +200,8 @@ static uint32_t store(uint32_t addr, uint64_t when)
     }
     uint64_t start = drain_writes(when + stall);
 
+    last_store_word = addr / 8;
+    last_store_start = start;
     mem_busy_until = start + cfg.write[region];
     wq[wq_head] = mem_busy_until;
     wq_head = (wq_head + 1) % cfg.wq_depth;
@@ -504,6 +517,7 @@ static void report(void)
     }
     printf("loads after D$ fills:   %llu  %5.1f%%\n", (unsigned long long)st.fill_wait,
            100.0 * st.fill_wait / st.cycles);
+    printf("merged stores:          %llu\n", (unsigned long long)st.merged_stores);
     printf("store stalls:           %llu  %5.1f%%\n", (unsigned long long)st.store_stall,
            100.0 * st.store_stall / st.cycles);
 
@@ -536,6 +550,11 @@ static void report(void)
 
 static int parse_region_list(const char *s, uint32_t *out)
 {
+    if (!strchr(s, ','))
+    {
+        out[0] = out[1] = out[2] = out[3] = strtoul(s, NULL, 0);
+        return 1;
+    }
     return sscanf(s, "%u,%u,%u,%u", &out[0], &out[1], &out[2], &out[3]) == 4;
 }
 
@@ -549,7 +568,8 @@ int main(int argc, char **argv)
     if (argc < 2)
     {
         fprintf(stderr, "usage: %s pcinfo.bin [--start N] [--end N] [--dsize B] [--isize B]\n"
-                        "  [--fill rom,vram,xram,mmio] [--write rom,vram,xram,mmio] [--wq N] [--fill-gap N]\n"
+                        "  [--fill rom,vram,xram,mmio] [--write rom,vram,xram,mmio] [--wq N]\n"
+                        "  [--fill-gap rom,vram,xram,mmio]\n"
                         "  [--vc N] [--top N] < trace\n", argv[0]);
         return 1;
     }
@@ -565,7 +585,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--isize")) cfg.isize = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--wq")) cfg.wq_depth = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--vc")) cfg.vc_entries = strtoul(v, NULL, 0);
-        else if (!strcmp(k, "--fill-gap")) cfg.fill_gap = strtoul(v, NULL, 0);
+        else if (!strcmp(k, "--fill-gap")) parse_region_list(v, cfg.fill_gap);
         else if (!strcmp(k, "--top")) cfg.top = atoi(v);
         else if (!strcmp(k, "--low")) cfg.low_region = !strcmp(v, "xram") ? R_XRAM : R_ROM;
         else if (!strcmp(k, "--fill")) parse_region_list(v, cfg.fill);
