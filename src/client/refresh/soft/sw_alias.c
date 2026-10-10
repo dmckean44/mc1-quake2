@@ -62,6 +62,10 @@ static void R_AliasTransformVector(const vec3_t in, vec3_t out, const float xf[3
 static void R_AliasTransformFinalVerts(const entity_t *currententity, int numpoints, finalvert_t *fv, dtrivertx_t *oldv, dtrivertx_t *newv );
 
 void R_AliasProjectAndClipTestFinalVert(finalvert_t *fv);
+#if defined(__MRISC32_VECTOR_OPS__)
+static void R_AliasTransformFinalVertsVec(int numpoints, finalvert_t *fv, const dtrivertx_t *oldv,
+	const dtrivertx_t *newv);
+#endif
 
 
 /*
@@ -233,6 +237,14 @@ R_AliasPreparePoints (const entity_t *currententity, finalvert_t *verts, const f
 		return;
 	}
 
+#if defined(__MRISC32_VECTOR_OPS__) && !defined(ENABLE_SW_COLORLIGHT)
+	if (s_pmdl->num_xyz > 0 && !(currententity->flags &
+		(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM)))
+	{
+		R_AliasTransformFinalVertsVec(s_pmdl->num_xyz, verts, r_lastframe->verts, r_thisframe->verts);
+	}
+	else
+#endif
 	R_AliasTransformFinalVerts(currententity,
 				   s_pmdl->num_xyz,
 				   verts,	// destination for transformed verts
@@ -460,6 +472,243 @@ R_AliasTransformFinalVerts(const entity_t *currententity, int numpoints, finalve
 	}
 
 }
+
+#if defined(__MRISC32_VECTOR_OPS__)
+/*
+ * The same arithmetic as R_AliasTransformFinalVerts and
+ * R_AliasProjectAndClipTestFinalVert, VL vertices at a time. Only l[0] of the
+ * light is used without colour light, so it is stored in all three. Vertices
+ * behind the z clip plane get projected too; those values are never read.
+ */
+static void
+R_AliasTransformFinalVertsVec(int numpoints, finalvert_t *fv, const dtrivertx_t *oldv,
+	const dtrivertx_t *newv)
+{
+	const float k1[21] = {
+		r_lerp_move[0], r_lerp_move[1], r_lerp_move[2],
+		r_lerp_backv[0], r_lerp_backv[1], r_lerp_backv[2],
+		r_lerp_frontv[0], r_lerp_frontv[1], r_lerp_frontv[2],
+		aliastransform[0][0], aliastransform[0][1], aliastransform[0][2], aliastransform[0][3],
+		aliastransform[1][0], aliastransform[1][1], aliastransform[1][2], aliastransform[1][3],
+		aliastransform[2][0], aliastransform[2][1], aliastransform[2][2], aliastransform[2][3]
+	};
+	union { float f; int i; const void *p; } k2[18];
+	int n;
+	const dtrivertx_t *o, *nv;
+	finalvert_t *f;
+
+	n = numpoints; o = oldv; nv = newv; f = fv;
+	__asm__ volatile(
+		"    getsr   vl, #0x10\n"
+		"    ldw     r9, [%[k], #0]\n   mov v9, r9\n"
+		"    ldw     r9, [%[k], #4]\n   mov v10, r9\n"
+		"    ldw     r9, [%[k], #8]\n   mov v11, r9\n"
+		"    ldw     r9, [%[k], #12]\n  mov v12, r9\n"
+		"    ldw     r9, [%[k], #16]\n  mov v13, r9\n"
+		"    ldw     r9, [%[k], #20]\n  mov v14, r9\n"
+		"    ldw     r9, [%[k], #24]\n  mov v15, r9\n"
+		"    ldw     r9, [%[k], #28]\n  mov v16, r9\n"
+		"    ldw     r9, [%[k], #32]\n  mov v17, r9\n"
+		"    ldw     r9, [%[k], #36]\n  mov v18, r9\n"
+		"    ldw     r9, [%[k], #40]\n  mov v19, r9\n"
+		"    ldw     r9, [%[k], #44]\n  mov v20, r9\n"
+		"    ldw     r9, [%[k], #48]\n  mov v21, r9\n"
+		"    ldw     r9, [%[k], #52]\n  mov v22, r9\n"
+		"    ldw     r9, [%[k], #56]\n  mov v23, r9\n"
+		"    ldw     r9, [%[k], #60]\n  mov v24, r9\n"
+		"    ldw     r9, [%[k], #64]\n  mov v25, r9\n"
+		"    ldw     r9, [%[k], #68]\n  mov v26, r9\n"
+		"    ldw     r9, [%[k], #72]\n  mov v27, r9\n"
+		"    ldw     r9, [%[k], #76]\n  mov v28, r9\n"
+		"    ldw     r9, [%[k], #80]\n  mov v29, r9\n"
+		"1:\n"
+		"    min     vl, vl, %[n]\n"
+		"    sub     %[n], %[n], vl\n"
+		"    ldub    v1, [%[o], #4]\n"
+		"    add     r9, %[o], #1\n"
+		"    ldub    v2, [r9, #4]\n"
+		"    add     r9, %[o], #2\n"
+		"    ldub    v3, [r9, #4]\n"
+		"    ldub    v4, [%[nv], #4]\n"
+		"    add     r9, %[nv], #1\n"
+		"    ldub    v5, [r9, #4]\n"
+		"    add     r9, %[nv], #2\n"
+		"    ldub    v6, [r9, #4]\n"
+		"    itof    v1, v1, z\n"
+		"    itof    v2, v2, z\n"
+		"    itof    v3, v3, z\n"
+		"    itof    v4, v4, z\n"
+		"    itof    v5, v5, z\n"
+		"    itof    v6, v6, z\n"
+		"    fmul    v1, v1, v12\n"
+		"    fadd    v1, v9, v1\n"
+		"    fmul    v4, v4, v15\n"
+		"    fadd    v1, v1, v4\n"
+		"    fmul    v2, v2, v13\n"
+		"    fadd    v2, v10, v2\n"
+		"    fmul    v5, v5, v16\n"
+		"    fadd    v2, v2, v5\n"
+		"    fmul    v3, v3, v14\n"
+		"    fadd    v3, v11, v3\n"
+		"    fmul    v6, v6, v17\n"
+		"    fadd    v3, v3, v6\n"
+		"    fmul    v4, v1, v18\n"
+		"    fmul    v5, v2, v19\n"
+		"    fadd    v4, v4, v5\n"
+		"    fmul    v5, v3, v20\n"
+		"    fadd    v4, v4, v5\n"
+		"    fadd    v4, v4, v21\n"
+		"    add     r9, %[f], #36\n"
+		"    stw     v4, [r9, #48]\n"
+		"    fmul    v5, v1, v22\n"
+		"    fmul    v6, v2, v23\n"
+		"    fadd    v5, v5, v6\n"
+		"    fmul    v6, v3, v24\n"
+		"    fadd    v5, v5, v6\n"
+		"    fadd    v5, v5, v25\n"
+		"    add     r9, %[f], #40\n"
+		"    stw     v5, [r9, #48]\n"
+		"    fmul    v6, v1, v26\n"
+		"    fmul    v7, v2, v27\n"
+		"    fadd    v6, v6, v7\n"
+		"    fmul    v7, v3, v28\n"
+		"    fadd    v6, v6, v7\n"
+		"    fadd    v6, v6, v29\n"
+		"    add     r9, %[f], #44\n"
+		"    stw     v6, [r9, #48]\n"
+		"    ldea    %[o], [%[o], vl*4]\n"
+		"    ldea    %[nv], [%[nv], vl*4]\n"
+		"    mul     r9, vl, #48\n"
+		"    add     %[f], %[f], r9\n"
+		"    bnz     %[n], 1b\n"
+		: [n] "+r"(n), [o] "+r"(o), [nv] "+r"(nv), [f] "+r"(f)
+		: [k] "r"(k1)
+		: "vl", "r9", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v9", "v10", "v11", "v12", "v13",
+		  "v14", "v15", "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23", "v24", "v25",
+		  "v26", "v27", "v28", "v29", "memory"
+	);
+
+	k2[0].f = r_plightvec[0];
+	k2[1].f = r_plightvec[1];
+	k2[2].f = r_plightvec[2];
+	k2[3].f = r_shadelight[0];
+	k2[4].f = (float)r_ambientlight[0];
+	k2[5].i = r_ambientlight[0];
+	k2[6].f = aliasxscale;
+	k2[7].f = aliasyscale;
+	k2[8].f = aliasxcenter;
+	k2[9].f = aliasycenter;
+	k2[10].f = s_ziscale;
+	k2[11].i = r_refdef.aliasvrect.x;
+	k2[12].i = r_refdef.aliasvrect.y;
+	k2[13].i = r_refdef.aliasvrectright;
+	k2[14].i = r_refdef.aliasvrectbottom;
+	k2[15].f = ALIAS_Z_CLIP_PLANE;
+	k2[16].f = 1.0F;
+	k2[17].p = r_avertexnormals;
+
+	n = numpoints; nv = newv; f = fv;
+	__asm__ volatile(
+		"    getsr   vl, #0x10\n"
+		"    ldw     r9, [%[k], #0]\n"
+		"    ldw     r10, [%[k], #4]\n"
+		"    ldw     r11, [%[k], #8]\n"
+		"    ldw     r12, [%[k], #12]\n"
+		"    ldw     r13, [%[k], #16]\n"
+		"    ldw     r14, [%[k], #20]\n"
+		"    ldw     r15, [%[k], #24]\n"
+		"    ldw     r16, [%[k], #28]\n"
+		"    ldw     r17, [%[k], #32]\n"
+		"    ldw     r18, [%[k], #36]\n"
+		"    ldw     r19, [%[k], #40]\n"
+		"    ldw     r20, [%[k], #44]\n"
+		"    ldw     r21, [%[k], #48]\n"
+		"    ldw     r22, [%[k], #52]\n"
+		"    ldw     r23, [%[k], #56]\n"
+		"    ldw     r24, [%[k], #60]\n"
+		"    ldw     r25, [%[k], #64]\n"
+		"    mov     v20, r25\n"
+		"    ldw     r25, [%[k], #68]\n"
+		"1:\n"
+		"    min     vl, vl, %[n]\n"
+		"    sub     %[n], %[n], vl\n"
+		"    add     r26, %[nv], #3\n"
+		"    ldub    v1, [r26, #4]\n"
+		"    mul     v1, v1, #12\n"
+		"    ldw     v2, [r25, v1]\n"
+		"    add     r26, r25, #4\n"
+		"    ldw     v3, [r26, v1]\n"
+		"    add     r26, r25, #8\n"
+		"    ldw     v4, [r26, v1]\n"
+		"    fmul    v2, v2, r9\n"
+		"    fmul    v3, v3, r10\n"
+		"    fadd    v2, v2, v3\n"
+		"    fmul    v4, v4, r11\n"
+		"    fadd    v2, v2, v4\n"
+		"    fslt    v3, v2, z\n"
+		"    fmul    v4, v2, r12\n"
+		"    fadd    v4, v4, r13\n"
+		"    ftoi    v4, v4, z\n"
+		"    max     v4, v4, z\n"
+		"    sel     v3, v4, r14\n"
+		"    add     r26, %[f], #16\n"
+		"    stw     v3, [r26, #48]\n"
+		"    add     r26, %[f], #20\n"
+		"    stw     v3, [r26, #48]\n"
+		"    add     r26, %[f], #24\n"
+		"    stw     v3, [r26, #48]\n"
+		"    add     r26, %[f], #36\n"
+		"    ldw     v5, [r26, #48]\n"
+		"    add     r26, %[f], #40\n"
+		"    ldw     v6, [r26, #48]\n"
+		"    add     r26, %[f], #44\n"
+		"    ldw     v7, [r26, #48]\n"
+		"    fslt    v8, v7, r24\n"
+		"    fdiv    v9, v20, v7\n"
+		"    fmul    v10, v9, r19\n"
+		"    ftoi    v10, v10, z\n"
+		"    add     r26, %[f], #28\n"
+		"    stw     v10, [r26, #48]\n"
+		"    fmul    v11, v5, r15\n"
+		"    fmul    v11, v11, v9\n"
+		"    fadd    v11, v11, r17\n"
+		"    ftoi    v11, v11, z\n"
+		"    stw     v11, [%[f], #48]\n"
+		"    fmul    v12, v6, r16\n"
+		"    fmul    v12, v12, v9\n"
+		"    fadd    v12, v12, r18\n"
+		"    ftoi    v12, v12, z\n"
+		"    add     r26, %[f], #4\n"
+		"    stw     v12, [r26, #48]\n"
+		"    slt     v13, v11, r20\n"
+		"    and     v13, v13, #1\n"
+		"    slt     v14, v12, r21\n"
+		"    and     v14, v14, #2\n"
+		"    or      v13, v13, v14\n"
+		"    sle     v14, v11, r22\n"
+		"    xor     v14, v14, #-1\n"
+		"    and     v14, v14, #4\n"
+		"    or      v13, v13, v14\n"
+		"    sle     v14, v12, r23\n"
+		"    xor     v14, v14, #-1\n"
+		"    and     v14, v14, #8\n"
+		"    or      v13, v13, v14\n"
+		"    and     v14, v8, #16\n"
+		"    sel     v8, v14, v13\n"
+		"    add     r26, %[f], #32\n"
+		"    stw     v8, [r26, #48]\n"
+		"    ldea    %[nv], [%[nv], vl*4]\n"
+		"    mul     r26, vl, #48\n"
+		"    add     %[f], %[f], r26\n"
+		"    bnz     %[n], 1b\n"
+		: [n] "+r"(n), [nv] "+r"(nv), [f] "+r"(f)
+		: [k] "r"(k2)
+		: "vl", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "r16", "r17", "r18", "r19", "r20",
+		  "r21", "r22", "r23", "r24", "r25", "r26", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8",
+		  "v9", "v10", "v11", "v12", "v13", "v14", "v20", "memory"
+	);
+}
+#endif
 
 /*
 ================
