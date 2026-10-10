@@ -165,6 +165,7 @@ Qcommon_Mainloop(void)
 {
 	long long newtime;
 	long long oldtime = Sys_Microseconds();
+	long long fixedclock = oldtime;
 
 	/* The mainloop. The legend. */
 	while (1)
@@ -203,8 +204,17 @@ Qcommon_Mainloop(void)
 
 		newtime = Sys_Microseconds();
 
-		// Save global time for network- und input code.
-		curtime = (int)(newtime / 1000ll);
+		// Save global time for network- und input code. With a fixed frame
+		// time it advances by exactly that much per frame.
+		if (fixedtime && fixedtime->value)
+		{
+			fixedclock += (long long)fixedtime->value;
+			curtime = (int)(fixedclock / 1000ll);
+		}
+		else
+		{
+			curtime = (int)(newtime / 1000ll);
+		}
 
 		Qcommon_Frame(newtime - oldtime);
 		oldtime = newtime;
