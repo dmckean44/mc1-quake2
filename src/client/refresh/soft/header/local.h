@@ -373,6 +373,7 @@ void NonTurbulentPow2(espan_t *pspan, float d_ziorigin, float d_zistepu, float d
 
 surfcache_t *D_CacheSurface(const entity_t *currententity, msurface_t *surface, int miplevel);
 void PE_DrawWorld(entity_t *currententity, surf_t *world_end, surf_t *surface);
+void R_BeginProjectionCache(const model_t *model);
 
 extern int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 

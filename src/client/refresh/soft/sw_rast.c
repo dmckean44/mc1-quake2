@@ -201,6 +201,87 @@ R_EmitSkyBox(entity_t *currententity, const model_t *currentmodel, qboolean insu
 	r_currentkey = oldkey;	// bsp sorting order
 }
 
+typedef struct
+{
+	int	frame;
+	int	ceilv;
+	float	u, v, zi;
+} projvert_t;
+
+static projvert_t	*r_projverts;
+static int		r_numprojverts;
+static qboolean		r_projcache;
+
+static void __attribute__((noinline))
+R_ProjectVertex (const mvertex_t *pv, projvert_t *out)
+{
+	vec3_t	local, transformed;
+	float	scale;
+
+	// transform and project
+	VectorSubtract (pv->position, modelorg, local);
+	TransformVector (local, transformed);
+
+	if (transformed[2] < NEAR_CLIP)
+		transformed[2] = NEAR_CLIP;
+
+	out->zi = 1.0F / transformed[2];
+
+	// FIXME: build x/yscale into transform?
+	scale = xscale * out->zi;
+	out->u = (xcenter + scale*transformed[0]);
+	if (out->u < r_refdef.fvrectx_adj)
+		out->u = r_refdef.fvrectx_adj;
+	if (out->u > r_refdef.fvrectright_adj)
+		out->u = r_refdef.fvrectright_adj;
+
+	scale = yscale * out->zi;
+	out->v = (ycenter - scale*transformed[1]);
+	if (out->v < r_refdef.fvrecty_adj)
+		out->v = r_refdef.fvrecty_adj;
+	if (out->v > r_refdef.fvrectbottom_adj)
+		out->v = r_refdef.fvrectbottom_adj;
+
+	out->ceilv = Q_ceil(out->v);
+}
+
+/*
+ * World vertices are projected once per frame. Clipped and brush model
+ * vertices are projected every time.
+ */
+static inline const projvert_t *
+R_ProjectedVertex (const mvertex_t *pv, projvert_t *scratch)
+{
+	size_t index = (size_t)(pv - r_pcurrentvertbase);
+	projvert_t *p;
+
+	if (!r_projcache || index >= (size_t)r_numprojverts)
+	{
+		R_ProjectVertex (pv, scratch);
+		return scratch;
+	}
+
+	p = &r_projverts[index];
+	if (p->frame != r_framecount)
+	{
+		R_ProjectVertex (pv, p);
+		p->frame = r_framecount;
+	}
+	return p;
+}
+
+void
+R_BeginProjectionCache (const model_t *model)
+{
+	if (model->numvertexes > r_numprojverts)
+	{
+		free(r_projverts);
+		r_numprojverts = model->numvertexes;
+		r_projverts = malloc(r_numprojverts * sizeof(*r_projverts));
+		memset(r_projverts, 0xff, r_numprojverts * sizeof(*r_projverts));
+	}
+}
+
 /*
 ================
 R_EmitEdge
@@ -212,11 +293,11 @@ R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1, medge_t *r_pedge, qboolean r_nearzio
 	edge_t	*edge, *pcheck;
 	int	u_check;
 	float	u, u_step;
-	vec3_t	local, transformed;
-	float	*world;
 	int		v, v2, ceilv0;
-	float	scale, lzi0, u0, v0;
+	float	lzi0, u0, v0;
 	int		side;
+	projvert_t	scratch;
+	const projvert_t	*p;
 
 	if (r_lastvertvalid)
 	{
@@ -227,59 +308,17 @@ R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1, medge_t *r_pedge, qboolean r_nearzio
 	}
 	else
 	{
-		world = &pv0->position[0];
-
-		// transform and project
-		VectorSubtract (world, modelorg, local);
-		TransformVector (local, transformed);
-
-		if (transformed[2] < NEAR_CLIP)
-			transformed[2] = NEAR_CLIP;
-
-		lzi0 = 1.0F / transformed[2];
-
-		// FIXME: build x/yscale into transform?
-		scale = xscale * lzi0;
-		u0 = (xcenter + scale*transformed[0]);
-		if (u0 < r_refdef.fvrectx_adj)
-			u0 = r_refdef.fvrectx_adj;
-		if (u0 > r_refdef.fvrectright_adj)
-			u0 = r_refdef.fvrectright_adj;
-
-		scale = yscale * lzi0;
-		v0 = (ycenter - scale*transformed[1]);
-		if (v0 < r_refdef.fvrecty_adj)
-			v0 = r_refdef.fvrecty_adj;
-		if (v0 > r_refdef.fvrectbottom_adj)
-			v0 = r_refdef.fvrectbottom_adj;
-
-		ceilv0 = Q_ceil(v0);
+		p = R_ProjectedVertex (pv0, &scratch);
+		u0 = p->u;
+		v0 = p->v;
+		lzi0 = p->zi;
+		ceilv0 = p->ceilv;
 	}
 
-	world = &pv1->position[0];
-
-	// transform and project
-	VectorSubtract (world, modelorg, local);
-	TransformVector (local, transformed);
-
-	if (transformed[2] < NEAR_CLIP)
-		transformed[2] = NEAR_CLIP;
-
-	r_lzi1 = 1.0F / transformed[2];
-
-	scale = xscale * r_lzi1;
-	r_u1 = (xcenter + scale*transformed[0]);
-	if (r_u1 < r_refdef.fvrectx_adj)
-		r_u1 = r_refdef.fvrectx_adj;
-	if (r_u1 > r_refdef.fvrectright_adj)
-		r_u1 = r_refdef.fvrectright_adj;
-
-	scale = yscale * r_lzi1;
-	r_v1 = (ycenter - scale*transformed[1]);
-	if (r_v1 < r_refdef.fvrecty_adj)
-		r_v1 = r_refdef.fvrecty_adj;
-	if (r_v1 > r_refdef.fvrectbottom_adj)
-		r_v1 = r_refdef.fvrectbottom_adj;
+	p = R_ProjectedVertex (pv1, &scratch);
+	r_u1 = p->u;
+	r_v1 = p->v;
+	r_lzi1 = p->zi;
 
 	if (r_lzi1 > lzi0)
 		lzi0 = r_lzi1;
@@ -293,7 +332,7 @@ R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1, medge_t *r_pedge, qboolean r_nearzio
 
 	r_emitted = 1;
 
-	r_ceilv1 = Q_ceil(r_v1);
+	r_ceilv1 = p->ceilv;
 
 
 	// create the edge
@@ -582,6 +621,7 @@ R_RenderFace (entity_t *currententity, const model_t *currentmodel, msurface_t *
 	}
 
 	surface_p->pe_first = pe_numsurfedges;
+	r_projcache = !insubmodel;
 	c_faceclip++;
 
 	// set up clip planes
@@ -803,6 +843,7 @@ R_RenderBmodelFace(entity_t *currententity, bedge_t *pedges, msurface_t *psurf, 
 	}
 
 	surface_p->pe_first = pe_numsurfedges;
+	r_projcache = false;
 	c_faceclip++;
 
 	// set up clip planes

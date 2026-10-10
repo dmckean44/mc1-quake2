@@ -640,6 +640,7 @@ R_RenderWorld (entity_t *currententity)
 
 	VectorCopy (r_origin, modelorg);
 	r_pcurrentvertbase = currentmodel->vertexes;
+	R_BeginProjectionCache (currentmodel);
 
 	R_RecursiveWorldNode (currententity, currentmodel, currentmodel->nodes, ALIAS_XY_CLIP_MASK, false);
 }
