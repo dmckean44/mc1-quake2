@@ -352,8 +352,35 @@ R_LightsFit (const msurface_t *surf)
 	return blocklights + smax * tmax * 3 < blocklight_max;
 }
 
+static qboolean
+R_EngineLights (const msurface_t *surf)
+{
+	const int smax = (surf->extents[0] >> 4) + 1;
+	const int tmax = (surf->extents[1] >> 4) + 1;
+
+	return pe_version >= 3 && smax * tmax <= PE_MAX_LIGHT_SAMPLES &&
+		!r_fullbright->value && !r_colorlight->value && r_worldmodel->lightdata;
+}
+
 static void
-R_DrawSurfaceEngine (const drawsurf_t *drawsurf)
+R_SendSurfaceHeader (const pixel_t *source, int texwidth, int tmax, int soffset, int toffset,
+	int numh, int numv, int level, const drawsurf_t *drawsurf)
+{
+	PE_Ptr(source);
+	PE_Word(texwidth);
+	PE_Word(tmax);
+	PE_Word(soffset);
+	PE_Ptr(source + toffset * texwidth);
+	PE_Word(numh);
+	PE_Word(numv);
+	PE_Word(level);
+	PE_Ptr(drawsurf->surfdat);
+	PE_Word(drawsurf->rowbytes);
+}
+
+static void
+R_DrawSurfaceEngine (const drawsurf_t *drawsurf, qboolean engine_lights,
+	const float *dlights, int ndlights)
 {
 	const image_t *mt = drawsurf->image;
 	const int mip = drawsurf->surfmip;
@@ -368,17 +395,28 @@ R_DrawSurfaceEngine (const drawsurf_t *drawsurf)
 	const int toffset = ((drawsurf->surf->texturemins[1] >> mip) + (tmax << SHIFT16XYZ)) % tmax;
 	int u, v;
 
+	if (engine_lights)
+	{
+		const msurface_t *surf = drawsurf->surf;
+		int maps = 0;
+
+		while (surf->samples && maps < MAXLIGHTMAPS && surf->styles[maps] != 255)
+			maps++;
+
+		PE_Begin(PE_LITSURF, 17 + 4 * ndlights);
+		R_SendSurfaceHeader (source, texwidth, tmax, soffset, toffset, numh, numv, level, drawsurf);
+		PE_Ptr(surf->samples);
+		PE_Word(maps);
+		for (u = 0; u < MAXLIGHTMAPS; u++)
+			PE_Word(drawsurf->lightadj[u]);
+		PE_Word(ndlights);
+		for (u = 0; u < ndlights * 4; u++)
+			PE_Float(dlights[u]);
+		return;
+	}
+
 	PE_Begin(PE_SURFACE, 10 + (numh + 1) * (numv + 1));
-	PE_Ptr(source);
-	PE_Word(texwidth);
-	PE_Word(tmax);
-	PE_Word(soffset);
-	PE_Ptr(source + toffset * texwidth);
-	PE_Word(numh);
-	PE_Word(numv);
-	PE_Word(level);
-	PE_Ptr(drawsurf->surfdat);
-	PE_Word(drawsurf->rowbytes);
+	R_SendSurfaceHeader (source, texwidth, tmax, soffset, toffset, numh, numv, level, drawsurf);
 	for (v = 0; v <= numv; v++)
 	{
 		const light_t *light = blocklights + v * lightwidth * 3;
@@ -558,8 +596,12 @@ D_CacheSurface
 ================
 */
 surfcache_t *
-D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel)
+D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel, qboolean lazy)
 {
+	float dlights[MAX_DLIGHTS * 4];
+	int ndlights = 0;
+	qboolean engine_lights;
+
 	surfcache_t	*cache;
 	float		surfscale;
 
@@ -587,7 +629,7 @@ D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel
 	//
 	cache = surface->cachespots[miplevel];
 
-	if (cache && !cache->dlight && surface->dlightframe != r_framecount
+	if (cache && cache->pe_valid && !cache->dlight && surface->dlightframe != r_framecount
 			&& cache->image == r_drawsurf.image
 			&& cache->lightadj[0] == lightadj0
 			&& cache->lightadj[1] == lightadj1
@@ -636,20 +678,28 @@ D_CacheSurface (const entity_t *currententity, msurface_t *surface, int miplevel
 
 	c_surf++;
 
-	// calculate the lightings
-	R_BuildLightMap (&r_drawsurf);
+	engine_lights = pe_active && R_EngineLights(surface) &&
+		(ndlights = R_SurfaceDynamicLights(surface, dlights)) >= 0;
+	if (!engine_lights)
+		R_BuildLightMap (&r_drawsurf);
 
-	// rasterize the surface into the cache
-	if (pe_active && R_LightsFit(surface))
-	{
-		R_DrawSurfaceEngine (&r_drawsurf);
-		cache->pe_fence = pe_submitted;
-	}
-	else
+	if (!engine_lights && !(pe_active && R_LightsFit(surface)))
 	{
 		PE_WaitFor(cache->pe_fence);
 		R_DrawSurface (&r_drawsurf);
+		cache->pe_valid = true;
+		return cache;
 	}
+
+	// a lazy block is only built if the face that uses it draws a pixel
+	cache->pe_valid = !(lazy && pe_version >= 3);
+	if (!cache->pe_valid)
+	{
+		PE_Begin(PE_DEFER, 1);
+		PE_Ptr(&cache->pe_valid);
+	}
+	R_DrawSurfaceEngine (&r_drawsurf, engine_lights, dlights, ndlights);
+	cache->pe_fence = pe_submitted;
 
 	return cache;
 }

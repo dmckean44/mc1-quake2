@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 2
+# MC1 pixel engine, version 3
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -12,6 +12,10 @@ renderer, so frames can be checked pixel for pixel against it.
   generates spans. It clips and projects each visible face's edges and sends
   the faces front to back; the engine fills each one where no earlier face has
   drawn, using a coverage bitmap.
+* Version 3 lights surface-cache blocks in the engine, from the lightmap
+  samples and the dynamic lights, and can hold a block's build back until the
+  face that uses it draws a pixel, so covered faces cost neither CPU nor
+  engine time.
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -27,25 +31,30 @@ below. Frame rates assume a 96 MHz clock for both.
 | | CPU, ideal | CPU, A1 model | CPU stalled on engine | frame | fps |
 |---|---|---|---|---|---|
 | software renderer | 5.22 M | 6.95 M | - | 6.95 M | 13.8 |
-| stage A (`sw_pe 1`) | 1.96 M | 2.90 M | 0.01 M | 2.92 M | 32.9 |
-| stage B (`sw_pe 2`) | 1.60 M | 2.49 M | 0.03 M | 2.52 M | 38.2 |
+| stage A (`sw_pe 1`) | 1.81 M | 2.72 M | 0.01 M | 2.73 M | 35.2 |
+| stage B (`sw_pe 2`) | 1.44 M | 2.25 M | 0.004 M | 2.25 M | 42.7 |
 
-Engine busy per frame: stage A 0.47 M cycles (16%: spans 0.29 M, surface
-blocks 0.11 M, triangles 0.06 M, particles 0.004 M); stage B 0.51 M (20%:
-polygons 0.31 M, surface blocks 0.13 M, triangles 0.06 M).
+Both rows use a version 3 engine and include the CPU-side changes (projected
+vertex cache, vectorized alias vertex transform). Stage B on a version 2
+engine, before those changes, ran at 2.52 M cycles per frame (38.2 fps).
+
+Engine busy per frame in stage B: 0.49 M cycles (22%): polygons with the
+surface blocks they build 0.42 M, triangles 0.06 M, particles 0.004 M. Of
+the 93 surface-block builds requested per frame, 23 are drawn; the faces of
+the other 70 turn out to be covered.
 
 Stage A's frames are identical to the software renderer's. Stage B's are too,
 except for a few pixels (8 at most in a frame, in 4 of 18 checked frames)
 where two faces of the same brush model share a BSP leaf and overlap; the edge
 sorter orders those by 1/z at each span start, stage B by their nearest
 vertex. The other differences in the dumps are console text and the clock.
+The same holds for the scripted gameplay benchmark (demo1 start, game logic
+running), which drops from 4.02 M ideal CPU cycles per frame to 0.91 M in
+stage B.
 
-The scripted gameplay benchmark (demo1 start, game logic running) drops from
-4.02 M ideal CPU cycles per frame to 1.28 M (stage A) and 1.00 M (stage B).
-
-With a 1024-word FIFO the CPU stalls 0.13 M cycles per frame in stage A,
-mostly while `D_DrawSurfaces` issues a burst of span commands; 4096 words
-removes that.
+The command FIFO matters once the CPU is this fast: stage B sends a whole
+frame's world (about 9 K words) in a burst. With 4096 words the CPU stalls
+0.13 M cycles per frame, with 8192 0.03 M, with 16384 none.
 
 ## Registers
 
@@ -53,7 +62,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 2 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 3 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -74,8 +83,10 @@ Commands execute strictly in order. Each finished command increments DONE, so
 the CPU can number its commands itself (the driver keeps `pe_submitted`) and
 wait for any one of them, which also waits for everything before it.
 
-The FIFO should hold at least 4096 words. A command larger than the FIFO
-(only `SURFACE` can be) must be consumed while it is being written.
+The FIFO should hold at least 16384 words (64 KB). It need not be block RAM: a
+ring buffer in DDR3 that the engine streams from is fine, since commands are
+only about 3 MB/s. A command larger than the FIFO (only `SURFACE` can be)
+must be consumed while it is being written.
 
 Payload data is copied by value, except for what the command points to: span
 lists, textures, skins, the surface-cache block being written, and the tables
@@ -122,6 +133,42 @@ every run of uncovered pixels is drawn as a SPANS span starting at that run.
 
 Words as in SPANS (word 1 unused). Draws every uncovered pixel of the view
 rectangle, in runs as for POLY. Used last, for the background colour and Z.
+
+### 10: LITSURF (17 + 4k words), version 3
+
+Builds a surface-cache block like SURFACE, but computes the corner lights
+itself, as `R_BuildLightMap` with `r_colorlight 0`.
+
+| word | |
+|---|---|
+| 0..9 | as SURFACE |
+| 10 | lightmap samples (RGB bytes, one map after another, `(numh+1)*(numv+1)` samples per map) |
+| 11 | number of light styles (0..4) |
+| 12..15 | scale per style (8.8 fixed point) |
+| 16 | number of dynamic lights `k` |
+| 17... | per dynamic light: radius, cutoff, s, t (floats; position in lightmap space) |
+
+For each sample: `sum = Σ max(r, g, b) * scale` over the styles (unsigned
+integer). Then each dynamic light adds to the samples within its cutoff, as
+`R_AddDynamicLights` does with integer distances on the 16-texel lightmap
+grid and a float add: `sum = (unsigned)((float)sum + (radius - dist) * 256)`.
+Finally `light = max(64, (255 * 256 - max(sum, 0)) >> 2)`. The engine needs
+scratch for at least 1024 samples; lit surfaces are at most 17 x 17.
+
+The CPU keeps negative lights, coloured light, `r_fullbright` and maps without
+light data.
+
+### 11: DEFER (1 word), version 3
+
+| word | |
+|---|---|
+| 0 | address of a flag word |
+
+The next SURFACE or LITSURF is not run. It is held until the next POLY: if
+that POLY draws at least one pixel, the engine runs the held build first and
+writes 1 to the flag; otherwise the build is dropped and the flag is left
+alone. The driver clears the flag when it sends the build and treats a block
+whose flag is still 0 as not built.
 
 ### 5: TARGET (5 words)
 
@@ -243,6 +290,19 @@ Nothing is drawn if the Z buffer at `stride * size / 2 + size / 2` from the
 corner is greater than the particle's Z. Otherwise each pixel with
 `zbuffer <= Z` is drawn and gets the particle's Z.
 
+## Memory coherency
+
+The CPU reads memory the engine writes: the frame and Z buffers (2D drawing,
+translucent surfaces and sprites, screenshots), surface-cache blocks
+(translucent surfaces) and DEFER flags. The A1's data cache is write-through,
+so its lines can be stale but never dirty. The engine must therefore
+invalidate any CPU data cache line it writes to, for example by sending its
+write addresses to the cache's tag port. The driver waits for the engine
+before such reads but does not flush the cache.
+
+Likewise the engine's texture cache must not keep lines of a surface-cache
+block it is rebuilding.
+
 ## Arithmetic
 
 The model reproduces the software renderer bit for bit, including float
@@ -259,12 +319,12 @@ float unit shared between them is enough at the rates below.
 
 Engine time in the simulator is counted in engine clocks, at the CPU clock.
 The simulator counts ideal CPU cycles, so CPU time is taken as
-`cycles * cpi` with `cpi` from `a1time` (1.48 for this build). The CPU is
-stalled when the FIFO is full and on WAIT/SYNC.
+`cycles * cpi` with `cpi` from `a1time` (1.56 for stage B in this build).
+The CPU is stalled when the FIFO is full and on WAIT/SYNC.
 
 | item | cycles |
 |---|---|
-| command | 4 (TARGET, SKIN: 1) |
+| command | 4 (TARGET, SKIN, COVER, DEFER: 1) |
 | span | 6 |
 | span segment | 2 |
 | textured or flat pixel | 1 |
@@ -273,6 +333,7 @@ stalled when the FIFO is full and on WAIT/SYNC.
 | triangle | 30 + 3 per scan line + 1 per pixel |
 | particle | 8 + 1 per pixel |
 | polygon | 2 per edge + 2 per covered scan line + 1/16 per pixel tested, plus its spans |
+| lighting | 1 per sample per style or dynamic light |
 | texture cache miss | 24 (8 KB direct-mapped, 32-byte lines) |
 
 Assumed structure: colour and Z writes go to VRAM through write-combining
@@ -298,7 +359,10 @@ it reuses or touches that memory. In the Quake II driver:
   whole frame.
 * **Surface cache**: every cache block records the last command that reads or
   writes it (`pe_fence`). `D_SCAlloc` waits for it before reusing a block's
-  memory; flushing the cache and freeing buffers wait for everything.
+  memory; flushing the cache and freeing buffers wait for everything. With a
+  version 3 engine, blocks for world faces in stage B are sent with DEFER and
+  carry the flag (`pe_valid`); `D_CacheSurface` rebuilds a block whose flag
+  is 0. Blocks for translucent surfaces are always built at once.
 * **Registration and mode changes**: wait for everything.
 
 For stage B (`sw_pe 2`, version 2 engines; `sw_draworder` and `sw_drawflat`
@@ -311,17 +375,13 @@ fall back to stage A):
   sorted by key (the key of their leaf) and merged in. The sky box faces come
   after all others (their key is the largest), then FILL with the background.
 * All faces that survive clipping are sent, including ones the engine will
-  find fully covered, so the CPU still lights their surface-cache blocks.
+  find fully covered. With version 3 their surface-cache blocks are only
+  built if they draw.
 
 ## Where the CPU time goes now
 
-Stage B, A1 model, per frame: clipping and projecting edges 0.59 M
-(`R_ClipEdge`, `R_RenderFace`, `TransformVector`), BSP traversal and culling
-0.33 M, alias model
-setup 0.40 M, lightmaps 0.19 M, per-face setup and submission 0.16 M,
-particles 0.14 M, alias triangle submission 0.09 M.
-
-Next steps that keep the output exact: cache projected vertices per frame
-(each is now projected once per face that uses it), light surface-cache
-blocks in the engine so faces that turn out to be covered cost nothing, and
-vectorize the alias model vertex transform.
+Stage B, A1 model, per frame: clipping and projecting edges 0.56 M
+(`R_ClipEdge`, `R_RenderFace`, `R_ProjectVertex`, `TransformVector`), BSP
+traversal and culling 0.32 M, alias models 0.31 M (vertex transform and the
+triangle loop), per-face setup and submission 0.16 M, particles 0.14 M,
+alias triangle submission 0.09 M, surface-cache bookkeeping 0.06 M.

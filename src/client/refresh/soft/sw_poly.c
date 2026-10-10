@@ -1089,7 +1089,7 @@ R_BuildPolygonFromSurface(const entity_t *currententity, const model_t *currentm
 	{
 		surfcache_t *scache;
 
-		scache = D_CacheSurface(currententity, fa, 0);
+		scache = D_CacheSurface(currententity, fa, 0, false);
 
 		r_polydesc.pixels       = scache->data;
 		r_polydesc.pixel_width  = scache->width;

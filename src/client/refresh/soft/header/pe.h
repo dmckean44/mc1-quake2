@@ -30,8 +30,12 @@ enum {
 	PE_SKIN = 6,
 	PE_COVER = 7,
 	PE_POLY = 8,
-	PE_FILL = 9
+	PE_FILL = 9,
+	PE_LITSURF = 10,
+	PE_DEFER = 11
 };
+
+#define PE_MAX_LIGHT_SAMPLES	1024
 
 enum {
 	PE_SPAN_TEX = 1,

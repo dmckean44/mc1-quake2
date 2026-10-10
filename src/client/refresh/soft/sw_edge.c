@@ -997,7 +997,7 @@ D_SolidSurf (entity_t *currententity, surf_t *s)
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip * mipadjust);
 
 	// FIXME: make this passed in to D_CacheSurface
-	pcurrentcache = D_CacheSurface (currententity, pface, miplevel);
+	pcurrentcache = D_CacheSurface (currententity, pface, miplevel, pe_world);
 
 	cacheblock = (pixel_t *)pcurrentcache->data;
 	cachewidth = pcurrentcache->width;

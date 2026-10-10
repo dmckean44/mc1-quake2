@@ -268,6 +268,7 @@ typedef struct surfcache_s
 	float			mipscale;
 	image_t			*image;
 	unsigned		pe_fence;
+	unsigned		pe_valid;
 	byte			data[4]; // width*height elements
 } surfcache_t;
 
@@ -371,9 +372,11 @@ void D_DrawZSpans(espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zis
 void TurbulentPow2(espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv);
 void NonTurbulentPow2(espan_t *pspan, float d_ziorigin, float d_zistepu, float d_zistepv);
 
-surfcache_t *D_CacheSurface(const entity_t *currententity, msurface_t *surface, int miplevel);
+surfcache_t *D_CacheSurface(const entity_t *currententity, msurface_t *surface, int miplevel,
+	qboolean lazy);
 void PE_DrawWorld(entity_t *currententity, surf_t *world_end, surf_t *surface);
 void R_BeginProjectionCache(const model_t *model);
+int R_SurfaceDynamicLights(const msurface_t *surf, float *out);
 
 extern int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 

@@ -363,6 +363,62 @@ R_AddDynamicLights (drawsurf_t* drawsurf)
 
 /*
 ===============
+R_SurfaceDynamicLights
+
+The dynamic lights on a surface as the pixel engine takes them: radius,
+cutoff, and position in the surface's lightmap space, computed as in
+R_AddDynamicLights. Returns -1 for negative lights, which only the CPU does.
+===============
+*/
+int
+R_SurfaceDynamicLights (const msurface_t *surf, float *out)
+{
+	const mtexinfo_t *tex = surf->texinfo;
+	int lnum, n = 0;
+
+	if (surf->dlightframe != r_framecount)
+		return 0;
+
+	for (lnum = 0; lnum < r_newrefdef.num_dlights; lnum++)
+	{
+		const dlight_t *dl = &r_newrefdef.dlights[lnum];
+		vec3_t impact;
+		float dist, rad, minlight, *local = &out[n * 4 + 2];
+		int i;
+
+		if (!(surf->dlightbits & (1 << lnum)))
+			continue;
+
+		rad = dl->intensity;
+		if (rad < 0)
+			rad = -rad;
+
+		dist = DotProduct (dl->origin, surf->plane->normal) - surf->plane->dist;
+		rad -= fabsf(dist);
+		minlight = DLIGHT_CUTOFF;
+		if (rad < minlight)
+			continue;
+		if (dl->intensity < 0)
+			return -1;
+		minlight = rad - minlight;
+
+		for (i = 0; i < 3; i++)
+			impact[i] = dl->origin[i] - surf->plane->normal[i]*dist;
+
+		local[0] = DotProduct (impact, tex->vecs[0]) + tex->vecs[0][3];
+		local[1] = DotProduct (impact, tex->vecs[1]) + tex->vecs[1][3];
+		local[0] -= surf->texturemins[0];
+		local[1] -= surf->texturemins[1];
+
+		out[n * 4] = rad;
+		out[n * 4 + 1] = minlight;
+		n++;
+	}
+	return n;
+}
+
+/*
+===============
 R_BuildLightMap
 
 Combine and scale multiple lightmaps into the 8.8 format in blocklights
