@@ -133,7 +133,7 @@ GLimp_GetDesktopMode(int *pwidth, int *pheight)
 	/* TODO(m): Should we calculate an optimal resolution based on the
 	   amount of available VRAM? */
 	*pwidth = 320;
-	*pheight = 180;
+	*pheight = 240;
 	return true;
 }
 

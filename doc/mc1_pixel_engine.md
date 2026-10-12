@@ -414,6 +414,32 @@ and where `n . lightvec < 0`, `light = max(0, light + (int)(shade * (n . lightve
 Without word 23, s, t are left alone and the flags are 0 (Hexen II's MESH takes
 them from its own records).
 
+### 15: VERTS2 (36 words), version 9
+
+Quake II model vertices for MESH, as `R_AliasTransformFinalVerts` and
+`R_AliasProjectAndClipTestFinalVert`: two frames are blended, then
+transformed, lit and projected.
+
+| word | |
+|---|---|
+| 0, 1 | old and new frame vertices (`dtrivertx_t`: x, y, z bytes and a normal index) |
+| 2 | count |
+| 3 | destination `finalvert_t` records (48 bytes) |
+| 4..15 | `aliastransform`, row by row |
+| 16..18, 19..21, 22..24 | `r_lerp_move`, `r_lerp_backv`, `r_lerp_frontv` |
+| 25..29 | `aliasxscale`, `aliasyscale`, `aliasxcenter`, `aliasycenter`, the 1/z scale |
+| 30 | normal table |
+| 31..33 | light vector |
+| 34 | ambient light (integer), 35 shade light (float) |
+
+Per vertex: `p = move + old * backv + new * frontv` (per axis), `(x, y, z) =
+aliastransform * p`, `zi = 1 / z`, `u = (int)(x * xscale * zi + xcenter)`,
+`v` likewise, `zi` stored as `(int)(zi * ziscale)`; with `c` the new normal
+dotted with the light vector, `light = c < 0 ? max(0, (int)(ambient + shade * c)) :
+ambient`, stored in all three light words. The flags are 0: the driver sends
+only models whose blended bounding box is in front of the z clip plane and
+inside the guard band.
+
 ### 4: PARTICLE (6 words)
 
 | word | |

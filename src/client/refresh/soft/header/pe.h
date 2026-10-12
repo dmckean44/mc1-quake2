@@ -32,7 +32,9 @@ enum {
 	PE_POLY = 8,
 	PE_FILL = 9,
 	PE_LITSURF = 10,
-	PE_DEFER = 11
+	PE_DEFER = 11,
+	PE_MESH = 12,
+	PE_VERTS2 = 15
 };
 
 #define PE_MAX_LIGHT_SAMPLES	1024
@@ -139,5 +141,11 @@ void PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 	float d_ziorigin, float d_zistepu, float d_zistepv,
 	float zorigin, float zstepu, float zstepv);
 void PE_CoverBegin(void);
+finalvert_t *PE_AllocVerts(int n);
+void PE_DrawMesh(const finalvert_t *verts, const dtriangle_t *tris, int numtris, const dstvert_t *st);
+
+/* guard band: the engine clips models to the screen up to this many times its
+   half width or height from the centre (version 9) */
+#define PE_GUARD	2.0f
 
 #endif

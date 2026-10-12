@@ -58,6 +58,7 @@ static const float	r_avertexnormals[NUMVERTEXNORMALS][3] = {
 };
 
 
+static qboolean r_alias_mesh;	// the engine draws the unclipped triangles (MESH)
 static void R_AliasTransformVector(const vec3_t in, vec3_t out, const float xf[3][4]);
 static void R_AliasTransformFinalVerts(const entity_t *currententity, int numpoints, finalvert_t *fv, dtrivertx_t *oldv, dtrivertx_t *newv );
 
@@ -223,6 +224,88 @@ General clipped case
 ================
 */
 
+/*
+ * Blended vertices lie in the box from r_lerp_move to r_lerp_move + 255 *
+ * (backv + frontv). If its corners are in front of the z clip plane and inside
+ * the clip rectangle (the guard band, when the engine draws the model), no
+ * vertex gets a clip flag.
+ */
+static qboolean
+R_AliasLerpBoxUnclipped(void)
+{
+	int i, k;
+
+	for (i = 0; i < 8; i++)
+	{
+		vec3_t c;
+		float x, y, z, zi, u, v;
+
+		for (k = 0; k < 3; k++)
+		{
+			c[k] = r_lerp_move[k] + ((i >> k) & 1 ? 255.0F * (r_lerp_backv[k] + r_lerp_frontv[k]) : 0.0F);
+		}
+		x = DotProduct(c, aliastransform[0]) + aliastransform[0][3];
+		y = DotProduct(c, aliastransform[1]) + aliastransform[1][3];
+		z = DotProduct(c, aliastransform[2]) + aliastransform[2][3];
+		if (z < ALIAS_Z_CLIP_PLANE)
+		{
+			return false;
+		}
+		zi = 1.0F / z;
+		u = (x * aliasxscale * zi) + aliasxcenter;
+		v = (y * aliasyscale * zi) + aliasycenter;
+		if (u < r_refdef.aliasvrect.x || v < r_refdef.aliasvrect.y ||
+			u > r_refdef.aliasvrectright || v > r_refdef.aliasvrectbottom)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+/* the engine blends, transforms, lights and projects the vertices (version 9) */
+static void
+PE_AliasVerts2(finalvert_t *verts)
+{
+	int i, j;
+
+	PE_Begin(PE_VERTS2, 36);
+	PE_Ptr(r_lastframe->verts);
+	PE_Ptr(r_thisframe->verts);
+	PE_Word(s_pmdl->num_xyz);
+	PE_Ptr(verts);
+	for (i = 0; i < 3; i++)
+	{
+		for (j = 0; j < 4; j++)
+		{
+			PE_Float(aliastransform[i][j]);
+		}
+	}
+	for (i = 0; i < 3; i++)
+	{
+		PE_Float(r_lerp_move[i]);
+	}
+	for (i = 0; i < 3; i++)
+	{
+		PE_Float(r_lerp_backv[i]);
+	}
+	for (i = 0; i < 3; i++)
+	{
+		PE_Float(r_lerp_frontv[i]);
+	}
+	PE_Float(aliasxscale);
+	PE_Float(aliasyscale);
+	PE_Float(aliasxcenter);
+	PE_Float(aliasycenter);
+	PE_Float(s_ziscale);
+	PE_Ptr(r_avertexnormals);
+	PE_Float(r_plightvec[0]);
+	PE_Float(r_plightvec[1]);
+	PE_Float(r_plightvec[2]);
+	PE_Word(r_ambientlight[0]);
+	PE_Float(r_shadelight[0]);
+}
+
 static void
 R_AliasPreparePoints (const entity_t *currententity, finalvert_t *verts, const finalvert_t *verts_max)
 {
@@ -234,6 +317,16 @@ R_AliasPreparePoints (const entity_t *currententity, finalvert_t *verts, const f
 	if ((verts + s_pmdl->num_xyz) >= verts_max)
 	{
 		r_outofverts = true;
+		return;
+	}
+
+	if (r_alias_mesh && pe_world && pe_version >= 9 &&
+		!(currententity->flags & (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM)) &&
+		R_AliasLerpBoxUnclipped())
+	{
+		PE_AliasVerts2(verts);
+		PE_DrawMesh(verts, (dtriangle_t *)((byte *)s_pmdl + s_pmdl->ofs_tris), s_pmdl->num_tris,
+			(dstvert_t *)((byte *)s_pmdl + s_pmdl->ofs_st));
 		return;
 	}
 
@@ -256,6 +349,32 @@ R_AliasPreparePoints (const entity_t *currententity, finalvert_t *verts, const f
 	//
 	pstverts = (dstvert_t *)((byte *)s_pmdl + s_pmdl->ofs_st);
 	ptri = (dtriangle_t *)((byte *)s_pmdl + s_pmdl->ofs_tris);
+
+	if (r_alias_mesh)
+	{
+		// the engine draws the unclipped triangles, the CPU clips the others
+		PE_DrawMesh(verts, ptri, s_pmdl->num_tris, pstverts);
+		for (i=0 ; i<s_pmdl->num_tris ; i++, ptri++)
+		{
+			pfv[0] = &verts[ptri->index_xyz[0]];
+			pfv[1] = &verts[ptri->index_xyz[1]];
+			pfv[2] = &verts[ptri->index_xyz[2]];
+
+			if ( !(pfv[0]->flags | pfv[1]->flags | pfv[2]->flags) ||
+				( pfv[0]->flags & pfv[1]->flags & pfv[2]->flags ) )
+				continue;
+
+			pfv[0]->cv.s = pstverts[ptri->index_st[0]].s << SHIFT16XYZ;
+			pfv[0]->cv.t = pstverts[ptri->index_st[0]].t << SHIFT16XYZ;
+			pfv[1]->cv.s = pstverts[ptri->index_st[1]].s << SHIFT16XYZ;
+			pfv[1]->cv.t = pstverts[ptri->index_st[1]].t << SHIFT16XYZ;
+			pfv[2]->cv.s = pstverts[ptri->index_st[2]].s << SHIFT16XYZ;
+			pfv[2]->cv.t = pstverts[ptri->index_st[2]].t << SHIFT16XYZ;
+
+			R_AliasClipTriangle(currententity, pfv[0], pfv[1], pfv[2]);
+		}
+		return;
+	}
 
 	if ( ( currententity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
 	{
@@ -1117,7 +1236,41 @@ R_AliasDrawModel(entity_t *currententity, const model_t *currentmodel)
 	else
 		s_ziscale = (float)0x8000 * (float)SHIFT16XYZ_MULT;
 
-	R_AliasPreparePoints(currententity, finalverts, finalverts_max);
+	{
+		finalvert_t *verts = finalverts, *verts_max = finalverts_max;
+		vrect_t save_vrect = r_refdef.aliasvrect;
+		int save_right = r_refdef.aliasvrectright, save_bottom = r_refdef.aliasvrectbottom;
+
+		/* the engine reads the vertices later, from a pool, and draws the triangles
+		   without a clip flag itself: with its scissor (version 9) only those that
+		   leave the guard band get one */
+		r_alias_mesh = pe_alias && pe_version >= 5 && s_pmdl->num_tris <= 4096 &&
+			!((currententity->flags & RF_WEAPONMODEL) && r_lefthand->value == 1.0F);
+		if (r_alias_mesh && (verts = PE_AllocVerts(s_pmdl->num_xyz)) != NULL)
+		{
+			verts_max = verts + s_pmdl->num_xyz + 1;
+			if (pe_world && pe_version >= 9)
+			{
+				const float cx = aliasxcenter, cy = aliasycenter;
+
+				r_refdef.aliasvrect.x = cx - PE_GUARD * (cx - save_vrect.x);
+				r_refdef.aliasvrect.y = cy - PE_GUARD * (cy - save_vrect.y);
+				r_refdef.aliasvrectright = cx + PE_GUARD * (save_right - cx);
+				r_refdef.aliasvrectbottom = cy + PE_GUARD * (save_bottom - cy);
+			}
+		}
+		else
+		{
+			r_alias_mesh = false;
+			verts = finalverts;
+		}
+
+		R_AliasPreparePoints(currententity, verts, verts_max);
+
+		r_refdef.aliasvrect = save_vrect;
+		r_refdef.aliasvrectright = save_right;
+		r_refdef.aliasvrectbottom = save_bottom;
+	}
 
 	if ( currententity->flags & RF_WEAPONMODEL )
 	{
