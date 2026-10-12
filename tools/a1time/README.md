@@ -18,6 +18,8 @@ Memory timing is given per region (rom, vram, xram, mmio):
 * `--write` cycles the memory port is busy per store
 * `--wq` store queue depth
 * `--fill-gap` cycles the D$ stays busy after the critical word of a line fill
+* `--dprefetch 1` fetch the next line after each D$ miss to XRAM (it costs more than it saves on
+  Hexen II: only a quarter of the lines get used)
   arrives; loads and stores in that window wait
 
 `--fill`, `--write` and `--fill-gap` also take a single value for all regions.
@@ -37,3 +39,7 @@ cache in front of SDRAM.
 The pipeline model is checked against the A1 RTL with mc1-mister's
 sim/a1time-check (Verilator): with `--fill 6 --write 1 --fill-gap 3 --wq 4`, which
 matches that test bench's memory, test kernels agree within 1-2%.
+
+The open-row burst controller of mc1-mister (rtl/xram_burst.vhd), checked against its Verilator
+model on the a1time-check kernels (within 3% on every one): `--fill 8,8,9,4 --fill-gap 3,3,12,3
+--write 1,1,5,1`.

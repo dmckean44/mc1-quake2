@@ -45,7 +45,12 @@ static struct {
     uint64_t start, end;
     int top;
     int low_region;
-} cfg = {65536, 32768, 32, 32, 8, {8, 8, 11, 4}, {1, 1, 9, 4}, {3, 3, 24, 3}, 15, 12, 3, 2, 0, UINT64_MAX, 40, R_ROM};
+    int dprefetch;
+} cfg = {65536, 32768, 32, 32, 8, {8, 8, 11, 4}, {1, 1, 9, 4}, {3, 3, 24, 3}, 15, 12, 3, 2, 0, UINT64_MAX, 40, R_ROM, 0};
+
+/* next-line prefetch: the line after a D$ miss is fetched while the port is free */
+static uint32_t pf_line;
+static uint64_t pf_ready;
 
 static pcinfo_t *info;
 static uint32_t info_base, info_count, num_funcs;
@@ -79,7 +84,7 @@ static struct {
     uint64_t hazard[NUM_CLASSES];
     uint64_t div_stall, vl_stall, fill_wait, mispredicts, mispredict_cycles;
     uint64_t imiss, imiss_cycles;
-    uint64_t dmiss[NUM_REGIONS], dmiss_cycles[NUM_REGIONS], vc_hits, loads, stores;
+    uint64_t dmiss[NUM_REGIONS], dmiss_cycles[NUM_REGIONS], vc_hits, loads, stores, pf_hits, pf_issued;
     uint64_t store_stall, merged_stores;
     uint64_t *func_cycles, *func_records;
     uint64_t *func_mem, *func_store, *func_fetch, *func_div, *func_branch;
@@ -163,6 +168,16 @@ static uint32_t dcache_load(uint32_t addr, uint64_t when)
         vc_next = (vc_next + 1) % cfg.vc_entries;
     }
     dtag[idx] = line + 1;
+    if (cfg.dprefetch && pf_line == line + 1)
+    {
+        /* prefetched: wait for the rest of it if it is still arriving */
+        pf_line = 0;
+        if (counting())
+        {
+            st.pf_hits++;
+        }
+        return pf_ready > when ? (uint32_t)(pf_ready - when) : 0;
+    }
     ready = drain_writes(when);
     if (fill_free > ready)
     {
@@ -171,6 +186,18 @@ static uint32_t dcache_load(uint32_t addr, uint64_t when)
     ready += cfg.fill[region];
     mem_busy_until = ready;
     fill_free = ready + 1 + cfg.fill_gap[region];
+    if (cfg.dprefetch && region == R_XRAM && dtag[(line + 1) % (cfg.dsize / cfg.line)] != line + 2)
+    {
+        /* the whole next line, after this one, keeping the port busy */
+        pf_line = line + 2;
+        pf_ready = fill_free + cfg.fill[region] + cfg.fill_gap[region];
+        mem_busy_until = pf_ready;
+        fill_free = pf_ready + 1;
+        if (counting())
+        {
+            st.pf_issued++;
+        }
+    }
     if (counting())
     {
         st.dmiss[region]++;
@@ -506,6 +533,11 @@ static void report(void)
            (unsigned long long)st.imiss_cycles, 100.0 * st.imiss_cycles / st.cycles);
     printf("loads %llu, stores %llu, victim hits %llu\n", (unsigned long long)st.loads,
            (unsigned long long)st.stores, (unsigned long long)st.vc_hits);
+    if (cfg.dprefetch)
+    {
+        printf("prefetched lines:       %llu, used %llu\n", (unsigned long long)st.pf_issued,
+               (unsigned long long)st.pf_hits);
+    }
     for (int r = 0; r < NUM_REGIONS; r++)
     {
         if (st.dmiss[r])
@@ -585,6 +617,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--isize")) cfg.isize = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--wq")) cfg.wq_depth = strtoul(v, NULL, 0);
         else if (!strcmp(k, "--vc")) cfg.vc_entries = strtoul(v, NULL, 0);
+        else if (!strcmp(k, "--dprefetch")) cfg.dprefetch = atoi(v);
         else if (!strcmp(k, "--fill-gap")) parse_region_list(v, cfg.fill_gap);
         else if (!strcmp(k, "--top")) cfg.top = atoi(v);
         else if (!strcmp(k, "--low")) cfg.low_region = !strcmp(v, "xram") ? R_XRAM : R_ROM;
