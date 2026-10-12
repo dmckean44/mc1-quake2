@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 7
+# MC1 pixel engine, version 8
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -70,7 +70,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 7 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 8 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -207,7 +207,7 @@ Draws one surface's list of spans, as `D_DrawSpansPow2` plus `D_DrawZSpans`
 
 | word | |
 |---|---|
-| 0 | flags: 1 TEX, 2 Z, 4 TURB, 8 FLAT, bits 8..15 flat colour |
+| 0 | flags: 1 TEX, 2 Z, 4 TURB, 8 FLAT, 16 SKY (version 8), bits 8..15 flat colour |
 | 1 | first span: `struct { int u, v, count; span *next; }`, list ends at `next == 0` |
 | 2 | texture base (surface-cache block, or the raw texture for sky and water) |
 | 3 | texture row width |
@@ -240,6 +240,16 @@ For each span, with `pos = v * stride + u`:
   `ss = ((s + turb[(t >> 16) & 127]) >> 16) & 63` and
   `tt = ((t + turb[(s >> 16) & 127]) >> 16) & 63`. Water uses a sine table
   offset by time, flowing non-warped surfaces an all-zero table.
+* **SKY** (version 8): Quake's scrolling sky, as `D_DrawSkyScans8`. Words 8..16
+  hold a direction `d(u, v)`: x, y and z, each as origin, step per u, step
+  per v. Words 4 and 5 are floats, `offset` and `scale`; word 3 is unused (the
+  texture rows are 256 bytes). At the ends of 32-pixel segments, as TEX does
+  at its segment ends, the direction is normalized with the fast inverse
+  square root (`0x5f3759df - (bits >> 1)`, one Newton step) and
+  `s = trunc((offset + scale * x) * 65536)`, likewise t from y. The texel is
+  `tex[((t & 0x7f0000) >> 8) + ((s & 0x7f0000) >> 16)]`. Quake and Hexen II
+  pass `vpn + (u - xcenter) / xscale * vright + (ycenter - v) / yscale * vup`
+  with z multiplied by 3, `offset = skytime * skyspeed` and `scale = 378`.
 
 ### 2: SURFACE (10 + (numh+1)*(numv+1) words)
 
