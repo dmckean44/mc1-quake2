@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 3
+# MC1 pixel engine, version 7
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -16,6 +16,14 @@ renderer, so frames can be checked pixel for pixel against it.
   samples and the dynamic lights, and can hold a block's build back until the
   face that uses it draws a pixel, so covered faces cost neither CPU nor
   engine time.
+* Version 4 gives each dynamic light in LITSURF a brightness, for games whose
+  lights are coloured (Heretic II lights with the brightest channel).
+* Version 5 reads alias model triangles from memory (MESH), so the CPU only
+  transforms the vertices and handles the triangles that need clipping.
+* Version 6 draws sprite polygons (SPRITE): perspective-textured spans with
+  opaque, 33%, 66% or additive blending, as Heretic II's sprites need.
+* Version 7 adds turbulent SPRITE polygons, so translucent world surfaces
+  (water, glass) are drawn by the engine too.
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -62,7 +70,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 3 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 7 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -134,7 +142,7 @@ every run of uncovered pixels is drawn as a SPANS span starting at that run.
 Words as in SPANS (word 1 unused). Draws every uncovered pixel of the view
 rectangle, in runs as for POLY. Used last, for the background colour and Z.
 
-### 10: LITSURF (17 + 4k words), version 3
+### 10: LITSURF (17 + 4k or 17 + 5k words), version 3
 
 Builds a surface-cache block like SURFACE, but computes the corner lights
 itself, as `R_BuildLightMap` with `r_colorlight 0`.
@@ -145,13 +153,14 @@ itself, as `R_BuildLightMap` with `r_colorlight 0`.
 | 10 | lightmap samples (RGB bytes, one map after another, `(numh+1)*(numv+1)` samples per map) |
 | 11 | number of light styles (0..4) |
 | 12..15 | scale per style (8.8 fixed point) |
-| 16 | number of dynamic lights `k` |
-| 17... | per dynamic light: radius, cutoff, s, t (floats; position in lightmap space) |
+| 16 | number of dynamic lights `k` (bits 0..15); bit 16: lights carry a scale (version 4) |
+| 17... | per dynamic light: radius, cutoff, s, t (floats; position in lightmap space), then the scale (float) if bit 16 is set |
 
 For each sample: `sum = Σ max(r, g, b) * scale` over the styles (unsigned
 integer). Then each dynamic light adds to the samples within its cutoff, as
 `R_AddDynamicLights` does with integer distances on the 16-texel lightmap
-grid and a float add: `sum = (unsigned)((float)sum + (radius - dist) * 256)`.
+grid and a float add: `sum = (unsigned)((float)sum + (radius - dist) * scale)`,
+where `scale` is 256 when the lights carry none.
 Finally `light = max(64, (255 * 256 - max(sum, 0)) >> 2)`. The engine needs
 scratch for at least 1024 samples; lit surfaces are at most 17 x 17.
 
@@ -276,6 +285,53 @@ skipped (the CPU already culls them). The rasterizer uses the edge tables,
 triangle, light steps rounded up). A pixel is written where
 `(zi >> 16) >= zbuffer`, and its Z is written too.
 
+### 12: MESH (6 words), version 5
+
+The triangles of one alias model mesh, read from memory and drawn as
+TRIANGLE commands would draw them.
+
+| word | |
+|---|---|
+| 0 | vertex records |
+| 1 | vertex record size in bytes |
+| 2 | triangles: 12 bytes each, three 16-bit vertex indices then three 16-bit texture coordinate indices |
+| 3 | triangle list: 16-bit indices into the triangles |
+| 4 | number of entries in the triangle list |
+| 5 | texture coordinates: two signed 16-bit values (s, t in skin texels) each |
+
+A vertex record holds `u` at byte 0, `v` at 4, the light at 16, `zi` at 28
+and clip flags at 32 (the Quake II/Heretic II `finalvert_t`). Triangles with
+any clip flag set on a vertex are skipped; the CPU draws those. The others
+get `s << 16`, `t << 16` from the texture coordinates and go through the
+TRIANGLE rasterizer, back-face test included.
+
+### 13: SPRITE (19 or 83 words), version 6
+
+A polygon's span list drawn as `R_PolygonDrawSpans` with 16-pixel affine
+spanlets (not the turbulent path), and each pixel as Heretic II's
+`R_DrawSpanletBlend`.
+
+| word | |
+|---|---|
+| 0 | span list (`u, v, count, next` words per span; ends with count `INT_MIN`) |
+| 1 | texture base |
+| 2 | texture width in texels |
+| 3..6 | sadjust, tadjust, bbextents, bbextentt (16.16) |
+| 7..15 | s/z, t/z and 1/z: origin, step u, step v each (floats) |
+| 16 | blend in bits 0..1 (0 opaque, 1 33%, 2 66%, 3 additive); bit 2: no depth test; bit 3: turbulent (version 7) |
+| 17 | 1 if a colour remap follows in words 19..82 |
+| 18 | additive table (256 x 256 bytes, `table[colour * 256 + dst]`), or for turbulent polygons the turbulence table (128 ints) |
+| 19..82 | colour remap, 256 bytes |
+
+A turbulent polygon is drawn as `R_PolygonDrawSpans` with `iswater` set: s and t
+are not clamped, are masked to 128 texels at the start of each spanlet, and the
+texel is `tex[((s + turb[(t >> 16) & 127]) >> 16 & 63) + (((t + turb[(s >> 16) & 127]) >> 16 & 63) << 6)]`
+with no transparent colour, as `R_DrawSpanletTurbulentBlended33/66`.
+
+Texel 255 is transparent. Unless bit 2 is set, a pixel is drawn only where
+`zbuffer <= izi >> 16`. Opaque pixels write Z; blended ones do not. The
+remap is copied by value so the driver can reuse its tables at once.
+
 ### 4: PARTICLE (6 words)
 
 | word | |
@@ -331,6 +387,8 @@ The CPU is stalled when the FIFO is full and on WAIT/SYNC.
 | Z-only pixel | 0.5 |
 | surface block | 1 per row + 0.5 per texel |
 | triangle | 30 + 3 per scan line + 1 per pixel |
+| MESH triangle fetch | 12 |
+| sprite | 6 per span + 2 per spanlet + 1 per pixel |
 | particle | 8 + 1 per pixel |
 | polygon | 2 per edge + 2 per covered scan line + 1/16 per pixel tested, plus its spans |
 | lighting | 1 per sample per style or dynamic light |
@@ -353,6 +411,12 @@ it reuses or touches that memory. In the Quake II driver:
 * **CPU drawing**: wait before drawing on the CPU what the engine does not
   draw: translucent surfaces, sprites and beams (`R_DrawPoly`), translucent,
   shell or IR-goggle models, custom particles and the underwater warp.
+* **Sprite spans** (SPRITE): give each sprite its own part of the span pool,
+  and wait for the last SPRITE command before reusing the pool from the
+  start.
+* **Model vertices** (MESH): give each model its own part of the vertex
+  buffer, and wait for the last MESH command before reusing the buffer from
+  the start.
 * **Span buffer**: wait for the last `SPANS` command before refilling the
   edge span buffer (frame start, and on overflow in `R_ScanEdges`). With the
   engine present the buffer is 64 spans per screen column, which holds a
