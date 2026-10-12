@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 8
+# MC1 pixel engine, version 9
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -70,7 +70,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 8 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 9 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -111,6 +111,10 @@ Pointers are byte addresses. Floats are IEEE single precision.
 | 2, 3 | x1, y1: view rectangle bottom right (exclusive) |
 | 4 | fixed-point shift of POLY edge positions (20, or 18 above 2048 pixels) |
 
+Version 9: COVER also sets the scissor rectangle for TRIANGLE and MESH
+pixels, which lets drivers skip clipping models that only leave the screen
+(a guard band); TARGET clears it.
+
 Clears the coverage bitmap of the view rectangle: one bit per pixel, held in
 the engine (9.4 KB at 320x240). Sent once per frame before the world.
 
@@ -136,6 +140,13 @@ the count of open left edges reaches 1 and closes when it returns to 0, at
 `u >> shift`. A span left open at the end of the line runs to x1: faces
 clipped by the right side of the view have no right edge. Inside each span,
 every run of uncovered pixels is drawn as a SPANS span starting at that run.
+
+With NOCOVER (version 9) a POLY ignores the coverage bitmap and leaves it
+alone: every pixel inside it is drawn where `zbuffer <= z` (Z gradient of
+words 17..19), blended if BLEND is set, otherwise written with its Z if Z is
+set. Hexen II draws its translucent world this way, back to front. A POLY
+may carry a blend table in word 21, before its edges, when it has
+`22 + 3n` words.
 
 ### 9: FILL (21 words), version 2
 
@@ -223,7 +234,7 @@ Draws one surface's list of spans, as `D_DrawSpansPow2` plus `D_DrawZSpans`
 
 | word | |
 |---|---|
-| 0 | flags: 1 TEX, 2 Z, 4 TURB, 8 FLAT, 16 SKY, 32 BLEND (version 8), bits 8..15 flat colour |
+| 0 | flags: 1 TEX, 2 Z, 4 TURB, 8 FLAT, 16 SKY, 32 BLEND (version 8), 64 NOCOVER (POLY, version 9), bits 8..15 flat colour |
 | 1 | first span: `struct { int u, v, count; span *next; }`, list ends at `next == 0` |
 | 2 | texture base (surface-cache block, or the raw texture for sky and water) |
 | 3 | texture row width |
@@ -379,6 +390,29 @@ with no transparent colour, as `R_DrawSpanletTurbulentBlended33/66`.
 Texel 255 is transparent. Unless bit 2 is set, a pixel is drawn only where
 `zbuffer <= izi >> 16`. Opaque pixels write Z; blended ones do not. The
 remap is copied by value so the driver can reuse its tables at once.
+
+### 14: VERTS (23 or 24 words), version 9
+
+Quake and Hexen II model vertices for MESH, as `R_AliasTransformAndProjectFinalVerts`.
+
+| word | |
+|---|---|
+| 0 | packed vertices (`trivertx_t`: x, y, z bytes and a normal index) |
+| 1 | count |
+| 2 | destination `finalvert_t` records (32 bytes) |
+| 3..14 | the 3x4 `aliastransform`, row by row (floats) |
+| 15, 16 | `aliasxcenter`, `aliasycenter` |
+| 17 | normal table (162 x 3 floats, `r_avertexnormals`) |
+| 18..20 | light vector `r_plightvec` |
+| 21 | ambient light (integer) |
+| 22 | shade light (float) |
+| 23 | Quake: `stvert_t` records `{onseam, s, t}`, one per vertex, giving s, t and the flags |
+
+For each vertex: `zi = 1 / (x*t8 + y*t9 + z*t10 + t11)`, `u = (x*t0 + y*t1 + z*t2 + t3) * zi + xcenter`,
+`v` likewise with row 1, all truncated to integers, then `light = ambient`,
+and where `n . lightvec < 0`, `light = max(0, light + (int)(shade * (n . lightvec)))`.
+Without word 23, s, t are left alone and the flags are 0 (Hexen II's MESH takes
+them from its own records).
 
 ### 4: PARTICLE (6 words)
 
