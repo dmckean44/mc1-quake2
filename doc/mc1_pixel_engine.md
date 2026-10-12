@@ -151,16 +151,17 @@ itself, as `R_BuildLightMap` with `r_colorlight 0`.
 |---|---|
 | 0..9 | as SURFACE |
 | 10 | lightmap samples (RGB bytes, one map after another, `(numh+1)*(numv+1)` samples per map) |
-| 11 | number of light styles (0..4) |
+| 11 | number of light styles (bits 0..7); bit 8: one-byte samples (version 8); bits 16..31: the starting light of every sample (version 8) |
 | 12..15 | scale per style (8.8 fixed point) |
-| 16 | number of dynamic lights `k` (bits 0..15); bit 16: lights carry a scale (version 4) |
+| 16 | number of dynamic lights `k` (bits 0..15); bit 16: lights carry a scale (version 4); bit 17: add each light as an integer (version 8) |
 | 17... | per dynamic light: radius, cutoff, s, t (floats; position in lightmap space), then the scale (float) if bit 16 is set |
 
-For each sample: `sum = Σ max(r, g, b) * scale` over the styles (unsigned
-integer). Then each dynamic light adds to the samples within its cutoff, as
+For each sample: `sum = start + Σ max(r, g, b) * scale` over the styles
+(unsigned integer); with one-byte samples (Quake, Hexen II) the byte itself. Then each dynamic light adds to the samples within its cutoff, as
 `R_AddDynamicLights` does with integer distances on the 16-texel lightmap
 grid and a float add: `sum = (unsigned)((float)sum + (radius - dist) * scale)`,
-where `scale` is 256 when the lights carry none.
+where `scale` is 256 when the lights carry none. With bit 17, as Quake and
+Hexen II do, `sum += (unsigned)((radius - dist) * scale)`.
 Finally `light = max(64, (255 * 256 - max(sum, 0)) >> 2)`. The engine needs
 scratch for at least 1024 samples; lit surfaces are at most 17 x 17.
 
@@ -191,23 +192,38 @@ whose flag is still 0 as not built.
 
 Sets render state used by all later commands. Sent once per frame.
 
-### 6: SKIN (2 words)
+### 6: SKIN (2 or 4 words)
 
 | word | |
 |---|---|
 | 0 | skin base |
 | 1 | skin width in texels |
+| 2 | mode (version 8; 0 when left out) |
+| 3 | blend table (256 x 256 bytes) for the mode |
 
-Texture for later `TRIANGLE` commands.
+Texture for later `TRIANGLE` and `MESH` commands. The mode covers Hexen II's
+translucent and holey model drawers and the blended model triangles of the
+Quake II family:
 
-### 1: SPANS (21 words)
+| bits | |
+|---|---|
+| 0 | texel 0 is transparent |
+| 1..2 | 0 opaque; 1 `table[lit * 256 + dst]`; 2 the same for odd texels, even ones opaque; 3 `table[texel * 256 + dst]` with the unlit texel |
+| 3 | index the table as `dst * 256 + colour` instead |
+| 4 | don't write Z |
+
+`lit` is `colormap[(light & 0xff00) + texel]`, as for opaque triangles. Hexen
+II's `D_PolysetDrawSpans8T` is mode 3 with `mainTransTable`, `T2` mode 5,
+`T3` mode 1 and `T5` mode 7 with `transTable`; all of them write Z.
+
+### 1: SPANS (21 or 22 words)
 
 Draws one surface's list of spans, as `D_DrawSpansPow2` plus `D_DrawZSpans`
 (and `TurbulentPow2`, `D_FlatFillSurface`).
 
 | word | |
 |---|---|
-| 0 | flags: 1 TEX, 2 Z, 4 TURB, 8 FLAT, 16 SKY (version 8), bits 8..15 flat colour |
+| 0 | flags: 1 TEX, 2 Z, 4 TURB, 8 FLAT, 16 SKY, 32 BLEND (version 8), bits 8..15 flat colour |
 | 1 | first span: `struct { int u, v, count; span *next; }`, list ends at `next == 0` |
 | 2 | texture base (surface-cache block, or the raw texture for sky and water) |
 | 3 | texture row width |
@@ -218,6 +234,7 @@ Draws one surface's list of spans, as `D_DrawSpansPow2` plus `D_DrawZSpans`
 | 14..16 | 1/z: origin, step per u, step per v (float) |
 | 17..19 | Z buffer gradient: origin, step per u, step per v (float) |
 | 20 | turbulence table (CYCLE=128 ints), for TURB |
+| 21 | blend table for BLEND (version 8; TARGET's alphamap when left out) |
 
 For each span, with `pos = v * stride + u`:
 
@@ -240,6 +257,10 @@ For each span, with `pos = v * stride + u`:
   `ss = ((s + turb[(t >> 16) & 127]) >> 16) & 63` and
   `tt = ((t + turb[(s >> 16) & 127]) >> 16) & 63`. Water uses a sine table
   offset by time, flowing non-warped surfaces an all-zero table.
+* **BLEND** (version 8): Hexen II's translucent world (`D_DrawSpans8T`,
+  `D_DrawTurbulent8T`, `D_DrawSolidSurfaceT`). Each TEX, TURB or FLAT pixel
+  `c` is drawn only where `zbuffer <= zgrad >> 16` (the Z gradient of words
+  17..19, stepped as for Z), as `table[c * 256 + dst]`, and Z is not written.
 * **SKY** (version 8): Quake's scrolling sky, as `D_DrawSkyScans8`. Words 8..16
   hold a direction `d(u, v)`: x, y and z, each as origin, step per u, step
   per v. Words 4 and 5 are floats, `offset` and `scale`; word 3 is unused (the
@@ -264,7 +285,7 @@ Builds a lit surface-cache block, as `R_DrawSurface` with the per-mip
 | 3 | starting texture column |
 | 4 | starting texture row address |
 | 5, 6 | numh, numv: blocks across and down |
-| 7 | level: blocks are `2^level` texels square (4 at mip 0 ... 1 at mip 3) |
+| 7 | level: blocks are `2^level` texels square (4 at mip 0 ... 1 at mip 3); bit 8: light rows from the right (version 8) |
 | 8 | destination (surface-cache block data) |
 | 9 | destination row stride |
 | 10... | light values at block corners, row by row, `numh + 1` per row |
@@ -275,6 +296,9 @@ and `right` likewise, and texel `b` of that row gets
 
     light = left + b * ((right - left) >> level)
     out = colormap[(light & ~0xff) | texel]
+
+With bit 8 of word 7, as Hexen II's `R_DrawSurfaceBlock8_mip*` do, each row
+steps from its right end instead: `light = right + (size - 1 - b) * ((left - right) >> level)`.
 
 The source wraps vertically after `height` rows (checked after each block)
 and horizontally after `width` columns (checked after each column).
@@ -309,11 +333,25 @@ TRIANGLE commands would draw them.
 | 4 | number of entries in the triangle list |
 | 5 | texture coordinates: two signed 16-bit values (s, t in skin texels) each |
 
-A vertex record holds `u` at byte 0, `v` at 4, the light at 16, `zi` at 28
-and clip flags at 32 (the Quake II/Heretic II `finalvert_t`). Triangles with
+| 6 | format (version 8; 0 when left out) |
+| 7 | clip flag mask (formats 1 and 2) |
+| 8 | seam fixup added to s (formats 1 and 2) |
+
+Format 0 (Quake II, Heretic II): a vertex record holds `u` at byte 0, `v` at
+4, the light at 16, `zi` at 28 and clip flags at 32 (`finalvert_t`). Triangles with
 any clip flag set on a vertex are skipped; the CPU draws those. The others
 get `s << 16`, `t << 16` from the texture coordinates and go through the
 TRIANGLE rasterizer, back-face test included.
+
+Formats 1 (Quake) and 2 (Hexen II), version 8: vertex records are Quake's
+`finalvert_t`, `u, v, s, t, light, zi` (16.16 where fractional) and flags at
+byte 24. Triangles are 16 bytes and start with `facesfront`; format 1 then has
+three 32-bit vertex indices, format 2 three 16-bit vertex indices and three
+16-bit indices into word 5's table of `{onseam, s, t}` records (12 bytes, s and
+t 16.16), which replace the vertex's s and t. A triangle is skipped if any of
+its vertex flags meet word 7. On back faces (`facesfront == 0`), s of an
+on-seam vertex (flag 0x20 in the vertex for format 1, in the record for format
+2) gets word 8 added, as `D_DrawNonSubdiv` does.
 
 ### 13: SPRITE (19 or 83 words), version 6
 
