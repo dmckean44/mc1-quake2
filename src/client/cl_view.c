@@ -488,6 +488,9 @@ V_RenderView(float stereo_separation)
 #endif
 		}
 
+#ifdef MC1
+		Q2Prof_Frame(cl.timedemo_frames == 0);
+#endif
 		cl.timedemo_frames++;
 	}
 

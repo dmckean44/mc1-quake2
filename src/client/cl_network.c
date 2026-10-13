@@ -310,6 +310,7 @@ CL_Disconnect(void)
 		}
 #ifdef MC1
 		Q2Prof_Mark("TIMEDEMO_END");
+		Q2Prof_Frames();
 		if (Cvar_VariableValue("timedemo_quit"))
 		{
 			Com_Quit();
@@ -800,6 +801,35 @@ Q2Prof_Mark(const char *tag)
 	if ((pe[0] >> 16) == 0x5045)
 	{
 		Com_Printf("%s pe_busy=%u pe_stall=%u\n", tag, (unsigned)pe[6], (unsigned)pe[8]);
+	}
+}
+/* per-frame cycle counts of a timedemo, printed at the end (TDFRAMES lines) */
+static uint32_t td_clk[4096];
+static int td_nclk;
+
+void
+Q2Prof_Frame(qboolean start)
+{
+	if (start)
+	{
+		td_nclk = 0;
+	}
+	if (td_nclk < 4096)
+	{
+		td_clk[td_nclk++] = MMIO(CLKCNTLO);
+	}
+}
+
+void
+Q2Prof_Frames(void)
+{
+	int i;
+
+	Q2Prof_Frame(false);
+	for (i = 1; i < td_nclk; i++)
+	{
+		Com_Printf("%s%u%s", i % 16 == 1 ? "TDFRAMES " : "", (unsigned)(td_clk[i] - td_clk[i - 1]),
+			i % 16 == 0 || i == td_nclk - 1 ? "\n" : " ");
 	}
 }
 #endif

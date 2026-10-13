@@ -553,6 +553,8 @@ trace_t CL_PMTrace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end);
 #ifdef MC1
 /* Prints the MC1 cycle counter, for benchmarking in the simulator */
 void Q2Prof_Mark(const char *tag);
+void Q2Prof_Frame(qboolean start);
+void Q2Prof_Frames(void);
 #endif
 
 #endif
