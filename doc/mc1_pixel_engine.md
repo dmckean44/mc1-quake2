@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 11
+# MC1 pixel engine, version 12
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -27,6 +27,8 @@ renderer, so frames can be checked pixel for pixel against it.
 * Versions 8 to 10 add Quake and Hexen II formats, model vertices (VERTS,
   VERTS2), 2D images (BLIT) and whole world faces (VIEW, FACE).
 * Version 11 draws Quake sprites (SPRITE bit 4).
+* Version 12 builds Quake's two-layer sky per pixel (SKY words 6 and 7), so
+  the CPU no longer rebuilds it with `R_MakeSky` whenever it scrolls.
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -73,7 +75,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 11 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 12 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -285,6 +287,11 @@ For each span, with `pos = v * stride + u`:
   `tex[((t & 0x7f0000) >> 8) + ((s & 0x7f0000) >> 16)]`. Quake and Hexen II
   pass `vpn + (u - xcenter) / xscale * vright + (ycenter - v) / yscale * vup`
   with z multiplied by 3, `offset = skytime * skyspeed` and `scale = 378`.
+  Version 12: if word 6 is not 0, it points to the front layer (128 rows of
+  131 bytes, 0 = transparent, Quake's `bottomsky`) and word 7 holds the shift
+  `(int)(skytime * skyspeed)`. Then the texel at (x, y) is
+  `front[((y + shift) & 127) * 131 + ((x + shift) & 127)]`, or where that is 0,
+  the back layer at `tex[y * 256 + 128 + x]`, as `R_MakeSky` would have built it.
 
 ### 2: SURFACE (10 + (numh+1)*(numv+1) words)
 
