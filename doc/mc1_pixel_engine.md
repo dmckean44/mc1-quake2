@@ -507,7 +507,7 @@ drawn front to back; drivers use it for brush models, drawn after the world,
 sky and background with a VIEW in the model's space. A held surface build
 runs on the face's first span then (any NOCOVER polygon).
 
-### 19: PARTICLES (24 words), version 13
+### 19: PARTICLES (24 or 25 words), version 13
 
 Quake's `D_DrawParticle` for a whole array of particles: each is transformed,
 projected and clipped as there, then drawn as a PARTICLE command.
@@ -522,10 +522,11 @@ projected and clipped as there, then drawn as a PARTICLE command.
 | 16..19 | `d_vrectx`, `d_vrecty`, `d_vrectright_particle`, `d_vrectbottom_particle` |
 | 20..22 | `d_pix_shift`, `d_pix_min`, `d_pix_max` |
 | 23 | near clip distance (float, `PARTICLE_Z_CLIP`) |
+| 24 | optional size multiplier (Quake II `d_pix_mul`, with shift 7); 1 if absent |
 
 `u = (int)(xcenter + x / z + 0.5)` and likewise v, with x, y, z the dot
 products with words 5..13; `izi = (int)(0x8000 / z)` and the size is
-`clamp(izi >> d_pix_shift, d_pix_min, d_pix_max)`. The driver double-buffers
+`clamp((izi * mul) >> d_pix_shift, d_pix_min, d_pix_max)`. The driver double-buffers
 the array and reuses a buffer after the command that read it is done.
 
 ## Memory coherency

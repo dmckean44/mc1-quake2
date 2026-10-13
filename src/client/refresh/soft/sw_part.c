@@ -240,6 +240,63 @@ R_DrawParticle(particle_t *pparticle, int level)
 ** if we're using the asm path, it simply assigns a function pointer
 ** and goes.
 */
+/*
+ * With engine version 13 the particles go out as one batch (PARTICLES): x, y, z and
+ * colour | level << 8 per particle, transformed by the engine. Two buffers, each
+ * reused once the engine is done with it.
+ */
+#define PE_MAXPART	4096
+static float pe_part[2][PE_MAXPART][4];
+static unsigned pe_part_fence[2];
+static int pe_part_buf;
+
+static void
+R_SendParticles(void)
+{
+	float (*rec)[4] = pe_part[pe_part_buf];
+	const particle_t *p = r_newrefdef.particles;
+	int i, n = r_newrefdef.num_particles < PE_MAXPART ? r_newrefdef.num_particles : PE_MAXPART;
+
+	if (!n)
+	{
+		return;
+	}
+	PE_WaitFor(pe_part_fence[pe_part_buf]);
+	for (i = 0; i < n; i++, p++)
+	{
+		int level = p->alpha > 0.66F ? PE_PARTICLE_OPAQUE :
+			p->alpha > 0.33F ? PE_PARTICLE_66 : PE_PARTICLE_33;
+
+		rec[i][0] = p->origin[0];
+		rec[i][1] = p->origin[1];
+		rec[i][2] = p->origin[2];
+		((int *)rec[i])[3] = (p->color & 0xff) | (level << 8);
+	}
+	pe_part_fence[pe_part_buf] = PE_Begin(PE_PARTICLES, 25);
+	PE_Ptr(rec);
+	PE_Word(n);
+	for (i = 0; i < 3; i++)
+		PE_Float(r_origin[i]);
+	for (i = 0; i < 3; i++)
+		PE_Float(r_pright[i]);
+	for (i = 0; i < 3; i++)
+		PE_Float(r_pup[i]);
+	for (i = 0; i < 3; i++)
+		PE_Float(r_ppn[i]);
+	PE_Float(xcenter);
+	PE_Float(ycenter);
+	PE_Word(d_vrectx);
+	PE_Word(d_vrecty);
+	PE_Word(d_vrectright_particle);
+	PE_Word(d_vrectbottom_particle);
+	PE_Word(7);
+	PE_Word(d_pix_min);
+	PE_Word(d_pix_max);
+	PE_Float(PARTICLE_Z_CLIP);
+	PE_Word(d_pix_mul);
+	pe_part_buf ^= 1;
+}
+
 void
 R_DrawParticles (void)
 {
@@ -252,6 +309,12 @@ R_DrawParticles (void)
 	VectorScale( vright, xscaleshrink, r_pright );
 	VectorScale( vup, yscaleshrink, r_pup );
 	VectorCopy( vpn, r_ppn );
+
+	if (pe_active && pe_version >= 13 && !sw_custom_particles->value)
+	{
+		R_SendParticles();
+		return;
+	}
 
 	for (p=r_newrefdef.particles, i=0 ; i<r_newrefdef.num_particles ; i++,p++)
 	{

@@ -36,7 +36,8 @@ enum {
 	PE_MESH = 12,
 	PE_VERTS2 = 15,
 	PE_VIEW = 17,
-	PE_FACE = 18
+	PE_FACE = 18,
+	PE_PARTICLES = 19
 };
 
 #define PE_MAX_LIGHT_SAMPLES	1024
