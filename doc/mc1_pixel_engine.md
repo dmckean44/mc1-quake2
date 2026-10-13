@@ -502,6 +502,11 @@ corner is greater than the particle's Z. Otherwise each pixel with
 `zbuffer <= Z` is drawn and gets the particle's Z.
 
 
+With flag 64 (NOCOVER) a face is depth-tested and writes Z instead of being
+drawn front to back; drivers use it for brush models, drawn after the world,
+sky and background with a VIEW in the model's space. A held surface build
+runs on the face's first span then (any NOCOVER polygon).
+
 ### 19: PARTICLES (24 words), version 13
 
 Quake's `D_DrawParticle` for a whole array of particles: each is transformed,

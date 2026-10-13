@@ -42,6 +42,35 @@ PE_Init(void)
 	}
 }
 
+/* the camera for FACE (vright, vup and vpn as they are now), and the guard
+   rectangle it clips to */
+static const entity_t *pe_view_entity;
+
+static void
+PE_SendView(const vec3_t org)
+{
+	const float cx = xcenter, cy = ycenter;
+	int i;
+
+	PE_Begin(PE_VIEW, 20);
+	for (i = 0; i < 3; i++)
+		PE_Float(org[i]);
+	for (i = 0; i < 3; i++)
+		PE_Float(vright[i]);
+	for (i = 0; i < 3; i++)
+		PE_Float(vup[i]);
+	for (i = 0; i < 3; i++)
+		PE_Float(vpn[i]);
+	PE_Float(xcenter);
+	PE_Float(ycenter);
+	PE_Float(xscale);
+	PE_Float(yscale);
+	PE_Float(cx - PE_GUARD * (cx - r_refdef.vrect.x));
+	PE_Float(cy - PE_GUARD * (cy - r_refdef.vrect.y));
+	PE_Float(cx + PE_GUARD * (r_refdef.vrectright - cx));
+	PE_Float(cy + PE_GUARD * (r_refdef.vrectbottom - cy));
+}
+
 void
 PE_BeginFrame(void)
 {
@@ -75,27 +104,8 @@ PE_BeginFrame(void)
 	pe_faceclip = sw_pefaceclip->value != 0;
 	if (pe_face)
 	{
-		const float cx = xcenter, cy = ycenter;
-		int i;
-
-		/* the camera for FACE, and the guard rectangle it clips to */
-		PE_Begin(PE_VIEW, 20);
-		for (i = 0; i < 3; i++)
-			PE_Float(r_origin[i]);
-		for (i = 0; i < 3; i++)
-			PE_Float(vright[i]);
-		for (i = 0; i < 3; i++)
-			PE_Float(vup[i]);
-		for (i = 0; i < 3; i++)
-			PE_Float(vpn[i]);
-		PE_Float(xcenter);
-		PE_Float(ycenter);
-		PE_Float(xscale);
-		PE_Float(yscale);
-		PE_Float(cx - PE_GUARD * (cx - r_refdef.vrect.x));
-		PE_Float(cy - PE_GUARD * (cy - r_refdef.vrect.y));
-		PE_Float(cx + PE_GUARD * (r_refdef.vrectright - cx));
-		PE_Float(cy + PE_GUARD * (r_refdef.vrectbottom - cy));
+		PE_SendView(r_origin);
+		pe_view_entity = NULL;
 	}
 }
 
@@ -133,14 +143,29 @@ PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 
 	if (pe_world && s->pe_count < 0)
 	{
-		/* a whole world face: the engine clips and projects it (FACE) */
+		/* a whole face: the engine clips and projects it (FACE). Brush
+		   models come last, depth-tested, each with its own camera. */
 		const msurface_t *fa = s->msurf;
+		const model_t *mod = r_worldmodel;
 
+		if (s->insubmodel)
+		{
+			mod = s->entity->model;
+			if (s->entity != pe_view_entity)
+			{
+				vec3_t org;
+
+				R_BmodelViewOrigin(s->entity, org);
+				PE_SendView(org);
+				pe_view_entity = s->entity;
+			}
+			flags |= PE_SPAN_NOCOVER;
+		}
 		PE_Begin(PE_FACE, 26);
 		PE_Word(flags);
-		PE_Ptr(r_worldmodel->vertexes);
-		PE_Ptr(r_worldmodel->surfedges);
-		PE_Ptr(r_worldmodel->edges);
+		PE_Ptr(mod->vertexes);
+		PE_Ptr(mod->surfedges);
+		PE_Ptr(mod->edges);
 		PE_Word(sizeof(medge_t));
 		PE_Word(fa->firstedge);
 		PE_Word(fa->numedges);

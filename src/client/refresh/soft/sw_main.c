@@ -1164,7 +1164,7 @@ R_DrawBEntitiesOnList (void)
 		// calculate dynamic lighting for bmodel
 		R_PushDlights (currentmodel);
 
-		if (topnode->contents == CONTENTS_NODE)
+		if (topnode->contents == CONTENTS_NODE && !pe_face)
 		{
 			// not a leaf; has to be clipped to the world BSP
 			r_clipflags = clipflags;

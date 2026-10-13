@@ -1162,11 +1162,11 @@ PE_DrawWorld (entity_t *currententity, surf_t *world_end, surf_t *surface)
 	{
 		if (s->flags & SURF_DRAWSKY)
 			continue;
-		for (; i < numbmodels && bmodels[i]->key < s->key; i++)
+		for (; !pe_face && i < numbmodels && bmodels[i]->key < s->key; i++)
 			D_DrawSurface (currententity, bmodels[i]);
 		D_DrawSurface (currententity, s);
 	}
-	for (; i < numbmodels; i++)
+	for (; !pe_face && i < numbmodels; i++)
 		D_DrawSurface (currententity, bmodels[i]);
 
 	for (s = &surfaces[2]; s < world_end; s++)
@@ -1176,6 +1176,10 @@ PE_DrawWorld (entity_t *currententity, surf_t *world_end, surf_t *surface)
 	}
 
 	D_DrawSurface (currententity, &surfaces[1]);
+
+	/* with FACE, brush models are depth-tested over everything instead */
+	for (; i < numbmodels; i++)
+		D_DrawSurface (currententity, bmodels[i]);
 
 	VectorSubtract (r_origin, vec3_origin, modelorg);
 	R_TransformFrustum ();

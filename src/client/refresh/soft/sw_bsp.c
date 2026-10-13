@@ -59,6 +59,14 @@ R_EntityRotate (vec3_t vec)
 }
 
 
+/* the camera in the space of a brush model, after R_RotateBmodel for it */
+void
+R_BmodelViewOrigin(const entity_t *e, vec3_t org)
+{
+	VectorSubtract(r_origin, e->origin, org);
+	R_EntityRotate(org);
+}
+
 /*
 ================
 R_RotateBmodel
@@ -442,7 +450,8 @@ R_DrawSubmodelPolygons(entity_t *currententity, const model_t *currentmodel, int
 		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
 			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
 		{
-			r_currentkey = ((mleaf_t *)topnode)->key;
+			/* with FACE the model may span several leaves; the key is unused then */
+			r_currentkey = topnode->contents == CONTENTS_NODE ? 0 : ((mleaf_t *)topnode)->key;
 
 			// FIXME: use bounding-box-based frustum clipping info?
 			R_RenderFace(currententity, currentmodel, psurf, clipflags, true);
