@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 13
+# MC1 pixel engine, version 14
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -30,6 +30,7 @@ renderer, so frames can be checked pixel for pixel against it.
 * Version 12 builds Quake's two-layer sky per pixel (SKY words 6 and 7), so
   the CPU no longer rebuilds it with `R_MakeSky` whenever it scrolls.
 * Version 13 transforms and draws a frame's particles in one batch (PARTICLES).
+* Version 14 gives BLIT a transparent-colour key and an opaque mode, for Quake's 2D.
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -76,7 +77,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 13 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 14 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -454,6 +455,23 @@ dotted with the light vector, `light = c < 0 ? max(0, (int)(ambient + shade * c)
 ambient`, stored in all three light words. The flags are 0: the driver sends
 only models whose blended bounding box is in front of the z clip plane and
 inside the guard band.
+
+### 16: BLIT (12 or 76 words), version 9
+
+A 2D image, as Heretic II's `R_BlitImage` (already clipped to the screen).
+
+| word | |
+|---|---|
+| 0 | source texels (bytes) |
+| 1 | source row length |
+| 2, 3 | source step per destination pixel and per row (16.16) |
+| 4, 5 | start s and t (16.16) |
+| 6 | destination address |
+| 7 | destination row length |
+| 8, 9 | width and height in destination pixels |
+| 10 | bits 0..1: opaque, or blended as `table[c + dst * 256]` (1) or `table[c * 256 + dst]` (2); bit 2: a colour remap follows in words 12..75; version 14: bit 3: the transparent texel is bits 8..15 (else 255), bit 4: no transparent texel |
+| 11 | blend table |
+| 12..75 | colour remap, 256 bytes |
 
 ### 17: VIEW (20 words), version 10
 
