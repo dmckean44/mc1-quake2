@@ -468,9 +468,14 @@ V_RenderView(float stereo_separation)
 			{
 				Q2Prof_Mark("PROF_START");
 			}
+			if (prof_count >= 60)
+			{
+				Q2Prof_Frame(prof_count == 60);
+			}
 			if (prof_count == 60 + (int)prof_frames->value)
 			{
 				Q2Prof_Mark("PROF_END");
+				Q2Prof_Frames();
 				Com_Quit();
 			}
 			prof_count++;

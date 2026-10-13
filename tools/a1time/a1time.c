@@ -103,6 +103,47 @@ static int region_of(uint32_t addr)
     }
 }
 
+/* --marks FILE: record numbers (one per line, ascending); the modelled cycles
+   between consecutive marks are printed as MARKS lines (per-frame times) */
+static uint64_t *marks, *mark_cycles;
+static size_t num_marks, next_mark;
+
+static void load_marks(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    unsigned long long v;
+    size_t cap = 0;
+    if (!f)
+    {
+        fprintf(stderr, "can't read %s\n", path);
+        exit(1);
+    }
+    while (fscanf(f, "%llu", &v) == 1)
+    {
+        if (num_marks == cap)
+        {
+            cap = cap ? 2 * cap : 1024;
+            marks = realloc(marks, cap * 8);
+        }
+        marks[num_marks++] = v;
+    }
+    fclose(f);
+    mark_cycles = calloc(num_marks + 1, 8);
+}
+
+static void check_marks(void)
+{
+    while (next_mark < num_marks && st.records >= marks[next_mark])
+        mark_cycles[next_mark++] = st.cycles;
+}
+
+static void print_marks(void)
+{
+    for (size_t i = 1; i < next_mark; i++)
+        printf("%s%llu%s", i % 16 == 1 ? "MARKS " : "", (unsigned long long)(mark_cycles[i] - mark_cycles[i - 1]),
+               i % 16 == 0 || i == next_mark - 1 ? "\n" : " ");
+}
+
 static int counting(void)
 {
     return st.records >= cfg.start && st.records < cfg.end;
@@ -602,7 +643,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s pcinfo.bin [--start N] [--end N] [--dsize B] [--isize B]\n"
                         "  [--fill rom,vram,xram,mmio] [--write rom,vram,xram,mmio] [--wq N]\n"
                         "  [--fill-gap rom,vram,xram,mmio]\n"
-                        "  [--vc N] [--top N] < trace\n", argv[0]);
+                        "  [--vc N] [--top N] [--marks FILE] < trace\n", argv[0]);
         return 1;
     }
     load_info(argv[1]);
@@ -623,6 +664,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--low")) cfg.low_region = !strcmp(v, "xram") ? R_XRAM : R_ROM;
         else if (!strcmp(k, "--fill")) parse_region_list(v, cfg.fill);
         else if (!strcmp(k, "--write")) parse_region_list(v, cfg.write);
+        else if (!strcmp(k, "--marks")) load_marks(v);
         else
         {
             fprintf(stderr, "unknown option %s\n", k);
@@ -654,10 +696,12 @@ int main(int argc, char **argv)
             {
                 process(&prev, &buf[i], element);
                 st.records++;
+                check_marks();
                 element = buf[i].pc == prev.pc ? element + 1 : 0;
                 if (st.records >= cfg.end)
                 {
                     report();
+                    print_marks();
                     return 0;
                 }
             }
@@ -669,7 +713,9 @@ int main(int argc, char **argv)
     {
         process(&prev, NULL, element);
         st.records++;
+        check_marks();
     }
     report();
+    print_marks();
     return 0;
 }
