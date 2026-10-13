@@ -391,6 +391,7 @@ CalcSurfaceExtents (model_t *loadmodel, msurface_t *s)
 	int		i;
 	mtexinfo_t	*tex;
 	int		bmins[2], bmaxs[2];
+	float	bmin[3] = {1e30F, 1e30F, 1e30F}, bmax[3] = {-1e30F, -1e30F, -1e30F};
 
 	mins[0] = mins[1] = (float)INT_MAX; // Set maximum values for world range
 	maxs[0] = maxs[1] = (float)INT_MIN; // Set minimal values for world range
@@ -412,6 +413,13 @@ CalcSurfaceExtents (model_t *loadmodel, msurface_t *s)
 		{
 			v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
 		}
+		for (j=0 ; j<3 ; j++)
+		{
+			if (v->position[j] < bmin[j])
+				bmin[j] = v->position[j];
+			if (v->position[j] > bmax[j])
+				bmax[j] = v->position[j];
+		}
 		for (j=0 ; j<2 ; j++)
 		{
 			val = v->position[0] * tex->vecs[j][0] +
@@ -423,6 +431,20 @@ CalcSurfaceExtents (model_t *loadmodel, msurface_t *s)
 			if (val > maxs[j])
 				maxs[j] = val;
 		}
+	}
+
+	for (i=0 ; i<3 ; i++)
+	{
+		s->boxcenter[i] = 0.5F * (bmin[i] + bmax[i]);
+		s->boxhalf[i] = 0.5F * (bmax[i] - bmin[i]);
+	}
+	{
+		const float len1 = VectorLength (tex->vecs[0]);
+		const float len2 = VectorLength (tex->vecs[1]);
+
+		s->mipadjust = sqrtf(len1*len1 + len2*len2);
+		if (s->mipadjust < 0.01F)
+			s->mipadjust = 0.01F;
 	}
 
 	for (i=0 ; i<2 ; i++)

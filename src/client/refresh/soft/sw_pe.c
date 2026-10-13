@@ -134,6 +134,58 @@ PE_CoverBegin(void)
 	PE_Word(shift_size);
 }
 
+/* the first 7 words of FACE and FACETEX: a whole face, which the engine clips and
+   projects. Brush models come last, depth-tested, each with its own camera. */
+static void
+PE_FaceHeader(const surf_t *s, int flags, unsigned op, unsigned words)
+{
+	const msurface_t *fa = s->msurf;
+	const model_t *mod = r_worldmodel;
+
+	if (s->insubmodel)
+	{
+		mod = s->entity->model;
+		if (s->entity != pe_view_entity)
+		{
+			vec3_t org;
+
+			R_BmodelViewOrigin(s->entity, org);
+			PE_SendView(org);
+			pe_view_entity = s->entity;
+		}
+		flags |= PE_SPAN_NOCOVER;
+	}
+	PE_Begin(op, words);
+	PE_Word(flags);
+	PE_Ptr(mod->vertexes);
+	PE_Ptr(mod->surfedges);
+	PE_Ptr(mod->edges);
+	PE_Word(sizeof(medge_t));
+	PE_Word(fa->firstedge);
+	PE_Word(fa->numedges);
+}
+
+/* a solid face whose texture gradients the engine works out (FACETEX, version 15):
+   R_RenderFace skipped the 1/z gradients and D_CalcGradients is not needed */
+void
+PE_DrawFaceTex(const surf_t *s, int flags, int mip, const float *tmo)
+{
+	const msurface_t *fa = s->msurf;
+
+	PE_FaceHeader(s, flags, PE_FACETEX, 18);
+	PE_Ptr(cacheblock);
+	PE_Word(cachewidth);
+	PE_Word(mip);
+	PE_Ptr(fa->texinfo->vecs);
+	PE_Ptr(fa->plane);
+	PE_Word((fa->texturemins[0] & 0xffff) | (fa->texturemins[1] << 16));
+	PE_Word((fa->extents[0] & 0xffff) | (fa->extents[1] << 16));
+	PE_Float(tmo[0]);
+	PE_Float(tmo[1]);
+	PE_Float(tmo[2]);
+	PE_Ptr(NULL);
+}
+
 void
 PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 	float d_ziorigin, float d_zistepu, float d_zistepv,
@@ -143,32 +195,7 @@ PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 
 	if (pe_world && s->pe_count < 0)
 	{
-		/* a whole face: the engine clips and projects it (FACE). Brush
-		   models come last, depth-tested, each with its own camera. */
-		const msurface_t *fa = s->msurf;
-		const model_t *mod = r_worldmodel;
-
-		if (s->insubmodel)
-		{
-			mod = s->entity->model;
-			if (s->entity != pe_view_entity)
-			{
-				vec3_t org;
-
-				R_BmodelViewOrigin(s->entity, org);
-				PE_SendView(org);
-				pe_view_entity = s->entity;
-			}
-			flags |= PE_SPAN_NOCOVER;
-		}
-		PE_Begin(PE_FACE, 26);
-		PE_Word(flags);
-		PE_Ptr(mod->vertexes);
-		PE_Ptr(mod->surfedges);
-		PE_Ptr(mod->edges);
-		PE_Word(sizeof(medge_t));
-		PE_Word(fa->firstedge);
-		PE_Word(fa->numedges);
+		PE_FaceHeader(s, flags, PE_FACE, 26);
 	}
 	else if (!pe_world)
 	{

@@ -969,7 +969,7 @@ Normal surface cached, texture mapped surface
 static void
 D_SolidSurf (entity_t *currententity, surf_t *s)
 {
-	float len1, len2, mipadjust;
+	float mipadjust;
 
 	if (s->insubmodel)
 	{
@@ -987,13 +987,7 @@ D_SolidSurf (entity_t *currententity, surf_t *s)
 
 	pface = s->msurf;
 
-	len1 = VectorLength (pface->texinfo->vecs[0]);
-	len2 = VectorLength (pface->texinfo->vecs[1]);
-	mipadjust = sqrtf(len1*len1 + len2*len2);
-	if (mipadjust < 0.01F)
-	{
-		mipadjust = 0.01F;
-	}
+	mipadjust = pface->mipadjust;	/* worked out at load time */
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip * mipadjust);
 
 	// FIXME: make this passed in to D_CacheSurface
@@ -1002,20 +996,29 @@ D_SolidSurf (entity_t *currententity, surf_t *s)
 	cacheblock = (pixel_t *)pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 
-	D_CalcGradients (pface, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
-
-	if (pe_active)
+	if (pe_active && s->pe_count < 0 && PE_FACETEX_OK(pface))
 	{
-		PE_DrawSurf(s, PE_SPAN_TEX | PE_SPAN_Z, NULL,
-			s->d_ziorigin, s->d_zistepu, s->d_zistepv,
-			s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		PE_DrawFaceTex(s, PE_SPAN_TEX | PE_SPAN_Z, miplevel, transformed_modelorg);
 		pcurrentcache->pe_fence = pe_submitted;
 	}
 	else
 	{
-		D_DrawSpansPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		D_CalcGradients (pface, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
 
-		D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		if (pe_active)
+		{
+			PE_DrawSurf(s, PE_SPAN_TEX | PE_SPAN_Z, NULL,
+				s->d_ziorigin, s->d_zistepu, s->d_zistepv,
+				s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+			pcurrentcache->pe_fence = pe_submitted;
+		}
+		else
+		{
+			D_DrawSpansPow2 (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+
+			D_DrawZSpans (s->spans, s->d_ziorigin, s->d_zistepu, s->d_zistepv);
+		}
+
 	}
 
 	if (s->insubmodel)

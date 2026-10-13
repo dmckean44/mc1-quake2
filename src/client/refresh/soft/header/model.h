@@ -60,6 +60,10 @@ typedef struct msurface_s
 	short		texturemins[2];
 	short		extents[2];
 
+	float		boxcenter[3];	// bounding box of the vertices, for FACE
+	float		boxhalf[3];
+	float		mipadjust;	// length of the texture axes, for the mip level
+
 	mtexinfo_t	*texinfo;
 
 	// lighting info

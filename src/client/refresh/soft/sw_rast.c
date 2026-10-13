@@ -678,14 +678,39 @@ R_RenderFace (entity_t *currententity, const model_t *currentmodel, msurface_t *
 	if (pe_face)
 	{
 		/* The engine clips and projects the whole face (FACE). The mip level wants
-		   the nearest 1/z, no nearer than z = 1: the nearest vertex. With
-		   pe_faceclip, as the CPU path, of the visible part: if the nearest vertex
-		   is off the screen, the face is clipped here. That changes mip levels as
+		   the nearest 1/z, no nearer than z = 1: by default from the bounding box.
+		   With pe_faceclip, as the CPU path, of the visible part: the nearest vertex,
+		   and if that is off the screen, the face is clipped here. That changes mip levels as
 		   walls cross the screen edge, so more surfaces get rebuilt. */
 		const unsigned	vmask = clipflags & 15;
 		unsigned	outside = vmask;	/* screen planes every vertex is behind */
 		const float	*near = NULL;
 		float		zmin = 1e30F;
+
+		if (!pe_faceclip)
+		{
+			/* the face's bounding box instead of its vertices: the nearest
+			   corner (the nearest vertex for axis-aligned rectangles) and a
+			   box-plane test for the screen edges */
+			const float	*c = fa->boxcenter, *h = fa->boxhalf;
+
+			for (unsigned k = 0; k < 4; k++)
+			{
+				const float *n = view_clipplanes[k].normal;
+
+				if ((vmask & (1u << k)) && DotProduct(c, n) - view_clipplanes[k].dist +
+					fabsf(n[0]) * h[0] + fabsf(n[1]) * h[1] + fabsf(n[2]) * h[2] < 0)
+					return;	/* entirely off the screen */
+			}
+			zmin = (c[0] - modelorg[0]) * vpn[0] + (c[1] - modelorg[1]) * vpn[1] +
+				(c[2] - modelorg[2]) * vpn[2] -
+				(fabsf(vpn[0]) * h[0] + fabsf(vpn[1]) * h[1] + fabsf(vpn[2]) * h[2]);
+			r_nearzi = 1.0F / (zmin < 1.0F ? 1.0F : zmin);
+			surface_p->pe_first = 0;
+			surface_p->pe_count = -1;
+			c_faceclip++;
+			goto post;
+		}
 
 		for (i = 0; i < fa->numedges; i++)
 		{
@@ -892,6 +917,12 @@ post:
 	surface_p->entity = currententity;
 	surface_p->key = r_currentkey++;
 	surface_p->spans = NULL;
+
+	if (surface_p->pe_count < 0 && PE_FACETEX_OK(fa))
+	{
+		surface_p++;	/* the engine works out the gradients (FACETEX) */
+		return;
+	}
 
 	pplane = fa->plane;
 	// FIXME: cache this?
