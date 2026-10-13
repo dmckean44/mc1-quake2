@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 15
+# MC1 pixel engine, version 16
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -33,6 +33,7 @@ renderer, so frames can be checked pixel for pixel against it.
 * Version 14 gives BLIT a transparent-colour key and an opaque mode, for Quake's 2D.
 * Version 15 sets up a face's texture gradients itself (FACETEX), from the plane, the
   texture axes and the surface-cache block.
+* Version 16 adds Hexen II's sprite modes (SPRITE bits 5 and 6).
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -79,7 +80,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 15 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 16 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -391,7 +392,7 @@ spanlets (not the turbulent path), and each pixel as Heretic II's
 | 2 | texture width in texels |
 | 3..6 | sadjust, tadjust, bbextents, bbextentt (16.16) |
 | 7..15 | s/z, t/z and 1/z: origin, step u, step v each (floats) |
-| 16 | blend in bits 0..1 (0 opaque, 1 33%, 2 66%, 3 additive); bit 2: no depth test; bit 3: turbulent (version 7); bit 4: Quake sprite (version 11) |
+| 16 | blend in bits 0..1 (0 opaque, 1 33%, 2 66%, 3 additive); bit 2: no depth test; bit 3: turbulent (version 7); bit 4: Quake sprite (version 11); version 16: bit 5: a Quake sprite writes Z when opaque (Hexen II), bit 6: odd texels blended through the table, even ones opaque, no Z (Hexen II `EF_TRANSPARENT`) |
 | 17 | 1 if a colour remap follows in words 19..82 |
 | 18 | additive table (256 x 256 bytes, `table[colour * 256 + dst]`), or for turbulent polygons the turbulence table (128 ints) |
 | 19..82 | colour remap, 256 bytes |
