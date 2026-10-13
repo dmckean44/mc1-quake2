@@ -9,6 +9,7 @@ unsigned pe_synced;
 unsigned pe_spans_fence;
 qboolean pe_world;
 qboolean pe_face;
+qboolean pe_faceclip;
 pe_surfedge_t *pe_surfedges;
 int pe_numsurfedges;
 int pe_maxsurfedges;
@@ -18,6 +19,7 @@ volatile unsigned pe_noreg;
 #endif
 
 static cvar_t *sw_pe;
+static cvar_t *sw_pefaceclip;
 static const pixel_t *pe_skin;
 static int pe_skinwidth;
 
@@ -25,6 +27,7 @@ void
 PE_Init(void)
 {
 	sw_pe = ri.Cvar_Get("sw_pe", "2", CVAR_ARCHIVE);
+	sw_pefaceclip = ri.Cvar_Get("sw_pefaceclip", "0", 0);
 #if defined(MC1)
 	{
 		unsigned id = PE_REG(PE_ID);
@@ -69,6 +72,7 @@ PE_BeginFrame(void)
 	pe_skin = NULL;
 
 	pe_face = pe_world && pe_version >= 10;
+	pe_faceclip = sw_pefaceclip->value != 0;
 	if (pe_face)
 	{
 		const float cx = xcenter, cy = ycenter;

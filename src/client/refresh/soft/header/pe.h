@@ -70,6 +70,7 @@ extern unsigned pe_synced;
 extern unsigned pe_spans_fence;
 extern qboolean pe_world;
 extern qboolean pe_face;	/* world faces go out whole, as FACE (version 10) */
+extern qboolean pe_faceclip;	/* FACE mip levels from the face clipped to the screen */
 
 typedef struct
 {

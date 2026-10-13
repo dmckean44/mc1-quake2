@@ -458,8 +458,8 @@ and `R_EmitEdge`.
 | 0 | flags, as POLY |
 | 1 | vertices (`mvertex_t`: three floats) |
 | 2 | surface edges (`int`: an edge index, negative for a reversed edge) |
-| 3 | edges (`medge_t`, two 16-bit vertex indices first) |
-| 4 | edge record size in bytes |
+| 3 | edges (`medge_t`, two vertex indices first) |
+| 4 | edge record size in bytes; bit 16: the indices are 32-bit (Hexen II), else 16-bit |
 | 5, 6 | first surface edge, number of edges |
 | 7..25 | POLY's words 2..20: texture, adjustments, gradients, turbulence table |
 
