@@ -8,6 +8,7 @@ unsigned pe_submitted;
 unsigned pe_synced;
 unsigned pe_spans_fence;
 qboolean pe_world;
+qboolean pe_face;
 pe_surfedge_t *pe_surfedges;
 int pe_numsurfedges;
 int pe_maxsurfedges;
@@ -66,6 +67,32 @@ PE_BeginFrame(void)
 	PE_Ptr(vid_colormap);
 	PE_Ptr(vid_alphamap);
 	pe_skin = NULL;
+
+	pe_face = pe_world && pe_version >= 10;
+	if (pe_face)
+	{
+		const float cx = xcenter, cy = ycenter;
+		int i;
+
+		/* the camera for FACE, and the guard rectangle it clips to */
+		PE_Begin(PE_VIEW, 20);
+		for (i = 0; i < 3; i++)
+			PE_Float(r_origin[i]);
+		for (i = 0; i < 3; i++)
+			PE_Float(vright[i]);
+		for (i = 0; i < 3; i++)
+			PE_Float(vup[i]);
+		for (i = 0; i < 3; i++)
+			PE_Float(vpn[i]);
+		PE_Float(xcenter);
+		PE_Float(ycenter);
+		PE_Float(xscale);
+		PE_Float(yscale);
+		PE_Float(cx - PE_GUARD * (cx - r_refdef.vrect.x));
+		PE_Float(cy - PE_GUARD * (cy - r_refdef.vrect.y));
+		PE_Float(cx + PE_GUARD * (r_refdef.vrectright - cx));
+		PE_Float(cy + PE_GUARD * (r_refdef.vrectbottom - cy));
+	}
 }
 
 void
@@ -100,7 +127,21 @@ PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 {
 	int i, n = 0;
 
-	if (!pe_world)
+	if (pe_world && s->pe_count < 0)
+	{
+		/* a whole world face: the engine clips and projects it (FACE) */
+		const msurface_t *fa = s->msurf;
+
+		PE_Begin(PE_FACE, 26);
+		PE_Word(flags);
+		PE_Ptr(r_worldmodel->vertexes);
+		PE_Ptr(r_worldmodel->surfedges);
+		PE_Ptr(r_worldmodel->edges);
+		PE_Word(sizeof(medge_t));
+		PE_Word(fa->firstedge);
+		PE_Word(fa->numedges);
+	}
+	else if (!pe_world)
 	{
 		pe_spans_fence = PE_Begin(PE_SPANS, 21);
 	}
@@ -113,11 +154,14 @@ PE_DrawSurf(const surf_t *s, int flags, const int *turb,
 		n = s->pe_count;
 		PE_Begin(PE_POLY, 21 + 3 * n);
 	}
-	PE_Word(flags);
-	if (pe_world)
-		PE_Word(n);
-	else
-		PE_Ptr(s->spans);
+	if (!(pe_world && s->pe_count < 0))
+	{
+		PE_Word(flags);
+		if (pe_world)
+			PE_Word(n);
+		else
+			PE_Ptr(s->spans);
+	}
 	PE_Ptr(cacheblock);
 	PE_Word(cachewidth);
 	PE_Word(sadjust);

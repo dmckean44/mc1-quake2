@@ -620,6 +620,30 @@ R_RenderFace (entity_t *currententity, const model_t *currentmodel, msurface_t *
 		return;
 	}
 
+	if (pe_face && !insubmodel)
+	{
+		/* The engine clips and projects the whole face (FACE). The mip level wants
+		   the nearest 1/z: take it from the vertices, no nearer than z = 1. */
+		r_nearzi = 0;
+		for (i = 0; i < fa->numedges; i++)
+		{
+			const int lindex = currentmodel->surfedges[fa->firstedge + i];
+			const medge_t *e = &currentmodel->edges[lindex > 0 ? lindex : -lindex];
+			const float *pos = r_pcurrentvertbase[lindex > 0 ? e->v[0] : e->v[1]].position;
+			float z = (pos[0] - modelorg[0]) * vpn[0] + (pos[1] - modelorg[1]) * vpn[1] +
+				(pos[2] - modelorg[2]) * vpn[2];
+
+			if (z < 1.0F)
+				z = 1.0F;
+			if (1.0F / z > r_nearzi)
+				r_nearzi = 1.0F / z;
+		}
+		surface_p->pe_first = 0;
+		surface_p->pe_count = -1;
+		c_faceclip++;
+		goto post;
+	}
+
 	surface_p->pe_first = pe_numsurfedges;
 	r_projcache = !insubmodel;
 	c_faceclip++;
@@ -774,9 +798,9 @@ R_RenderFace (entity_t *currententity, const model_t *currentmodel, msurface_t *
 		return;
 	}
 
-	r_polycount++;
-
 	surface_p->pe_count = pe_numsurfedges - surface_p->pe_first;
+post:
+	r_polycount++;
 	surface_p->msurf = fa;
 	surface_p->nearzi = r_nearzi;
 	surface_p->flags = fa->flags;

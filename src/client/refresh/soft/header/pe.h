@@ -34,7 +34,9 @@ enum {
 	PE_LITSURF = 10,
 	PE_DEFER = 11,
 	PE_MESH = 12,
-	PE_VERTS2 = 15
+	PE_VERTS2 = 15,
+	PE_VIEW = 17,
+	PE_FACE = 18
 };
 
 #define PE_MAX_LIGHT_SAMPLES	1024
@@ -67,6 +69,7 @@ extern unsigned pe_submitted;
 extern unsigned pe_synced;
 extern unsigned pe_spans_fence;
 extern qboolean pe_world;
+extern qboolean pe_face;	/* world faces go out whole, as FACE (version 10) */
 
 typedef struct
 {

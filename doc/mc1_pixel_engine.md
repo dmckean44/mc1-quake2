@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 9
+# MC1 pixel engine, version 10
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -70,7 +70,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 9 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 10 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -439,6 +439,38 @@ dotted with the light vector, `light = c < 0 ? max(0, (int)(ambient + shade * c)
 ambient`, stored in all three light words. The flags are 0: the driver sends
 only models whose blended bounding box is in front of the z clip plane and
 inside the guard band.
+
+### 17: VIEW (20 words), version 10
+
+The camera for FACE: words 0..2 the origin, 3..5 `vright`, 6..8 `vup`, 9..11
+`vpn` (world space, or the model's space for a brush model), 12..15 `xcenter`,
+`ycenter`, `xscale`, `yscale`, and 16..19 the guard rectangle `x0, y0, x1, y1`
+(screen coordinates, floats) that faces are clipped to.
+
+### 18: FACE (26 words), version 10
+
+A world face the engine transforms, clips and projects itself, then draws
+as a POLY: the front end of `R_RenderFace` with `R_ClipEdge`, `R_ProjectVertex`
+and `R_EmitEdge`.
+
+| word | |
+|---|---|
+| 0 | flags, as POLY |
+| 1 | vertices (`mvertex_t`: three floats) |
+| 2 | surface edges (`int`: an edge index, negative for a reversed edge) |
+| 3 | edges (`medge_t`, two 16-bit vertex indices first) |
+| 4 | edge record size in bytes |
+| 5, 6 | first surface edge, number of edges |
+| 7..25 | POLY's words 2..20: texture, adjustments, gradients, turbulence table |
+
+The face's vertices (the start of each edge, in order) go into view space
+(`local = pos - origin`, then the three dot products), the polygon is clipped
+against the four planes through the eye and the guard rectangle's sides,
+each vertex is projected with `z` no smaller than 0.01, and edges are made as
+`R_EmitEdge` makes them, without its screen clamps; rows above the view
+rectangle are skipped, adjusting `u`. The CPU keeps the BSP walk, culling and
+back-face test, and picks the mip level itself (Quake II and Heretic II take
+the nearest vertex depth, no nearer than 1).
 
 ### 4: PARTICLE (6 words)
 
