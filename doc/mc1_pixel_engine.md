@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 18
+# MC1 pixel engine, version 19
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -36,6 +36,9 @@ renderer, so frames can be checked pixel for pixel against it.
 * Version 16 adds Hexen II's sprite modes (SPRITE bits 5 and 6).
 * Version 17 draws sprite polygons from their world-space vertices (SPRITEPOLY).
 * Version 18 lets SKIN carry a colour remap for the lit texel (Heretic II's tints).
+* Version 19 takes colour remaps by address (SPRITE/SPRITEPOLY word 17 = 2, BLIT bit 5,
+  5-word SKIN): the engine reads the 256 bytes when it runs the command, and the driver
+  keeps the table unchanged until then (fences).
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -82,7 +85,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 18 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 19 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
