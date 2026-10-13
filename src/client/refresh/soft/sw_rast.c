@@ -138,6 +138,8 @@ R_InitSkyBox (model_t *loadmodel)
 		r_skyfaces[i].texturemins[1] = -128;
 		r_skyfaces[i].extents[0] = 256;
 		r_skyfaces[i].extents[1] = 256;
+		r_skyfaces[i].mipadjust = sqrtf(DotProduct(box_vecs[i][0], box_vecs[i][0]) +
+			DotProduct(box_vecs[i][1], box_vecs[i][1]));
 	}
 
 	for (i=0 ; i<24 ; i++)
@@ -189,6 +191,21 @@ R_EmitSkyBox(entity_t *currententity, const model_t *currentmodel, qboolean insu
 	{
 		r_skytexinfo[i].vecs[0][3] = -DotProduct (r_origin, r_skytexinfo[i].vecs[0]);
 		r_skytexinfo[i].vecs[1][3] = -DotProduct (r_origin, r_skytexinfo[i].vecs[1]);
+	}
+
+	// the faces' boxes, for FACE's mip level and screen cull: squares 128 units
+	// from the eye
+	for (i=0 ; i<6 ; i++)
+	{
+		const int axis = skybox_planes[i*2];
+
+		for (j=0 ; j<3 ; j++)
+		{
+			r_skyfaces[i].boxcenter[j] = r_origin[j];
+			r_skyfaces[i].boxhalf[j] = 128;
+		}
+		r_skyfaces[i].boxcenter[axis] += skybox_planes[i*2+1] > 0 ? 128 : -128;
+		r_skyfaces[i].boxhalf[axis] = 0;
 	}
 
 	// emit the six faces
