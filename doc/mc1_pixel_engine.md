@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 16
+# MC1 pixel engine, version 17
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -34,6 +34,7 @@ renderer, so frames can be checked pixel for pixel against it.
 * Version 15 sets up a face's texture gradients itself (FACETEX), from the plane, the
   texture axes and the surface-cache block.
 * Version 16 adds Hexen II's sprite modes (SPRITE bits 5 and 6).
+* Version 17 draws sprite polygons from their world-space vertices (SPRITEPOLY).
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -80,7 +81,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 16 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 17 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -545,6 +546,17 @@ precision and in the same order of operations, with the camera of the last VIEW.
 | 13 | extents s \| t << 16 |
 | 14..16 | `transformed_modelorg` (floats) |
 | 17 | turbulence table (0 for solid surfaces) |
+
+### 21: SPRITEPOLY (19 or 83 words + 1 + 3n), version 17
+
+A SPRITE polygon given by its vertices instead of its spans: SPRITE's words
+(word 0 unused, the colour remap included when word 17 says so), then the vertex
+count n and n world-space vertices (x, y, z floats). The engine transforms them
+with the camera of the last VIEW, clips them to its guard planes and projects
+them as FACE does, scans the polygon into spans (pixel centres at integer
+coordinates, left edge inclusive, limited to the COVER rectangle) and draws them
+as SPRITE. Heretic II sends its translucent surfaces, sprites and spell
+polygons this way (`R_ClipAndDrawPolyCommon`).
 
 ### 19: PARTICLES (24 or 25 words), version 13
 
