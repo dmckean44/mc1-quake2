@@ -48,6 +48,31 @@ R_MarkSurfaceLights(dlight_t *light, int bit, mnode_t *node, int r_dlightframeco
 	}
 }
 
+/* R_MarkLights for the world, skipping nodes that are not visible this frame */
+static void
+R_MarkLightsVis(dlight_t *light, int bit, mnode_t *node)
+{
+	while (node->contents == CONTENTS_NODE && node->visframe == r_visframecount)
+	{
+		const float dist = DotProduct(light->origin, node->plane->normal) - node->plane->dist;
+		const int intensity = light->intensity;
+
+		if (dist > intensity - DLIGHT_CUTOFF)
+		{
+			node = node->children[0];
+			continue;
+		}
+		if (dist < -intensity + DLIGHT_CUTOFF)
+		{
+			node = node->children[1];
+			continue;
+		}
+		R_MarkSurfaceLights(light, bit, node, r_framecount);
+		R_MarkLightsVis(light, bit, node->children[0]);
+		node = node->children[1];
+	}
+}
+
 /*
 =============
 R_PushDlights
@@ -61,6 +86,11 @@ R_PushDlights (const model_t *model)
 
 	for (i=0, l = r_newrefdef.dlights ; i<r_newrefdef.num_dlights ; i++, l++)
 	{
+		if (model == r_worldmodel)
+		{
+			R_MarkLightsVis(l, 1<<i, model->nodes);
+			continue;
+		}
 		R_MarkLights ( l, 1<<i,
 			model->nodes + model->firstnode,
 			r_framecount, R_MarkSurfaceLights);
