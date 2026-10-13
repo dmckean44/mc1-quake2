@@ -598,6 +598,14 @@ before such reads but does not flush the cache.
 Likewise the engine's texture cache must not keep lines of a surface-cache
 block it is rebuilding.
 
+The engine's texture cache is emptied by TARGET, i.e. once per frame. Within a
+frame the CPU must not change memory the engine reads through it (textures, the
+sky, surface-cache blocks, colormap and blend tables) after the engine may have
+read it in that frame; changes made before the frame's first use are fine (Quake's
+`R_MakeSky` writes the sky before the first sky polygon is sent). The RTL
+(mc1-mister `rtl/pe`) follows this rule, and its trace testbench applies the
+CPU's changes at each TARGET.
+
 ## Arithmetic
 
 The model reproduces the software renderer bit for bit, including float
