@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 17
+# MC1 pixel engine, version 18
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -35,6 +35,7 @@ renderer, so frames can be checked pixel for pixel against it.
   texture axes and the surface-cache block.
 * Version 16 adds Hexen II's sprite modes (SPRITE bits 5 and 6).
 * Version 17 draws sprite polygons from their world-space vertices (SPRITEPOLY).
+* Version 18 lets SKIN carry a colour remap for the lit texel (Heretic II's tints).
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -81,7 +82,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 17 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 18 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -214,7 +215,7 @@ whose flag is still 0 as not built.
 
 Sets render state used by all later commands. Sent once per frame.
 
-### 6: SKIN (2 or 4 words)
+### 6: SKIN (2, 4 or 68 words)
 
 | word | |
 |---|---|
@@ -222,6 +223,7 @@ Sets render state used by all later commands. Sent once per frame.
 | 1 | skin width in texels |
 | 2 | mode (version 8; 0 when left out) |
 | 3 | blend table (256 x 256 bytes) for the mode |
+| 4..67 | version 18: a colour remap (256 bytes) applied to `lit` before the table |
 
 Texture for later `TRIANGLE` and `MESH` commands. The mode covers Hexen II's
 translucent and holey model drawers and the blended model triangles of the
