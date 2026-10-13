@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 14
+# MC1 pixel engine, version 15
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -31,6 +31,8 @@ renderer, so frames can be checked pixel for pixel against it.
   the CPU no longer rebuilds it with `R_MakeSky` whenever it scrolls.
 * Version 13 transforms and draws a frame's particles in one batch (PARTICLES).
 * Version 14 gives BLIT a transparent-colour key and an opaque mode, for Quake's 2D.
+* Version 15 sets up a face's texture gradients itself (FACETEX), from the plane, the
+  texture axes and the surface-cache block.
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -77,7 +79,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 14 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 15 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -524,6 +526,24 @@ With flag 64 (NOCOVER) a face is depth-tested and writes Z instead of being
 drawn front to back; drivers use it for brush models, drawn after the world,
 sky and background with a VIEW in the model's space. A held surface build
 runs on the face's first span then (any NOCOVER polygon).
+
+### 20: FACETEX (18 words), version 15
+
+FACE for a solid surface whose 19 span words the engine computes, as Quake's
+`R_RenderFace` (1/z gradients from the plane) and `D_CalcGradients` do, in single
+precision and in the same order of operations, with the camera of the last VIEW.
+
+| word | |
+|---|---|
+| 0..6 | as FACE |
+| 7, 8 | surface-cache block and its width |
+| 9 | mip level |
+| 10 | texture axes (`texinfo->vecs`: s x, y, z, offset, then t) |
+| 11 | plane (normal x, y, z, dist) |
+| 12 | texturemins s \| t << 16 (signed 16-bit) |
+| 13 | extents s \| t << 16 |
+| 14..16 | `transformed_modelorg` (floats) |
+| 17 | turbulence table (0 for solid surfaces) |
 
 ### 19: PARTICLES (24 or 25 words), version 13
 
