@@ -1,4 +1,4 @@
-# MC1 pixel engine, version 12
+# MC1 pixel engine, version 13
 
 A command-driven rasterizer that takes the per-pixel work of the Quake II
 software renderer off the MRISC32-A1 CPU. Its arithmetic follows the software
@@ -29,6 +29,7 @@ renderer, so frames can be checked pixel for pixel against it.
 * Version 11 draws Quake sprites (SPRITE bit 4).
 * Version 12 builds Quake's two-layer sky per pixel (SKY words 6 and 7), so
   the CPU no longer rebuilds it with `R_MakeSky` whenever it scrolls.
+* Version 13 transforms and draws a frame's particles in one batch (PARTICLES).
 
 A functional and timing model lives in the MRISC32 simulator
 (`sim/pixel_engine.cpp`, enabled with `--pe`). The Quake II driver is in
@@ -75,7 +76,7 @@ Base address `0xc0000200` (MMIO, uncached). All registers are 32 bits.
 
 | offset | name | access | |
 |---|---|---|---|
-| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 12 |
+| 0x00 | ID | R | `0x5045` ("PE") << 16 \| version; the model reports version 13 |
 | 0x04 | CMD | W | command FIFO |
 | 0x08 | SYNC | R | stalls the read until the engine is idle, returns the number of finished commands |
 | 0x0c | WAIT | W | stalls the write until the number of finished commands is at least the value |
@@ -499,6 +500,28 @@ the nearest vertex depth, no nearer than 1).
 Nothing is drawn if the Z buffer at `stride * size / 2 + size / 2` from the
 corner is greater than the particle's Z. Otherwise each pixel with
 `zbuffer <= Z` is drawn and gets the particle's Z.
+
+
+### 19: PARTICLES (24 words), version 13
+
+Quake's `D_DrawParticle` for a whole array of particles: each is transformed,
+projected and clipped as there, then drawn as a PARTICLE command.
+
+| word | |
+|---|---|
+| 0 | particle array: 16 bytes each, x, y, z (floats) and colour \| level << 8 (as PARTICLE word 5) |
+| 1 | number of particles |
+| 2..4 | view origin (`r_origin`) |
+| 5..13 | `r_pright`, `r_pup`, `r_ppn` (the right and up vectors pre-scaled by the projection) |
+| 14, 15 | xcenter, ycenter (floats) |
+| 16..19 | `d_vrectx`, `d_vrecty`, `d_vrectright_particle`, `d_vrectbottom_particle` |
+| 20..22 | `d_pix_shift`, `d_pix_min`, `d_pix_max` |
+| 23 | near clip distance (float, `PARTICLE_Z_CLIP`) |
+
+`u = (int)(xcenter + x / z + 0.5)` and likewise v, with x, y, z the dot
+products with words 5..13; `izi = (int)(0x8000 / z)` and the size is
+`clamp(izi >> d_pix_shift, d_pix_min, d_pix_max)`. The driver double-buffers
+the array and reuses a buffer after the command that read it is done.
 
 ## Memory coherency
 
